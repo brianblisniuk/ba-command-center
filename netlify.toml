@@ -1,7 +1,7 @@
-# B&A Command Center — standalone canónico (sin build step)
+# B&A Command Center — standalone canónico. El build copia los estáticos a dist/.
 [build]
-  command = "echo 'standalone static — no build'"
-  publish = "."
+  command = "rm -rf dist && mkdir -p dist && cp index.html tweaks-panel.jsx dist/ && cp -r css js dist/"
+  publish = "dist"
 
 [[headers]]
   for = "/*"
