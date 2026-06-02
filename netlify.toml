@@ -1,0 +1,9 @@
+# B&A Command Center — standalone canónico (sin build step)
+[build]
+  command = "echo 'standalone static — no build'"
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-cache"
