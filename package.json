@@ -1,0 +1,20 @@
+{
+  "name": "ba-command-center",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Blisniuk & Amanov — Command Center (rediseño de batwt)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "typescript": "^5.5.0"
+  }
+}
