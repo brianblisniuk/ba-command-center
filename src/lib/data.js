@@ -289,11 +289,11 @@ window.BA = (function () {
   });
 
   // ============================================================
-  //  Conexion Supabase (real) - proyecto pptldpjwggrnbkvppolu
+  //  Conexion Supabase (real) - proyecto onnqcdjkvpvpvtsorpup
   //  Default = demo (mock). Si hay sesion de operador -> hidrata en vivo.
   // ============================================================
-  const SB_URL = 'https://pptldpjwggrnbkvppolu.supabase.co';
-  const SB_KEY = 'sb_publishable_6Xs9DoveG6nvB8FK1q_RAw_apQCmTr_';
+  const SB_URL = 'https://onnqcdjkvpvpvtsorpup.supabase.co';
+  const SB_KEY = 'sb_publishable_PcVUGfWVD_Aj_gE1H0Jr4g_fKrLn-Ua';
   const live = { mode: 'demo', operator: null }; // 'demo' | 'connecting' | 'live'
 
   let _sb = null;
