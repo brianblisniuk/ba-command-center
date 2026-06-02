@@ -2,10 +2,19 @@
    B&A · Command Center — datos de operaciones
    Salidas reales del backup + CRM/finanzas curados (realista)
    ============================================================ */
+/* ===== Supabase client · base nueva (onnqcdjkvpvpvtsorpup). Anon key es pública, protegida por RLS. ===== */
+window.SB = (window.supabase && window.supabase.createClient)
+  ? window.supabase.createClient(
+      'https://onnqcdjkvpvpvtsorpup.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ubnFjZGprdnB2cHZ0c29ycHVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNzkxNTYsImV4cCI6MjA5NTk1NTE1Nn0.-tEOY2FT4WTL_zOSWnxolA1mEtIZGSd9mzQ5TyoBui0',
+      { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'ba-cc-auth' } }
+    )
+  : null;
+
 window.BA = (function () {
   const brand = {
     name: 'Blisniuk & Amanov',
-    tagline: 'Luxury as access, never excess',
+    tagline: 'Acceso · Autoría · Afinidad',
     pilares: ['Acceso', 'Autoría', 'Afinidad'],
   };
 
@@ -361,6 +370,15 @@ window.BA = (function () {
     async calendario() { return { mes: calMes, eventos: calEventos }; },
     async leadChangeStage(id, stage) { const l = leads.find(x => x.id === id); if (l) l.etapa = stage; return l; }, // RPC lead_change_stage
     async markPaid(cuotaId) { return { ok: true }; },             // RPC mark_payment_paid
+    // ---- Auth real (Supabase) ----
+    async signIn(email, password) {
+      if (!window.SB) return { error: 'No se pudo conectar.' };
+      const { data, error } = await window.SB.auth.signInWithPassword({ email: (email || '').trim(), password });
+      return { data, error: error ? (error.message || 'No se pudo ingresar.') : null };
+    },
+    async signOut() { if (window.SB) { try { await window.SB.auth.signOut(); } catch (e) {} } },
+    async getSession() { if (!window.SB) return null; const { data } = await window.SB.auth.getSession(); return data ? data.session : null; },
+    async resetPassword(email) { if (!window.SB) return { error: 'No disponible.' }; const { error } = await window.SB.auth.resetPasswordForEmail((email || '').trim()); return { error: error ? error.message : null }; },
   };
 
   return { brand, operadores, fx, sym, salidas, puente, estado, finanzas,

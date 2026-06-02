@@ -86,11 +86,25 @@
     const [provId, setProvId] = useState(null);
     const [rev, setRev] = useState(0);
     const [authed, setAuthed] = useState(false);
+    const [live, setLive] = useState(false);
     const [wizard, setWizard] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
     const [capture, setCapture] = useState(false);
     const [proposal, setProposal] = useState(null);
     const scrollRef = useRef(null);
+
+    useEffect(() => {
+      let sub;
+      (async () => {
+        const s = await BA.source.getSession();
+        if (s) { setAuthed(true); setLive(true); }
+        if (window.SB) {
+          const r = window.SB.auth.onAuthStateChange((_e, sess) => { setLive(!!sess); if (!sess) setAuthed(false); });
+          sub = r && r.data ? r.data.subscription : null;
+        }
+      })();
+      return () => { if (sub) sub.unsubscribe(); };
+    }, []);
 
     useEffect(() => {
       const r = document.documentElement;
@@ -130,7 +144,7 @@
       body = React.createElement(C, { cur, op, toast, nav, openTrip, openLead, openProvider, openWizard: () => setWizard(true), openCapture: () => setCapture(true), rev });
     }
 
-    if (!authed) return React.createElement(window.Auth, { onEnter: (id) => { setTweak('operator', id); setAuthed(true); } });
+    if (!authed) return React.createElement(window.Auth, { onEnter: (id) => { setTweak('operator', id); setAuthed(true); setLive(true); } });
 
     return React.createElement('div', { className: 'app' + (railOpen ? '' : '') },
       // ===== sidebar =====
@@ -171,7 +185,7 @@
             React.createElement('span', { className: 'tb-kbd' }, '⌘K')),
           React.createElement('div', { className: 'tb-spacer' }),
           React.createElement('div', { className: 'tb-actions' },
-            React.createElement('div', { className: 'tb-sync', title: 'Sincronizado en tiempo real' }, React.createElement('span', { className: 'd' }), 'Editado por ' + (BA.operadores.find(o => o.id !== op.id) || {}).short + ' · hace 4 min'),
+            React.createElement('div', { className: 'tb-sync', title: live ? 'Conectado a Supabase (datos reales en lo cableado)' : 'Modo demo (sin sesión)' }, React.createElement('span', { className: 'd', style: { background: live ? '#3D7A4E' : '#B8945A' } }), live ? 'EN VIVO' : 'DEMO'),
             React.createElement('div', { className: 'tb-seg' },
               ['EUR', 'USD', 'ARS'].map(c => React.createElement('button', { key: c, className: cur === c ? 'on' : '', onClick: () => setTweak('currency', c) }, c))),
             React.createElement('button', { className: 'tb-icon', title: 'Nueva salida', onClick: () => setWizard(true) }, React.createElement(Icon, { name: 'plus' })),

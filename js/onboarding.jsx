@@ -7,14 +7,16 @@
   // ============ AUTH (login / signup / reset / pick identity) ============
   function Auth({ onEnter }) {
     const [mode, setMode] = useState('login'); // login | signup | reset | identity
-    const [email, setEmail] = useState('brian@blisniukamanov.com');
-    const [pass, setPass] = useState('••••••••');
+    const [email, setEmail] = useState('brianblisniuk@gmail.com');
+    const [pass, setPass] = useState('');
     const [name, setName] = useState('');
+    const [err, setErr] = useState('');
+    const [busy, setBusy] = useState(false);
 
     const art = React.createElement('div', { className: 'auth-art' },
       React.createElement('div', { className: 'auth-mk' }, 'B'),
       React.createElement('div', { className: 'auth-quote' },
-        React.createElement('h2', null, 'Luxury as ', React.createElement('em', null, 'access'), ', never excess.'),
+        React.createElement('h2', null, 'Acceso, ', React.createElement('em', null, 'autoría'), ', afinidad.'),
         React.createElement('p', null, 'Blisniuk & Amanov · Command Center')),
       React.createElement('div', { className: 'auth-meta' },
         React.createElement('div', { className: 'm' }, React.createElement('div', { className: 'v' }, BA.salidas.length), React.createElement('div', { className: 'k' }, 'Salidas')),
@@ -27,7 +29,24 @@
         React.createElement('label', null, label),
         React.createElement('input', { type: type || 'text', value, placeholder: ph, onChange: e => onChange(e.target.value), onKeyDown: e => { if (e.key === 'Enter') go(); } }));
     }
-    function go() { if (mode === 'login' || mode === 'signup') setMode('identity'); else if (mode === 'reset') setMode('login'); }
+    async function go() {
+      if (busy) return;
+      setErr('');
+      if (mode === 'login') {
+        setBusy(true);
+        const r = await BA.source.signIn(email, pass);
+        setBusy(false);
+        if (r && r.error) { setErr(r.error); return; }
+        setMode('identity');
+      } else if (mode === 'signup') {
+        setMode('identity');
+      } else if (mode === 'reset') {
+        setBusy(true);
+        const r = await BA.source.resetPassword(email);
+        setBusy(false);
+        setErr(r && r.error ? r.error : 'Si la cuenta existe, te llega un link para restablecer.');
+      }
+    }
 
     let card;
     if (mode === 'identity') {
@@ -54,8 +73,9 @@
           React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--text-3)', textTransform: 'none', letterSpacing: 0 } },
             React.createElement('input', { type: 'checkbox', defaultChecked: true, style: { width: 'auto' } }), 'Recordarme'),
           React.createElement('span', { className: 'auth-link', onClick: () => setMode('reset') }, '¿Olvidaste tu contraseña?')),
-        React.createElement('button', { className: 'btn primary', style: { width: '100%', padding: '11px', fontSize: 14, marginTop: mode === 'reset' ? 8 : 0 }, onClick: go },
-          mode === 'login' ? 'Ingresar' : mode === 'signup' ? 'Crear cuenta' : 'Enviar link'),
+        err && React.createElement('div', { style: { color: '#C0563A', fontSize: 12.5, margin: '2px 0 6px', lineHeight: 1.35 } }, err),
+        React.createElement('button', { className: 'btn primary', style: { width: '100%', padding: '11px', fontSize: 14, marginTop: mode === 'reset' ? 8 : 0, opacity: busy ? .7 : 1 }, onClick: go, disabled: busy },
+          busy ? (mode === 'reset' ? 'Enviando…' : 'Ingresando…') : (mode === 'login' ? 'Ingresar' : mode === 'signup' ? 'Crear cuenta' : 'Enviar link')),
         mode === 'reset'
           ? React.createElement('div', { className: 'auth-alt' }, React.createElement('span', { className: 'auth-link', onClick: () => setMode('login') }, 'Volver a ingresar'))
           : React.createElement(React.Fragment, null,
