@@ -381,6 +381,31 @@ window.BA = (function () {
     };
   }
 
+  // ---- Modelo de etapas del pipeline (stages reales del CRM) ----
+  const STAGES = [
+    { key: 'new', label: 'Nuevos', color: '#8B8478' },
+    { key: 'contacted', label: 'Contactados', color: '#3F6B78' },
+    { key: 'qualified', label: 'Calificados', color: '#6E7F86' },
+    { key: 'proposal', label: 'Propuesta', color: '#B8945A' },
+    { key: 'negotiating', label: 'Negociación', color: '#4A6A4B' },
+    { key: 'booked', label: 'Reservado', color: '#3D5A3E' },
+    { key: 'lost', label: 'Perdidos', color: '#A39B8E' }
+  ];
+  const OP_BY_UID = { '9e11bed5-8e3a-4e7a-b3a0-dccd3b3ce188': 'brian', '1bf337b7-72d7-411b-98e8-c8f29f878778': 'fede' };
+  // Mapea una fila de leads_crm_pipeline al shape de lead que consumen Ventas y LeadDetail
+  function mapLead(r) {
+    const st = STAGES.find(s => s.key === r.stage);
+    return {
+      id: r.id, nombre: r.full_name || '—', empresa: r.company || '—',
+      salida: r.trip_id || '', etapa: r.stage_label || (st ? st.label : r.stage), stageKey: r.stage,
+      fuente: r.source || '', resp: OP_BY_UID[r.assigned_to] || 'brian',
+      potUSD: Math.round((Number(r.potential_total_usd) || 0) / 1000),
+      pax: r.pax_count || 1, fit: 0, dias: r.days_stale || 0, next: '',
+      email: r.email || '', phone: r.phone || '', campaign: r.source_campaign || '',
+      assignedName: r.assigned_to_name || '', eventCount: Number(r.event_count) || 0
+    };
+  }
+
   const source = {
     async trips() {
       const sess = await this.getSession();
@@ -399,7 +424,22 @@ window.BA = (function () {
       return salidas;
     },
     async puente()     { return puente; },                        // Edge fn daily-brief
-    async leads()      { return leads; },                         // RPC leads_crm_list / pipeline
+    async leads() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return leads;                      // demo → mock
+      try {
+        const { data, error } = await window.SB.rpc('leads_crm_pipeline', { p_search: null, p_assigned_to: null, p_source: null, p_trip_id: null });
+        if (error || !Array.isArray(data)) return leads;
+        const list = data.map(mapLead);
+        return list.length ? list : leads;
+      } catch (e) { return leads; }
+    },
+    async hydrateLeads() {
+      const list = await this.leads();
+      if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
+      return leads;
+    },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateLeads(); },
     async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
     async finanzas()   { return finanzas; },                      // RPC payments_due + cashflow_projection
     async bandeja()    { return bandeja; },                       // tabla emails (triage email-ai)
@@ -407,7 +447,12 @@ window.BA = (function () {
     async marketing()  { return marketing; },                     // meta_lead_webhook + gasto cargado
     async cadencias()  { return cadencias; },                     // RPC cadence_render
     async calendario() { return { mes: calMes, eventos: calEventos }; },
-    async leadChangeStage(id, stage) { const l = leads.find(x => x.id === id); if (l) l.etapa = stage; return l; }, // RPC lead_change_stage
+    async leadChangeStage(id, stage) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) { const l = leads.find(x => x.id === id); if (l) l.stageKey = stage; return { ok: true }; }
+      const { data, error } = await window.SB.rpc('lead_change_stage', { p_lead_id: id, p_new_stage: stage, p_note: null });
+      return { data, error: error ? (error.message || 'No se pudo cambiar la etapa.') : null };
+    }, // RPC lead_change_stage
     async markPaid(cuotaId) { return { ok: true }; },             // RPC mark_payment_paid
     // ---- Auth real (Supabase) ----
     async signIn(email, password) {
@@ -421,5 +466,5 @@ window.BA = (function () {
   };
 
   return { brand, operadores, fx, sym, salidas, puente, estado, finanzas,
-           funnel, leads, marketing, cadencias, bandeja, accesos, copiloto, cmd, calMes, calEventos, categorias, comentarios, notificaciones, snapshots, propuesta, proyeccion, source, money, salidaById };
+           funnel, leads, marketing, cadencias, bandeja, accesos, copiloto, cmd, calMes, calEventos, categorias, comentarios, notificaciones, snapshots, propuesta, proyeccion, source, money, salidaById, STAGES };
 })();

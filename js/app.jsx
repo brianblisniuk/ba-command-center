@@ -97,7 +97,7 @@
       let sub;
       (async () => {
         const s = await BA.source.getSession();
-        if (s) { try { await BA.source.hydrateTrips(); } catch (e) {} setAuthed(true); setLive(true); }
+        if (s) { try { await BA.source.hydrate(); } catch (e) {} setAuthed(true); setLive(true); }
         if (window.SB) {
           const r = window.SB.auth.onAuthStateChange((_e, sess) => { setLive(!!sess); if (!sess) setAuthed(false); });
           sub = r && r.data ? r.data.subscription : null;
@@ -144,7 +144,7 @@
       body = React.createElement(C, { cur, op, toast, nav, openTrip, openLead, openProvider, openWizard: () => setWizard(true), openCapture: () => setCapture(true), rev });
     }
 
-    if (!authed) return React.createElement(window.Auth, { onEnter: async (id) => { setTweak('operator', id); try { await BA.source.hydrateTrips(); } catch (e) {} setRev(r => r + 1); setAuthed(true); setLive(true); } });
+    if (!authed) return React.createElement(window.Auth, { onEnter: async (id) => { setTweak('operator', id); try { await BA.source.hydrate(); } catch (e) {} setRev(r => r + 1); setAuthed(true); setLive(true); } });
 
     return React.createElement('div', { className: 'app' + (railOpen ? '' : '') },
       // ===== sidebar =====

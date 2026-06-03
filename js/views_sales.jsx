@@ -18,9 +18,25 @@
 
   // ============ VENTAS ============
   function Ventas({ cur, toast, openTrip, openLead }) {
-    const fn = BA.funnel;
-    const maxN = Math.max(...fn.map(f => f.n));
-    const totalPot = BA.leads.reduce((s, l) => s + l.potUSD, 0);
+    const [drag, setDrag] = useState(null);
+    const [, force] = useState(0);
+    const STAGES = BA.STAGES;
+    const fn = STAGES.map(st => { const ls = BA.leads.filter(l => l.stageKey === st.key); return { key: st.key, etapa: st.label, color: st.color, n: ls.length, valUSD: Math.round(ls.reduce((a, l) => a + (l.potUSD || 0), 0)) }; });
+    const maxN = Math.max(1, ...fn.map(f => f.n));
+    const totalPot = BA.leads.reduce((s, l) => s + (l.potUSD || 0), 0);
+    const enfriando = BA.leads.filter(l => l.dias > 10 && l.stageKey !== 'booked' && l.stageKey !== 'lost').length;
+    function onDrop(stageKey) {
+      const id = drag; setDrag(null);
+      if (!id) return;
+      const l = BA.leads.find(x => x.id === id);
+      if (!l || l.stageKey === stageKey) return;
+      const prevK = l.stageKey, prevL = l.etapa, st = STAGES.find(s => s.key === stageKey);
+      l.stageKey = stageKey; l.etapa = st ? st.label : l.etapa; force(x => x + 1);
+      Promise.resolve(BA.source.leadChangeStage(id, stageKey)).then(r => {
+        if (r && r.error) { l.stageKey = prevK; l.etapa = prevL; force(x => x + 1); toast('No se pudo mover: ' + r.error); }
+        else { toast(l.nombre + ' → ' + (st ? st.label : stageKey)); }
+      });
+    }
     return React.createElement('div', { className: 'content-inner' },
       React.createElement('div', { className: 'page-head' }, React.createElement('div', null,
         React.createElement('h1', null, React.createElement('span', { className: 'lt' }, 'Ventas')),
@@ -29,7 +45,7 @@
         React.createElement(StatCard, { icon: 'funnel', iconCls: '', label: 'Leads activos', value: BA.leads.length, sub: 'en pipeline', delta: 8 }),
         React.createElement(StatCard, { icon: 'coin', iconCls: 'tint', label: 'Potencial', value: k(totalPot, cur), sub: 'valor del pipeline' }),
         React.createElement(StatCard, { icon: 'target', iconCls: 'tint-brass', label: 'Conversión', value: '26%', sub: 'lead → reserva', delta: 3 }),
-        React.createElement(StatCard, { icon: 'snow', iconCls: 'tint-bad', label: 'Enfriándose', value: 3, sub: '+10 días sin tocar' })
+        React.createElement(StatCard, { icon: 'snow', iconCls: 'tint-bad', label: 'Enfriándose', value: enfriando, sub: '+10 días sin tocar' })
       ),
       // funnel
       React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
@@ -43,25 +59,28 @@
             React.createElement('span', { className: 'mono', style: { width: 56, textAlign: 'right', fontSize: 12, color: 'var(--text-3)' } }, 'US$ ' + f.valUSD + 'k')
           )))
       ),
-      // kanban
+      // kanban (drag-and-drop real → lead_change_stage)
       React.createElement('div', { className: 'card pad' },
         React.createElement(CardHead, { title: 'Pipeline', right: React.createElement('span', { className: 'eyebrow' }, 'arrastrá entre etapas') }),
         React.createElement('div', { className: 'kanban' },
           fn.map(col => {
-            const cards = BA.leads.filter(l => l.etapa === col.etapa);
-            return React.createElement('div', { key: col.etapa, className: 'kcol' },
+            const cards = BA.leads.filter(l => l.stageKey === col.key);
+            return React.createElement('div', { key: col.key, className: 'kcol',
+                onDragOver: e => { e.preventDefault(); }, onDrop: e => { e.preventDefault(); onDrop(col.key); } },
               React.createElement('div', { className: 'kcol-head' },
                 React.createElement('span', { className: 'nm' }, React.createElement('i', { style: { background: col.color } }), col.etapa),
                 React.createElement('span', { className: 'ct' }, cards.length)),
               cards.map(l => { const s = BA.salidaById(l.salida);
-                return React.createElement('div', { key: l.id, className: 'kcard', onClick: () => openLead ? openLead(l.id) : toast('Lead · ' + l.nombre) },
+                return React.createElement('div', { key: l.id, className: 'kcard', draggable: true,
+                    onDragStart: () => setDrag(l.id), onDragEnd: () => setDrag(null),
+                    onClick: () => openLead ? openLead(l.id) : toast('Lead · ' + l.nombre) },
                   React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 8 } },
                     React.createElement('span', { className: 'nm' }, l.nombre),
                     React.createElement(Avatar, { id: l.resp, size: 22 })),
-                  React.createElement('div', { className: 'sub' }, (s ? s.region : '') + ' · ', React.createElement('span', { style: { color: l.dias > 10 ? 'var(--bad)' : 'var(--text-3)' } }, l.dias + 'd')),
+                  React.createElement('div', { className: 'sub' }, (s ? s.region : (l.salida ? l.salida : 'Sin viaje')) + ' · ', React.createElement('span', { style: { color: l.dias > 10 ? 'var(--bad)' : 'var(--text-3)' } }, l.dias + 'd')),
                   React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 } },
                     React.createElement('span', { className: 'pot' }, 'US$ ' + l.potUSD + 'k'),
-                    React.createElement('span', { className: 'tag', style: { padding: '2px 7px' } }, 'fit ' + l.fit)));
+                    React.createElement('span', { className: 'tag', style: { padding: '2px 7px' } }, l.pax + ' pax')));
               }));
           }))
       )
