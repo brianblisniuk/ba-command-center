@@ -589,6 +589,15 @@ window.BA = (function () {
       if (Array.isArray(list) && list !== accesos) { accesos.length = 0; list.forEach(x => accesos.push(x)); }
       return accesos;
     },
+    async setAccesoEtapa(tripId, providerId, etapa) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: true, local: true };
+      try {
+        const { data, error } = await window.SB.rpc('set_acceso_etapa', { p_trip_id: tripId, p_provider_id: providerId, p_etapa: etapa });
+        if (error) return { ok: false, error: error.message };
+        return { ok: !!(data && data.ok), status: data && data.status };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // RPC set_acceso_etapa (persiste reservationStatus en trips.data)
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {

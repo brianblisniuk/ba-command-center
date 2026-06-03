@@ -81,14 +81,28 @@
 
   function Accesos({ s, toast }) {
     const [list, setList] = useState(BA.accesos.filter(a => a.salida === s.id).map(a => ({ ...a })));
+    function recountSalida() {
+      const mine = (BA.accesos || []).filter(a => a.salida === s.id);
+      s.accesosTot = mine.length;
+      s.accesosOk = mine.filter(a => a.etapa === 'confirmado').length;
+    }
     function advance(id) {
-      setList(L => L.map(a => {
-        if (a.id !== id) return a;
-        const idx = STAGES.indexOf(a.etapa);
-        const next = STAGES[Math.min(idx + 1, STAGES.length - 1)];
-        if (next === 'confirmado' && a.etapa !== 'confirmado') toast(a.nombre.split('·')[0].trim() + ' · CONFIRMADO ✓');
-        return { ...a, etapa: next };
-      }));
+      const cur = list.find(a => a.id === id); if (!cur) return;
+      const idx = STAGES.indexOf(cur.etapa);
+      const next = STAGES[Math.min(idx + 1, STAGES.length - 1)];
+      if (next === cur.etapa) return;
+      setList(L => L.map(a => a.id === id ? { ...a, etapa: next } : a));
+      if (next === 'confirmado') toast(cur.nombre.split('·')[0].trim() + ' · CONFIRMADO ✓');
+      const g = (BA.accesos || []).find(a => a.id === id); if (g) g.etapa = next;
+      recountSalida();
+      Promise.resolve(BA.source.setAccesoEtapa(s.id, id, next)).then(r => {
+        if (!r || !r.ok) {
+          setList(L => L.map(a => a.id === id ? { ...a, etapa: STAGES[idx] } : a));
+          if (g) g.etapa = STAGES[idx];
+          recountSalida();
+          toast('No se pudo guardar: ' + ((r && r.error) || 'error'));
+        }
+      });
     }
     const closed = list.filter(a => a.etapa === 'confirmado').length;
     return React.createElement('div', null,
