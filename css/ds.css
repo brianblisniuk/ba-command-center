@@ -639,10 +639,11 @@ input, textarea, select { font-family: inherit; }
 .rep-kpi .s { font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
 
 @media (max-width: 760px) {
-  /* collapse multi-column inline grids to a single column */
-  .grid[style*="repeat(4"], .grid[style*="repeat(5"], .grid[style*="repeat(3"],
+  /* collapse asymmetric / sidebar-style inline grids to a single column */
   .grid[style*="1.65fr"], .grid[style*="1.5fr"], .grid[style*="1.4fr"], .grid[style*="1.3fr"],
-  .grid[style*="360px"], .grid[style*="1fr) minmax"] { grid-template-columns: 1fr !important; }
+  .grid[style*="360px"], .grid[style*="1fr) minmax"], .grid[style*="minmax(0,1fr) minmax"] { grid-template-columns: 1fr !important; }
+  /* StatCard rows stay readable at 2-up (not a giant 1-column stack) */
+  .grid[style*="repeat(3"], .grid[style*="repeat(4"], .grid[style*="repeat(5"] { grid-template-columns: repeat(2, 1fr) !important; }
   .rep-kpis { grid-template-columns: repeat(2, 1fr) !important; }
   .report-sheet { padding: 22px 18px !important; }
   .rep-h { flex-direction: column; gap: 10px; }
@@ -913,3 +914,33 @@ input, textarea, select { font-family: inherit; }
 .bn-item.back { color: var(--bone); }
 .bn-badge { position: absolute; top: 2px; right: 50%; margin-right: -16px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 99px; background: var(--bad); color: #fff; font-family: var(--ff-mono); font-size: 9px; display: grid; place-items: center; }
 .bn-item { position: relative; }
+
+/* ============================================================
+   MOBILE REFINEMENTS (added: legible StatCards + tidy topbar)
+   ============================================================ */
+@media (max-width: 760px) {
+  /* StatCards: smaller so 2-up fits cleanly, less endless scroll */
+  .stat { padding: 15px; gap: 9px; }
+  .stat-top { gap: 9px; }
+  .stat-ic { width: 36px; height: 36px; border-radius: 9px; }
+  .stat-ic svg { width: 18px; height: 18px; }
+  .stat-fig { font-size: 23px; }
+  .stat-fig .u { font-size: 13px; }
+  .stat-label { font-size: 8.5px; letter-spacing: 0.08em; }
+  .stat-sub { font-size: 11px; }
+
+  /* Topbar: compact so nothing gets cut off on a phone */
+  .topbar { padding: 0 12px; gap: 8px; }
+  .tb-search { max-width: 46px; padding: 9px; flex: 0 0 auto; }
+  .tb-search-txt, .tb-kbd { display: none; }
+  .tb-sync { display: none; }
+  .tb-seg { flex-shrink: 0; }
+  .tb-actions { gap: 6px; }
+
+  /* Inner two-column blocks (señales/riesgos, comparativas) → one column */
+  .content-inner [style*="1fr 1fr"] { grid-template-columns: 1fr !important; }
+
+  /* A touch more compact */
+  .page-head { margin-bottom: 14px; }
+  .card.pad { padding: 16px; }
+}
