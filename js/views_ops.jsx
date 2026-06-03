@@ -59,7 +59,19 @@
 
     React.useEffect(() => { if (cur) setDraft(cur.borrador); }, [sel]);
 
-    function send() { setSent(s => ({ ...s, [cur.id]: true })); toast('Mail enviado a ' + cur.de + ' ✓'); }
+    async function send() {
+      if (!cur) return;
+      const fromRaw = cur.fromAddr || '';
+      const mm = fromRaw.match(/<([^>]+)>/);
+      const to = (mm ? mm[1] : fromRaw).trim();
+      if (!to || to.indexOf('@') < 0) { toast('No hay dirección de respuesta válida'); return; }
+      const account = (cur.cuenta || 'reservas@').replace('@', '');
+      const subject = /^re:/i.test(cur.asunto) ? cur.asunto : ('Re: ' + cur.asunto);
+      toast('Enviando…');
+      const res = await BA.source.sendEmail({ account, to, subject, text: draft, replyToId: cur.id });
+      if (res.ok) { setSent(s => ({ ...s, [cur.id]: true })); toast('Mail enviado a ' + cur.de + ' ✓'); }
+      else { toast('No se pudo enviar: ' + res.error); }
+    }
 
     return React.createElement('div', { className: 'content-inner' },
       React.createElement('div', { className: 'page-head' },

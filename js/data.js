@@ -559,7 +559,7 @@ window.BA = (function () {
           const sev = prio === 'Alta' ? 'bad' : prio === 'Media' ? 'risk' : 'info';
           const extra = (e.ai_extracted && typeof e.ai_extracted === 'object' && !Array.isArray(e.ai_extracted)) ? e.ai_extracted : {};
           return {
-            id: e.id, de, cuenta: (e.account || 'info') + '@', asunto: e.subject || '(sin asunto)',
+            id: e.id, fromAddr: fromRaw, de, cuenta: (e.account || 'info') + '@', asunto: e.subject || '(sin asunto)',
             cat: e.ai_category || 'Sin clasificar', sev, prio, idioma: e.ai_language || 'ES',
             hace: rel(e.ts), salida: e.trip_id || null,
             resumen: e.ai_summary || e.snippet || e.body_text || '',
@@ -575,6 +575,21 @@ window.BA = (function () {
       if (Array.isArray(list) && list !== bandeja) { bandeja.length = 0; list.forEach(x => bandeja.push(x)); }
       return bandeja;
     },
+    async sendEmail({ account, to, subject, html, text, replyToId }) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const { data, error } = await window.SB.functions.invoke('email-send', {
+          body: { account: account || 'reservas', to, subject, html: html || null, text: text || null, reply_to_email_id: replyToId || null }
+        });
+        if (error) {
+          let msg = error.message || 'error al enviar';
+          try { const ctx = await error.context.json(); if (ctx && ctx.error) msg = ctx.error; } catch (e2) {}
+          return { ok: false, error: msg };
+        }
+        if (data && data.ok) return { ok: true, resendId: data.resend_id, emailId: data.email_id };
+        return { ok: false, error: (data && data.error) || 'error desconocido' };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // edge fn email-send (Resend)
     async accesos()    { return accesos; },                       // tabla accesos
     async marketing()  { return marketing; },                     // meta_lead_webhook + gasto cargado
     async cadencias()  { return cadencias; },                     // RPC cadence_render
