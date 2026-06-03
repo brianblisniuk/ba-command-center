@@ -4,6 +4,20 @@
   const { useState } = React;
   const BA = window.BA;
 
+  // Hoisted field — identidad estable entre renders → el input NO se desmonta y mantiene el foco.
+  function Field({ label, value, onChange, type, ph, onEnter }) {
+    return React.createElement('div', { className: 'field' },
+      React.createElement('label', null, label),
+      React.createElement('input', { type: type || 'text', value: value, placeholder: ph, onChange: e => onChange(e.target.value), onKeyDown: e => { if (e.key === 'Enter' && onEnter) onEnter(); } }));
+  }
+
+  // Hoisted wizard field — mismo motivo; API value/onChange.
+  function WizField({ label, value, onChange, ph, type, wide }) {
+    return React.createElement('div', { className: 'field', style: { gridColumn: wide ? '1 / -1' : 'auto', marginBottom: 0 } },
+      React.createElement('label', null, label),
+      React.createElement('input', { type: type || 'text', value: value, placeholder: ph, onChange: e => onChange(type === 'number' ? +e.target.value : e.target.value) }));
+  }
+
   // ============ AUTH (login / signup / reset / pick identity) ============
   function Auth({ onEnter }) {
     const [mode, setMode] = useState('login'); // login | signup | reset | identity
@@ -24,11 +38,6 @@
         React.createElement('div', { className: 'm' }, React.createElement('div', { className: 'v' }, 'US$ 261k'), React.createElement('div', { className: 'k' }, 'Forecast')))
     );
 
-    function Field({ label, value, onChange, type, ph }) {
-      return React.createElement('div', { className: 'field' },
-        React.createElement('label', null, label),
-        React.createElement('input', { type: type || 'text', value, placeholder: ph, onChange: e => onChange(e.target.value), onKeyDown: e => { if (e.key === 'Enter') go(); } }));
-    }
     async function go() {
       if (busy) return;
       setErr('');
@@ -66,9 +75,9 @@
       card = React.createElement('div', { className: 'auth-card' },
         React.createElement('h1', null, titles[mode][0]),
         React.createElement('div', { className: 'auth-sub' }, titles[mode][1]),
-        mode === 'signup' && React.createElement(Field, { label: 'Nombre', value: name, onChange: setName, ph: 'Tu nombre' }),
-        React.createElement(Field, { label: 'Email', value: email, onChange: setEmail, type: 'email' }),
-        mode !== 'reset' && React.createElement(Field, { label: 'Contraseña', value: pass, onChange: setPass, type: 'password' }),
+        mode === 'signup' && React.createElement(Field, { label: 'Nombre', value: name, onChange: setName, ph: 'Tu nombre', onEnter: go }),
+        React.createElement(Field, { label: 'Email', value: email, onChange: setEmail, type: 'email', onEnter: go }),
+        mode !== 'reset' && React.createElement(Field, { label: 'Contraseña', value: pass, onChange: setPass, type: 'password', onEnter: go }),
         mode === 'login' && React.createElement('div', { className: 'auth-row' },
           React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--text-3)', textTransform: 'none', letterSpacing: 0 } },
             React.createElement('input', { type: 'checkbox', defaultChecked: true, style: { width: 'auto' } }), 'Recordarme'),
@@ -96,12 +105,6 @@
     const set = (k, v) => setD(s => ({ ...s, [k]: v }));
     const canNext = step === 0 ? !!d.cat : step === 1 ? d.titulo.trim().length > 2 : true;
 
-    function Field({ label, k, ph, type, wide }) {
-      return React.createElement('div', { className: 'field', style: { gridColumn: wide ? '1 / -1' : 'auto', marginBottom: 0 } },
-        React.createElement('label', null, label),
-        React.createElement('input', { type: type || 'text', value: d[k], placeholder: ph, onChange: e => set(k, type === 'number' ? +e.target.value : e.target.value) }));
-    }
-
     let body;
     if (step === 0) body = React.createElement('div', null,
       React.createElement('h2', null, '¿Qué tipo de viaje?'),
@@ -116,24 +119,24 @@
       React.createElement('h2', null, 'Identidad del viaje'),
       React.createElement('div', { className: 'lead' }, 'Nombre, etiqueta corta y geografía.'),
       React.createElement('div', { className: 'wz-grid' },
-        React.createElement(Field, { label: 'Título', k: 'titulo', ph: cat ? cat.id + ' · ...' : 'Título del viaje', wide: true }),
-        React.createElement(Field, { label: 'Etiqueta corta', k: 'etiqueta', ph: 'PIE·26' }),
+        React.createElement(WizField, { label: 'Título', value: d.titulo, onChange: v => set('titulo', v), ph: cat ? cat.id + ' · ...' : 'Título del viaje', wide: true }),
+        React.createElement(WizField, { label: 'Etiqueta corta', value: d.etiqueta, onChange: v => set('etiqueta', v), ph: 'PIE·26' }),
         React.createElement('div', { className: 'field', style: { marginBottom: 0 } }, React.createElement('label', null, 'Categoría'), React.createElement('input', { value: d.cat || '', disabled: true })),
-        React.createElement(Field, { label: 'Región', k: 'region', ph: 'Le Langhe' }),
-        React.createElement(Field, { label: 'País', k: 'pais', ph: 'Italia' })));
+        React.createElement(WizField, { label: 'Región', value: d.region, onChange: v => set('region', v), ph: 'Le Langhe' }),
+        React.createElement(WizField, { label: 'País', value: d.pais, onChange: v => set('pais', v), ph: 'Italia' })));
     else if (step === 2) body = React.createElement('div', null,
       React.createElement('h2', null, 'Fechas'),
       React.createElement('div', { className: 'lead' }, 'Cuándo sale y cuántas noches.'),
       React.createElement('div', { className: 'wz-grid' },
-        React.createElement(Field, { label: 'Fecha de inicio', k: 'inicio', type: 'date' }),
-        React.createElement(Field, { label: 'Noches', k: 'noches', type: 'number' })));
+        React.createElement(WizField, { label: 'Fecha de inicio', value: d.inicio, onChange: v => set('inicio', v), type: 'date' }),
+        React.createElement(WizField, { label: 'Noches', value: d.noches, onChange: v => set('noches', v), type: 'number' })));
     else if (step === 3) body = React.createElement('div', null,
       React.createElement('h2', null, 'Grupo y precio'),
       React.createElement('div', { className: 'lead' }, 'Tamaño del grupo, mínimo para break-even y ticket por pax.'),
       React.createElement('div', { className: 'wz-grid' },
-        React.createElement(Field, { label: 'Pax total', k: 'pax', type: 'number' }),
-        React.createElement(Field, { label: 'Mínimo (break-even)', k: 'min', type: 'number' }),
-        React.createElement(Field, { label: 'Ticket US$ / pax', k: 'ticket', type: 'number', wide: true })));
+        React.createElement(WizField, { label: 'Pax total', value: d.pax, onChange: v => set('pax', v), type: 'number' }),
+        React.createElement(WizField, { label: 'Mínimo (break-even)', value: d.min, onChange: v => set('min', v), type: 'number' }),
+        React.createElement(WizField, { label: 'Ticket US$ / pax', value: d.ticket, onChange: v => set('ticket', v), type: 'number', wide: true })));
     else if (step === 4) body = React.createElement('div', null,
       React.createElement('h2', null, 'Responsable'),
       React.createElement('div', { className: 'lead' }, 'Quién lidera esta salida. La regla de los dos accesos se activa al crearla.'),
