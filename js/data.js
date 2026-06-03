@@ -370,7 +370,7 @@ window.BA = (function () {
     const glyph = /jap[oó]n/.test(t) ? '⬡' : /lapon|auror/.test(t) ? '✦' : /namib|duna/.test(t) ? '△' : /engad|navid|alpe/.test(t) ? '❄' : /piemon|langhe/.test(t) ? '❖' : /marru/.test(t) ? '◈' : /alaska/.test(t) ? '❉' : /b[uú]tan|nepal|himalaya/.test(t) ? '⛰' : /croac|dalmac/.test(t) ? '⚓' : '◆';
     return {
       id: r.id, titulo, etiqueta: '', region: r.region_label || '', pais: r.region_label || '',
-      cat: '', fecha, mes, precioUSD: r.price || 0, estado, grupo: 'venta',
+      cat: '', fecha, mes, precioUSD: r.price || 0, estado, grupo: (estado === 'curso' ? 'confirmada' : estado === 'opcion' ? 'evaluacion' : 'venta'),
       conf: r.confirmed || 0, opcion: r.opt || 0, min: r.min_pax || 0, libres: r.libres || 0,
       breakeven: r.min_pax || 0, accesosOk: r.accesos_cerrados || 0, accesosTot: r.accesos_total || 0,
       readiness: r.readiness_pct || 0, dias: r.days_to_decision || 0,
