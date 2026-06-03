@@ -57,6 +57,7 @@
       return () => { on = false; };
     }, [leadId]);
     const [showPlan, setShowPlan] = useState(false);
+    const [planData, setPlanData] = useState(null);
     if (!lead) return null;
     const s = BA.salidaById(lead.salida);
     const op = BA.operadores.find(o => o.id === lead.resp);
@@ -118,15 +119,27 @@
               React.createElement('span', { className: 'k' }, 'Responsable'),
               React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } }, React.createElement(Avatar, { id: lead.resp, size: 22 }), React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-1)' } }, op.short)))
           ),
-          // plan de pago
+          // plan de pago (real → generate_payment_plan)
           React.createElement('div', { className: 'card pad' },
             React.createElement(CardHead, { title: 'Plan de pago', right: React.createElement('span', { className: 'badge ghost' }, plan.politica) }),
             !showPlan
-              ? React.createElement('button', { className: 'btn', style: { width: '100%' }, onClick: () => { setShowPlan(true); toast('Plan de pago generado'); addEvent({ kind:'payment', who: op.short, t:'Plan de pago generado · ' + plan.politica, when:'ahora' }); } }, React.createElement(Icon, { name: 'coin' }), 'Generar plan de pago')
+              ? React.createElement('button', { className: 'btn', style: { width: '100%' }, onClick: async () => {
+                  if (!lead.salida) { toast('Asigná un viaje al lead primero'); return; }
+                  const r = await BA.source.generatePlan(lead.id);
+                  if (r && r.error) { toast('No se pudo generar: ' + r.error); return; }
+                  if (r && r.data) setPlanData(r.data);
+                  setShowPlan(true);
+                  const nc = (r && r.data && r.data.cuotas) ? r.data.cuotas.length : (plan.cuotas ? plan.cuotas.length : 0);
+                  addEvent({ kind: 'payment', who: op ? op.short : 'Yo', t: 'Plan de pago generado · ' + nc + ' cuotas', when: 'ahora' });
+                  toast('Plan de pago generado'); BA.source.hydrateFinanzas();
+                } }, React.createElement(Icon, { name: 'coin' }), 'Generar plan de pago')
               : React.createElement('div', null,
-                  plan.cuotas.map((c, i) => React.createElement('div', { key: i, className: 'kv' },
-                    React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-1)' } }, c.label),
-                    React.createElement('span', { className: 'mono', style: { fontSize: 12.5, color: 'var(--text-1)', fontWeight: 600 } }, BA.money(c.monto, cur))))),
+                  (planData ? planData.cuotas.map(c => ({ label: c.label, monto: c.amount, due: c.due })) : plan.cuotas).map((c, i) => React.createElement('div', { key: i, className: 'kv' },
+                    React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-1)' } }, c.label + (c.due ? ' · ' + c.due : '')),
+                    React.createElement('span', { className: 'mono', style: { fontSize: 12.5, color: 'var(--text-1)', fontWeight: 600 } }, BA.money(c.monto, cur)))),
+                  planData && React.createElement('div', { className: 'kv', style: { borderTop: '1px solid var(--rule)', marginTop: 4, paddingTop: 8 } },
+                    React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-2)', fontWeight: 600 } }, 'Total'),
+                    React.createElement('span', { className: 'mono', style: { fontSize: 12.5, color: 'var(--accent)', fontWeight: 700 } }, BA.money(planData.total, cur)))),
           ),
           // acciones
           React.createElement('div', { className: 'card pad' },

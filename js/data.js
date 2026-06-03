@@ -516,6 +516,12 @@ window.BA = (function () {
       const { data, error } = await window.SB.rpc('lead_add_note', { p_lead_id: id, p_text: text });
       return { data, error: error ? (error.message || 'No se pudo guardar la nota.') : null };
     },                                                            // RPC lead_add_note
+    async generatePlan(leadId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { data: null, error: null };  // demo → el caller usa el plan mock
+      const { data, error } = await window.SB.rpc('generate_payment_plan', { p_lead_id: leadId });
+      return { data, error: error ? (error.message || 'No se pudo generar el plan.') : null };
+    },                                                            // RPC generate_payment_plan
     // ---- Auth real (Supabase) ----
     async signIn(email, password) {
       if (!window.SB) return { error: 'No se pudo conectar.' };
