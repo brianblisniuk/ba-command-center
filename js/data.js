@@ -658,6 +658,18 @@ window.BA = (function () {
         return data || { ok: false };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // genera la semana del plan desde la semana tipo
+    async editorialGuion(piezaId) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const { data, error } = await window.SB.functions.invoke('editorial-factory', { body: { op: 'guion', pieza_id: piezaId } });
+        if (error) {
+          let msg = error.message || 'error';
+          try { const ctx = await error.context.json(); if (ctx && ctx.error) msg = ctx.error; } catch (e2) {}
+          return { ok: false, error: msg };
+        }
+        return data || { ok: false };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // la fábrica escribe el guion de una pieza (La Editorial)
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {
