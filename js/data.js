@@ -502,7 +502,7 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateLeads(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); },
     async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
     async finanzas() {
       const sess = await this.getSession();
@@ -575,6 +575,20 @@ window.BA = (function () {
       if (Array.isArray(list) && list !== bandeja) { bandeja.length = 0; list.forEach(x => bandeja.push(x)); }
       return bandeja;
     },
+    async accesos() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return accesos;
+      try {
+        const { data, error } = await window.SB.rpc('accesos_board');
+        if (error || !Array.isArray(data)) return accesos;
+        return data.map(a => ({ id: a.id, salida: a.salida, nombre: a.nombre || 'Acceso', figura: a.figura || '—', etapa: a.etapa || 'identificado', resp: a.resp || 'brian', deadline: a.deadline || '—', planb: '—', region: a.region || '', tripTitle: a.trip_title || '', michelin: a.michelin || 0 }));
+      } catch (e) { return accesos; }
+    },                                                            // RPC accesos_board (providers type=expert)
+    async hydrateAccesos() {
+      const list = await this.accesos();
+      if (Array.isArray(list) && list !== accesos) { accesos.length = 0; list.forEach(x => accesos.push(x)); }
+      return accesos;
+    },
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {
@@ -590,7 +604,6 @@ window.BA = (function () {
         return { ok: false, error: (data && data.error) || 'error desconocido' };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // edge fn email-send (Resend)
-    async accesos()    { return accesos; },                       // tabla accesos
     async marketing()  { return marketing; },                     // meta_lead_webhook + gasto cargado
     async cadencias()  { return cadencias; },                     // RPC cadence_render
     async calendario() { return { mes: calMes, eventos: calEventos }; },
