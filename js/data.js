@@ -644,6 +644,20 @@ window.BA = (function () {
         return { ok: !error, marked: true, id: data && data.id };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // toggle ★ highlight (La Editorial)
+    async editorialBoard() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('editorial_board'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // tablero La Editorial (config + ediciones + highlights + piezas)
+    async planGenerateWeek(lunes) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.rpc('plan_generate_week', { p_lunes: lunes || null });
+        if (error) return { ok: false, error: error.message };
+        return data || { ok: false };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // genera la semana del plan desde la semana tipo
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {

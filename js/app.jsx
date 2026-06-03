@@ -15,14 +15,14 @@
 
   const NAV = [
     { sec: 'Inicio', items: [{ k: 'puente', t: 'Hoy · El Puente', icon: 'home' }, { k: 'ia', t: 'Inteligencia', icon: 'spark' }, { k: 'reporte', t: 'Reporte ejecutivo', icon: 'download' }] },
-    { sec: 'Comercial', items: [{ k: 'ventas', t: 'Ventas', icon: 'funnel' }, { k: 'cadencias', t: 'Cadencias', icon: 'send' }, { k: 'marketing', t: 'Marketing', icon: 'megaphone' }] },
+    { sec: 'Comercial', items: [{ k: 'ventas', t: 'Ventas', icon: 'funnel' }, { k: 'cadencias', t: 'Cadencias', icon: 'send' }, { k: 'marketing', t: 'Marketing', icon: 'megaphone' }, { k: 'editorial', t: 'Editorial', icon: 'layers' }] },
     { sec: 'Operación', items: [{ k: 'bandeja', t: 'Bandeja', icon: 'mail', badge: 'unread' }, { k: 'finanzas', t: 'Finanzas', icon: 'coin' }, { k: 'calendario', t: 'Calendario', icon: 'calendar' }] },
     { sec: 'Portafolio', items: [{ k: 'viajes', t: 'Viajes', icon: 'compass' }, { k: 'clientes', t: 'Clientes', icon: 'users' }, { k: 'biblioteca', t: 'Biblioteca', icon: 'book' }, { k: 'historial', t: 'Historial', icon: 'refresh' }] },
     { sec: '', items: [{ k: 'config', t: 'Configuración', icon: 'settings' }] },
   ];
 
   const VIEWS = {
-    puente: 'Puente', ventas: 'Ventas', marketing: 'Marketing', bandeja: 'Bandeja',
+    puente: 'Puente', ventas: 'Ventas', marketing: 'Marketing', editorial: 'Editorial', bandeja: 'Bandeja',
     finanzas: 'Finanzas', viajes: 'Viajes', clientes: 'Clientes', biblioteca: 'Biblioteca', config: 'Configuracion', calendario: 'Calendario', cadencias: 'Cadencias', reporte: 'Reporte', historial: 'Historial', ia: 'IAIntegral',
   };
 
