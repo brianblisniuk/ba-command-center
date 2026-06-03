@@ -611,6 +611,14 @@ window.BA = (function () {
         return { ok: !!(data && data.ok), respuesta: (data && data.respuesta) || '', acciones: (data && data.acciones) || [] };
       } catch (e) { return { ok: false, respuesta: 'Error: ' + String((e && e.message) || e), acciones: [] }; }
     },                                                            // edge fn copiloto (Claude Sonnet · foto del negocio)
+    async iaUsage() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('ia_usage'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // RPC ia_usage (agrega claude_usage)
+    async resumenEjecutivo() {
+      return this.copiloto('Dame el resumen ejecutivo del día en 4 a 6 líneas: estado general del portafolio (cuántas salidas y en qué situación), lo más urgente entre cobros, decisiones GO/NO-GO y accesos por cerrar, y qué deberías priorizar hoy. Concreto y con las cifras reales. Sumá 3 acciones.');
+    },                                                            // resumen ejecutivo vía copiloto
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {
