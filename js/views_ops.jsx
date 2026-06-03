@@ -12,7 +12,7 @@
       { key: 'confirmada', label: 'Confirmadas' },
       { key: 'evaluacion', label: 'En evaluación' },
     ];
-    const st = BA.estado.salidasActivas;
+    const st = (function () { const c = { go: 0, risk: 0, curso: 0, opcion: 0 }; BA.salidas.forEach(s => { if (c[s.estado] != null) c[s.estado]++; }); return c; })();
     return React.createElement('div', { className: 'content-inner' },
       React.createElement('div', { className: 'page-head' },
         React.createElement('div', null,

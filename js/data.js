@@ -357,8 +357,47 @@ window.BA = (function () {
   // ---- Capa de datos (seam): hoy devuelve el mock; mañana, Supabase ----
   // Cada método mapea a una RPC / Edge Function / tabla real (ver SUPABASE.md).
   // Para ir a producción: cambiar el cuerpo por el fetch correspondiente — la UI no cambia.
+  // Mapea una fila de trips_board() al shape de salida que consumen las vistas y SalidaCard
+  function mapTrip(r) {
+    const goMap = { GO: 'go', EN_RIESGO: 'risk', NO_GO: 'nogo', NOGO: 'nogo', EN_CURSO: 'curso', EN_VIAJE: 'curso', CONFIRMADA: 'curso', EN_EVALUACION: 'opcion', EVALUACION: 'opcion', OPCION: 'opcion' };
+    const estado = goMap[(r.go_status || '').toUpperCase()] || 'risk';
+    const MES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    const MESl = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    let fecha = r.start_date || '', mes = '';
+    if (r.start_date) { const d = new Date(r.start_date + 'T00:00:00'); fecha = d.getDate() + ' ' + MESl[d.getMonth()] + ' ' + d.getFullYear(); mes = MES[d.getMonth()]; }
+    const titulo = ((r.title || '').split('—')[0].trim()) || r.title || r.id;
+    const t = ((r.title || '') + ' ' + (r.region_label || '')).toLowerCase();
+    const glyph = /jap[oó]n/.test(t) ? '⬡' : /lapon|auror/.test(t) ? '✦' : /namib|duna/.test(t) ? '△' : /engad|navid|alpe/.test(t) ? '❄' : /piemon|langhe/.test(t) ? '❖' : /marru/.test(t) ? '◈' : /alaska/.test(t) ? '❉' : /b[uú]tan|nepal|himalaya/.test(t) ? '⛰' : /croac|dalmac/.test(t) ? '⚓' : '◆';
+    return {
+      id: r.id, titulo, etiqueta: '', region: r.region_label || '', pais: r.region_label || '',
+      cat: '', fecha, mes, precioUSD: r.price || 0, estado, grupo: 'venta',
+      conf: r.confirmed || 0, opcion: r.opt || 0, min: r.min_pax || 0, libres: r.libres || 0,
+      breakeven: r.min_pax || 0, accesosOk: r.accesos_cerrados || 0, accesosTot: r.accesos_total || 0,
+      readiness: r.readiness_pct || 0, dias: r.days_to_decision || 0,
+      forecastUSD: Math.round((r.revenue_forecast || 0) / 1000),
+      resp: 'brian', lat: 0, lng: 0, glyph,
+      capacity: r.capacity, pipe: r.pipe, leadsActivos: r.leads_activos, decisionDate: r.decision_date,
+      daysToDeparture: r.days_to_departure, revenueCommitted: r.revenue_committed, goStatus: r.go_status
+    };
+  }
+
   const source = {
-    async trips()      { return salidas; },                       // RPC trips_board
+    async trips() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return salidas;                    // demo → mock
+      try {
+        const { data, error } = await window.SB.rpc('trips_board'); // RPC trips_board (devuelve array JSON)
+        if (error || !data) return salidas;
+        const arr = Array.isArray(data) ? data : (data.trips_board || (data[0] && data[0].trips_board) || []);
+        const list = (arr || []).map(mapTrip);
+        return list.length ? list : salidas;
+      } catch (e) { return salidas; }
+    },
+    async hydrateTrips() {
+      const list = await this.trips();
+      if (Array.isArray(list) && list.length) { salidas.length = 0; list.forEach(x => salidas.push(x)); }
+      return salidas;
+    },
     async puente()     { return puente; },                        // Edge fn daily-brief
     async leads()      { return leads; },                         // RPC leads_crm_list / pipeline
     async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
