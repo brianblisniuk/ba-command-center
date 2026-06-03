@@ -629,6 +629,21 @@ window.BA = (function () {
       if (!window.SB || !sess) return { ok: false };
       try { const { data, error } = await window.SB.rpc('brief_save', { p_respuesta: respuesta, p_acciones: acciones || [], p_source: source || 'manual', p_model: 'claude-sonnet-4-6' }); if (error) return { ok: false, error: error.message }; return data || { ok: true }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // RPC brief_save (persiste el brief)
+    async highlightsList(tripId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return [];
+      try { const { data, error } = await window.SB.from('content_highlights').select('id,dia,titulo,jerarquia').eq('trip_id', tripId); return error ? [] : (data || []); } catch (e) { return []; }
+    },                                                            // highlights ★ de un viaje (La Editorial)
+    async highlightToggle(tripId, dia, titulo, descripcion) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false };
+      try {
+        const { data: ex } = await window.SB.from('content_highlights').select('id').eq('trip_id', tripId).eq('dia', dia).eq('titulo', titulo).maybeSingle();
+        if (ex && ex.id) { const { error } = await window.SB.from('content_highlights').delete().eq('id', ex.id); return { ok: !error, marked: false }; }
+        const { data, error } = await window.SB.from('content_highlights').insert({ trip_id: tripId, dia: dia, titulo: titulo, descripcion: descripcion || null }).select('id').maybeSingle();
+        return { ok: !error, marked: true, id: data && data.id };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // toggle ★ highlight (La Editorial)
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {

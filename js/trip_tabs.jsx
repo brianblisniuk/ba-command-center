@@ -22,11 +22,36 @@
     function visOf(sl) { return vis[sl.id] != null ? vis[sl.id] : sl.clientVisible; }
     function toggleVis(id, cur) { setVis(s => ({ ...s, [id]: !cur })); toast(!cur ? 'Visible al cliente' : 'Oculto al cliente'); }
 
+    // ★ highlights (La Editorial) — persisten en content_highlights
+    const [hl, setHl] = useState({}); // 'dia|titulo' -> id
+    React.useEffect(() => {
+      let on = true;
+      Promise.resolve(BA.source.highlightsList(s.id)).then(rows => {
+        if (!on) return;
+        const m = {}; (rows || []).forEach(r => { m[r.dia + '|' + r.titulo] = r.id; });
+        setHl(m);
+      });
+      return () => { on = false; };
+    }, [s.id]);
+    function hlKey(day, sl) { return day.n + '|' + sl.title; }
+    function toggleHl(day, sl) {
+      const k = hlKey(day, sl); const was = !!hl[k];
+      setHl(m => { const x = Object.assign({}, m); if (was) delete x[k]; else x[k] = 'tmp'; return x; });
+      Promise.resolve(BA.source.highlightToggle(s.id, day.n, sl.title, sl.desc)).then(r => {
+        if (!r || !r.ok) { setHl(m => { const x = Object.assign({}, m); if (was) x[k] = true; else delete x[k]; return x; }); toast('No se pudo guardar el highlight'); return; }
+        if (r.marked && r.id) setHl(m => Object.assign({}, m, { [k]: r.id }));
+        toast(r.marked ? '★ Highlight para La Editorial' : 'Highlight quitado');
+      });
+    }
+    const hlCount = Object.keys(hl).length;
+
     return React.createElement('div', null,
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' } },
         React.createElement('div', { className: 'tb-seg' },
           [['op', 'Operativo'], ['cliente', 'Cliente']].map(([k, t]) => React.createElement('button', { key: k, className: capa === k ? 'on' : '', onClick: () => setCapa(k) }, t))),
-        React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
+          hlCount > 0 && React.createElement('span', { className: 'tag', style: { padding: '5px 10px', color: 'var(--brass)' } },
+            React.createElement(Icon, { name: 'star', style: { width: 12, height: 12, fill: 'currentColor' } }), hlCount + (hlCount === 1 ? ' highlight' : ' highlights')),
           React.createElement('button', { className: 'btn sm', onClick: () => setOpen(allOpen ? new Set() : new Set(data.map(d => d.n))) }, React.createElement(Icon, { name: 'layers' }), allOpen ? 'Colapsar' : 'Expandir'),
           React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Día agregado al final') }, React.createElement(Icon, { name: 'plus' }), 'Agregar día'))
       ),
@@ -68,6 +93,11 @@
                       React.createElement('div', { className: 'slot-head' },
                         React.createElement('span', { className: 'slot-glyph', style: { background: st.c } }, st.g),
                         React.createElement('span', { className: 'slot-title' }, capa === 'cliente' ? sl.client.title : sl.title),
+                        capa === 'op' && React.createElement('button', {
+                          title: hl[hlKey(day, sl)] ? 'Quitar de La Editorial' : 'Marcar como highlight (La Editorial)',
+                          onClick: e => { e.stopPropagation(); toggleHl(day, sl); },
+                          style: { background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0, flexShrink: 0, color: hl[hlKey(day, sl)] ? 'var(--brass)' : 'var(--text-faint)' }
+                        }, React.createElement(Icon, { name: 'star', style: { width: 15, height: 15, fill: hl[hlKey(day, sl)] ? 'currentColor' : 'none' } })),
                         capa === 'op' && sl.access && React.createElement('span', { className: 'badge brass', style: { padding: '2px 7px' } }, React.createElement(Icon, { name: 'key', style: { width: 10, height: 10 } }), 'Acceso'),
                         capa === 'op' && React.createElement('span', { className: 'badge ' + vClass(v), style: { padding: '2px 7px', cursor: 'pointer' }, onClick: e => { e.stopPropagation(); cycleVerdict(sl.id, v); } }, v),
                         capa === 'op' && React.createElement(Icon, { name: isExp ? 'cd' : 'cr', style: { color: 'var(--text-faint)', width: 16, height: 16 } })),
