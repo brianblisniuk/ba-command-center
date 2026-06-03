@@ -619,6 +619,16 @@ window.BA = (function () {
     async resumenEjecutivo() {
       return this.copiloto('Dame el resumen ejecutivo del día en 4 a 6 líneas: estado general del portafolio (cuántas salidas y en qué situación), lo más urgente entre cobros, decisiones GO/NO-GO y accesos por cerrar, y qué deberías priorizar hoy. Concreto y con las cifras reales. Sumá 3 acciones.');
     },                                                            // resumen ejecutivo vía copiloto
+    async briefLatest() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('brief_latest'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // RPC brief_latest (último brief guardado, sin generar)
+    async briefSave(respuesta, acciones, source) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false };
+      try { const { data, error } = await window.SB.rpc('brief_save', { p_respuesta: respuesta, p_acciones: acciones || [], p_source: source || 'manual', p_model: 'claude-sonnet-4-6' }); if (error) return { ok: false, error: error.message }; return data || { ok: true }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // RPC brief_save (persiste el brief)
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {

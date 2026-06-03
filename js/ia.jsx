@@ -26,19 +26,31 @@
     const [usage, setUsage] = useState(null);
     const [brief, setBrief] = useState(window.BA._iaBrief || null);
     const [gen, setGen] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     React.useEffect(() => {
       let on = true;
       Promise.resolve(BA.source.iaUsage()).then(u => { if (on) setUsage(u); });
-      if (!window.BA._iaBrief) generar();
+      // Al entrar NO se genera (eso gasta plata): se lee el último brief guardado.
+      if (!window.BA._iaBrief) {
+        setLoading(true);
+        Promise.resolve(BA.source.briefLatest()).then(b => {
+          if (!on) return;
+          setLoading(false);
+          if (b && b.respuesta) { window.BA._iaBrief = b; setBrief(b); }
+        });
+      }
       return () => { on = false; };
     }, []);
 
+    // Regenera SOLO al click: le pide el resumen a Claude (copiloto) y lo guarda.
     function generar() {
       setGen(true);
       Promise.resolve(BA.source.resumenEjecutivo()).then(r => {
-        window.BA._iaBrief = r; setBrief(r); setGen(false);
+        const b = { respuesta: (r && r.respuesta) || '', acciones: (r && r.acciones) || [], generated_at: new Date().toISOString(), source: 'manual' };
+        window.BA._iaBrief = b; setBrief(b); setGen(false);
         Promise.resolve(BA.source.iaUsage()).then(u => setUsage(u));
+        if (b.respuesta) Promise.resolve(BA.source.briefSave(b.respuesta, b.acciones, 'manual')).catch(function () {});
       });
     }
     function doAction(ac) {
@@ -69,16 +81,19 @@
             React.createElement('div', { className: 'copilot-orb', style: { width: 36, height: 36 } }, React.createElement(Icon, { name: 'spark' })),
             React.createElement('div', null,
               React.createElement('div', { style: { fontSize: 16, fontWeight: 650, color: 'var(--text-1)' } }, 'Resumen ejecutivo del día'),
-              React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)' } }, 'Generado por Claude Sonnet sobre tus datos reales'))),
+              React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)' } },
+                (brief && brief.generated_at)
+                  ? ((brief.source === 'cron' ? 'Automático' : 'Manual') + ' · ' + relTime(brief.generated_at))
+                  : 'Se genera solo cada día a las 6:00 · o regeneralo a mano'))),
           React.createElement('button', { className: 'btn sm', disabled: gen, onClick: generar }, React.createElement(Icon, { name: 'refresh' }), gen ? 'Generando…' : 'Regenerar')),
-        (gen && !brief)
+        ((gen || loading) && !brief)
           ? React.createElement('div', { className: 'copilot-answer' }, React.createElement('span', { className: 'typing' }, React.createElement('i'), React.createElement('i'), React.createElement('i')))
           : brief
             ? React.createElement('div', null,
                 React.createElement('div', { style: { fontSize: 14, lineHeight: 1.65, color: 'var(--text-1)' }, dangerouslySetInnerHTML: html(brief.respuesta) }),
                 brief.acciones && brief.acciones.length > 0 && React.createElement('div', { className: 'ans-chips', style: { marginTop: 16 } },
                   brief.acciones.map((ac, i) => React.createElement('button', { key: i, className: i ? 'ghost' : '', onClick: () => doAction(ac) }, ac.label))))
-            : React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)' } }, 'Tocá Regenerar para pedirle el resumen del día.')),
+            : React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)' } }, 'Todavía no hay resumen guardado. Tocá ', React.createElement('b', null, 'Regenerar'), ' para crear el del día — después se genera solo cada mañana a las 6:00.')),
 
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 'var(--gap)' } },
         React.createElement(StatCard, { icon: 'coin', iconCls: '', label: 'Costo IA acumulado', value: money(t.costo), sub: (t.consultas || 0) + ' consultas' }),
