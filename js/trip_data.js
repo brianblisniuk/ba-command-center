@@ -177,6 +177,7 @@
 
   // ---- Cache + selector real/mock (Plano Viaje en vivo) ----
   BA._tripCache = BA._tripCache || {};
+  BA._provCache = BA._provCache || {};
   BA.tripData = function (id) { return (BA._tripCache && BA._tripCache[id]) || BA._tripDataMock(id); };
 
   // ---- Mapper: trips.data (real) → shape de tripData ----
@@ -184,6 +185,20 @@
   const SV = { ok: 'Confirmado', warn: 'Por confirmar', info: 'Confirmado', danger: 'En gestión', '': 'Confirmado' };
   const RES = { confirmed: 'confirmada', pending: 'pendiente', negotiating: 'conversando', contacted: 'conversando', identified: 'pendiente', declined: 'pendiente' };
   function inferType(title) { const t = (title || '').toLowerCase(); if (/transfer|traslado|llegada|salida|aeropuerto|pickup|check-?out/.test(t)) return 'transfer'; if (/cena|almuerzo|dinner|lunch|comida|brunch|desayuno|merienda|aperitivo|degustaci/.test(t)) return 'meal'; if (/cata|vino|bodega|winery|nebbiolo|barolo|viñ|vendim/.test(t)) return 'wine'; if (/trufa|truffle/.test(t)) return 'truffle'; if (/dormir|noche|check-?in|villa|hotel|alojam|lodge/.test(t)) return 'lodging'; if (/taller|visita|paseo|recorrido|excursi|experiencia|tour|caminata/.test(t)) return 'activity'; return 'service'; }
+
+  function mapProvDetail(p, tripId) {
+    return {
+      id: p.id, name: p.name || '—', type: TMAP[p.type] || 'service',
+      michelin: Number(p.michelin) || 0, priceRange: p.priceRange || '—',
+      location: p.location || '—', salidas: tripId ? [tripId] : [],
+      reservationStatus: RES[p.reservationStatus] || 'pendiente',
+      closingDays: p.closingDays || '—', web: p.web || '—', email: p.email || '—', phone: p.phone || '—',
+      mapUrl: p.mapUrl || '', latitude: p.latitude, longitude: p.longitude, rawType: p.type || '',
+      comms: (Array.isArray(p.communications) ? p.communications : []).map(c => ({ dir: (c.dir || c.direction || 'out'), t: (c.summary || c.subject || c.text || c.body || 'Comunicación'), when: (c.when || c.date || c.created_at || '') })),
+      notes: (p.notes && p.notes.trim()) ? p.notes : 'Sin notas todavía.',
+      attachments: (Array.isArray(p.attachments) ? p.attachments : []).map(a => typeof a === 'string' ? a : ((a && (a.name || a.filename)) || 'archivo'))
+    };
+  }
 
   BA._mapTripData = function (id, data) {
     data = data || {};
@@ -206,7 +221,7 @@
           type, title: sl.title || '', desc: sl.description || '',
           verdict: SV[stRaw] || 'Confirmado',
           clientVisible: !(sl.client && sl.client.visible === false), conflict: false, access,
-          provider: pv ? pv.name : '—', attachments: (sl.attachments || []).length, comments: 0,
+          providerId: pv ? pv.id : '', provider: pv ? pv.name : '—', attachments: (sl.attachments || []).length, comments: 0,
           internal: { title: (sl.internal && sl.internal.title) || sl.title || '', status: SV[(sl.internal && sl.internal.status) || stRaw] || 'Confirmado', desc: ((sl.internal && sl.internal.description) || sl.description || '') + extra },
           client: { title: (sl.client && sl.client.title) || sl.title || '', visible: !(sl.client && sl.client.visible === false), desc: (sl.client && sl.client.description) || '' }
         };
@@ -221,6 +236,7 @@
       estado: RES[p.reservationStatus] || 'pendiente', cierra: p.closingDays || '—',
       phone: p.phone || '', web: p.web || '', id: p.id
     }));
+    provs.forEach(p => { if (p && p.id) BA._provCache[p.id] = mapProvDetail(p, id); });
 
     const pax = meta.payingPax || meta.pax || 1; const ticket = Number(meta.ticketUSD) || 0;
     const byCat = {}; budget.forEach(b => { const c = b.category || 'Varios'; byCat[c] = (byCat[c] || 0) + toUSD(b.amount, b.currency); });

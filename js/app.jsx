@@ -77,6 +77,7 @@
     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
     const [view, setView] = useState('puente');
     const [tripId, setTripId] = useState(null);
+    const [provReturnTrip, setProvReturnTrip] = useState(null);
     const [tripTab, setTripTab] = useState('Resumen');
     const [lastDomain, setLastDomain] = useState('puente');
     const [cmdk, setCmdk] = useState(false);
@@ -130,7 +131,7 @@
     function openTrip(id) { setLastDomain(['trip','lead','provider'].includes(view) ? lastDomain : view); setTripId(id); setTripTab('Resumen'); setView('trip'); setLeadId(null); setProvId(null); setRailOpen(false); }
     function back() { setView(lastDomain || 'viajes'); setTripId(null); setLeadId(null); setProvId(null); }
     function openLead(id) { setLastDomain(['trip','lead','provider'].includes(view) ? lastDomain : view); setLeadId(id); setProvId(null); setView('lead'); setRailOpen(false); }
-    function openProvider(id) { setLastDomain(['trip','lead','provider'].includes(view) ? lastDomain : view); setProvId(id); setLeadId(null); setView('provider'); setRailOpen(false); }
+    function openProvider(id) { setProvReturnTrip(view === 'trip' ? tripId : null); setLastDomain(['trip','lead','provider'].includes(view) ? lastDomain : view); setProvId(id); setLeadId(null); setView('provider'); setRailOpen(false); }
 
     const unread = BA.bandeja.filter(m => !m.leido).length;
 
@@ -138,7 +139,7 @@
     let body;
     if (view === 'trip') body = React.createElement(window.Trip, { tripId, cur, toast, back, tab: tripTab, setTab: setTripTab, openLead, openProvider, op });
     else if (view === 'lead') body = React.createElement(window.LeadDetail, { leadId, cur, toast, back, openTrip, openProvider, op, openProposal: (l) => setProposal(l) });
-    else if (view === 'provider') body = React.createElement(window.ProviderDetail, { providerId: provId, cur, toast, back, openTrip, op });
+    else if (view === 'provider') body = React.createElement(window.ProviderDetail, { providerId: provId, cur, toast, back: provReturnTrip ? () => openTrip(provReturnTrip) : back, openTrip, op });
     else {
       const C = window[VIEWS[view]] || window.Puente;
       body = React.createElement(C, { cur, op, toast, nav, openTrip, openLead, openProvider, openWizard: () => setWizard(true), openCapture: () => setCapture(true), rev });

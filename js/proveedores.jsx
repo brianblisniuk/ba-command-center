@@ -4,14 +4,14 @@
   const { useState } = React;
   const BA = window.BA;
   const M = (usd, cur) => BA.money(usd, cur);
-  const PT = { restaurant: 'Restaurante', winery: 'Bodega', hotel: 'Hotel', transfer: 'Transfer', guide: 'Guía', activity: 'Actividad', lodging: 'Lodge' };
+  const PT = { restaurant: 'Restaurante', winery: 'Bodega', wine: 'Bodega', meal: 'Restaurante', hotel: 'Hotel', transfer: 'Transfer', guide: 'Guía', activity: 'Actividad', lodging: 'Lodge', truffle: 'Trufa', service: 'Servicio', villa: 'Villa', expert: 'Acceso', culture: 'Cultura' };
   const PEST = { confirmada: { c: 'go', t: 'Confirmada' }, conversando: { c: 'risk', t: 'Conversando' }, pendiente: { c: 'ghost', t: 'Pendiente' } };
   const STAGES = ['pendiente', 'conversando', 'confirmada'];
   const ST_LBL = { pendiente: 'Pendiente', conversando: 'Conversando', confirmada: 'Confirmada' };
 
   function Proveedores({ s, cur, toast, openProvider }) {
     const base = BA.tripData(s.id).proveedores;
-    const [items, setItems] = useState(() => base.map((p, i) => ({ ...p, id: i, geo: i % 3 !== 0 })));
+    const [items, setItems] = useState(() => base.map((p, i) => ({ ...p, geo: i % 3 !== 0 })));
     const [vista, setVista] = useState('cards'); // cards | table | pipeline
     const [tipo, setTipo] = useState('all');
     const [barriendo, setBarriendo] = useState(false);
@@ -42,7 +42,7 @@
         React.createElement('div', { className: 'eyebrow', style: { marginBottom: 10 } }, PT[tp] + ' · ' + arr.length),
         React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' } },
           arr.map(p => { const st = PEST[p.estado];
-            return React.createElement('div', { key: p.id, className: 'card pad rise', style: { cursor: 'pointer' }, onClick: () => openProvider && openProvider('p1') },
+            return React.createElement('div', { key: p.id, className: 'card pad rise', style: { cursor: 'pointer' }, onClick: () => openProvider && openProvider(p.id) },
               React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 11, marginBottom: 12 } },
                 React.createElement('span', { className: 'salida-glyph', style: { width: 38, height: 38, borderRadius: 11, fontSize: 15, background: 'linear-gradient(145deg, var(--laurel-soft), var(--laurel-deep))' } }, p.nombre[0]),
                 React.createElement('div', { style: { flex: 1, minWidth: 0 } },
@@ -57,7 +57,7 @@
       viewEl = React.createElement('div', { className: 'card pad' }, React.createElement('table', { className: 'tbl' },
         React.createElement('thead', null, React.createElement('tr', null, ['Proveedor', 'Tipo', 'Lugar', 'Precio', 'Geo', 'Estado'].map((h, i) => React.createElement('th', { key: i, style: i === 3 ? { textAlign: 'right' } : null }, h)))),
         React.createElement('tbody', null, list.map(p => { const st = PEST[p.estado];
-          return React.createElement('tr', { key: p.id, className: 'click', onClick: () => openProvider && openProvider('p1') },
+          return React.createElement('tr', { key: p.id, className: 'click', onClick: () => openProvider && openProvider(p.id) },
             React.createElement('td', null, React.createElement('span', { className: 'nm' }, p.nombre), p.michelin > 0 && React.createElement('span', { style: { color: 'var(--brass)', marginLeft: 5 } }, '★'.repeat(p.michelin))),
             React.createElement('td', null, PT[p.tipo]),
             React.createElement('td', null, p.lugar),
@@ -72,7 +72,7 @@
             React.createElement('div', { className: 'kcol-head' },
               React.createElement('span', { className: 'nm' }, React.createElement('i', { style: { background: stg === 'confirmada' ? 'var(--go)' : stg === 'conversando' ? 'var(--brass)' : 'var(--stone)' } }), ST_LBL[stg]),
               React.createElement('span', { className: 'ct' }, col.length)),
-            col.map(p => React.createElement('div', { key: p.id, className: 'kcard', onClick: () => openProvider && openProvider('p1') },
+            col.map(p => React.createElement('div', { key: p.id, className: 'kcard', onClick: () => openProvider && openProvider(p.id) },
               React.createElement('div', { className: 'nm' }, p.nombre),
               React.createElement('div', { className: 'sub' }, PT[p.tipo] + ' · ' + p.lugar),
               React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 } },

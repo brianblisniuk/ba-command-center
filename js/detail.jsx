@@ -157,7 +157,7 @@
   }
 
   // ============ PROVIDER DETAIL (ficha, mismo patrón) ============
-  const PT = { meal: 'Restaurante', wine: 'Bodega', lodging: 'Alojamiento', experience: 'Experiencia', transfer: 'Transfer', service: 'Servicio', villa: 'Villa' };
+  const PT = { meal: 'Restaurante', wine: 'Bodega', lodging: 'Alojamiento', experience: 'Experiencia', transfer: 'Transfer', service: 'Servicio', villa: 'Villa', truffle: 'Trufa', access: 'Acceso', activity: 'Experiencia', culture: 'Cultura' };
   const RST = { confirmada: { c: 'go', t: 'Confirmada' }, conversando: { c: 'risk', t: 'Conversando' }, pendiente: { c: 'ghost', t: 'Pendiente' } };
 
   function ProviderDetail({ providerId, toast, back, openTrip, op }) {
@@ -166,7 +166,7 @@
     const st = RST[p.reservationStatus] || RST.pendiente;
     const glyph = (BA.STYPE && BA.STYPE[p.type]) ? BA.STYPE[p.type] : { c: 'var(--laurel)' };
     return React.createElement('div', { className: 'content-inner' },
-      React.createElement('button', { className: 'backlink', onClick: back }, React.createElement(Icon, { name: 'cl' }), 'Volver a Biblioteca'),
+      React.createElement('button', { className: 'backlink', onClick: back }, React.createElement(Icon, { name: 'cl' }), 'Volver'),
       React.createElement('div', { className: 'page-head', style: { alignItems: 'center' } },
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 16 } },
           React.createElement('span', { className: 'salida-glyph', style: { width: 52, height: 52, borderRadius: 15, fontSize: 22, background: 'linear-gradient(145deg, var(--laurel-soft), var(--laurel-deep))' } }, (BA.STYPE && BA.STYPE[p.type] && BA.STYPE[p.type].t) ? p.name[0] : p.name[0]),

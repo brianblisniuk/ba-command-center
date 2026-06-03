@@ -114,7 +114,7 @@
       comms:[ {dir:'in', t:'Confirman visita para el grupo', when:'hace 3 días'} ],
       attachments:['Ficha técnica.pdf'] },
   ];
-  BA.providerById = function (id) { return BA.biblioteca.find(p => p.id === id); };
+  BA.providerById = function (id) { return (BA._provCache && BA._provCache[id]) || BA.biblioteca.find(p => p.id === id); };
 
   // ---- Clientes (clients_list) — los que ya viajaron ----
   BA.clientes = [
