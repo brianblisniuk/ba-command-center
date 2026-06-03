@@ -92,6 +92,7 @@
     const [notifOpen, setNotifOpen] = useState(false);
     const [capture, setCapture] = useState(false);
     const [proposal, setProposal] = useState(null);
+    const [compose, setCompose] = useState(null);
     const scrollRef = useRef(null);
 
     useEffect(() => {
@@ -132,17 +133,18 @@
     function back() { setView(lastDomain || 'viajes'); setTripId(null); setLeadId(null); setProvId(null); }
     function openLead(id) { setLastDomain(['trip','lead','provider'].includes(view) ? lastDomain : view); setLeadId(id); setProvId(null); setView('lead'); setRailOpen(false); }
     function openProvider(id) { setProvReturnTrip(view === 'trip' ? tripId : null); setLastDomain(['trip','lead','provider'].includes(view) ? lastDomain : view); setProvId(id); setLeadId(null); setView('provider'); setRailOpen(false); }
+    function openCompose(opts) { setCompose(opts || {}); }
 
     const unread = BA.bandeja.filter(m => !m.leido).length;
 
     // current view component
     let body;
     if (view === 'trip') body = React.createElement(window.Trip, { tripId, cur, toast, back, tab: tripTab, setTab: setTripTab, openLead, openProvider, op });
-    else if (view === 'lead') body = React.createElement(window.LeadDetail, { leadId, cur, toast, back, openTrip, openProvider, op, openProposal: (l) => setProposal(l) });
-    else if (view === 'provider') body = React.createElement(window.ProviderDetail, { providerId: provId, cur, toast, back: provReturnTrip ? () => openTrip(provReturnTrip) : back, openTrip, op });
+    else if (view === 'lead') body = React.createElement(window.LeadDetail, { leadId, cur, toast, back, openTrip, openProvider, op, openProposal: (l) => setProposal(l), openCompose });
+    else if (view === 'provider') body = React.createElement(window.ProviderDetail, { providerId: provId, cur, toast, back: provReturnTrip ? () => openTrip(provReturnTrip) : back, openTrip, op, openCompose });
     else {
       const C = window[VIEWS[view]] || window.Puente;
-      body = React.createElement(C, { cur, op, toast, nav, openTrip, openLead, openProvider, openWizard: () => setWizard(true), openCapture: () => setCapture(true), rev });
+      body = React.createElement(C, { cur, op, toast, nav, openTrip, openLead, openProvider, openWizard: () => setWizard(true), openCapture: () => setCapture(true), openCompose, rev });
     }
 
     if (!authed) return React.createElement(window.Auth, { onEnter: async (id) => { setTweak('operator', id); try { await BA.source.hydrate(); } catch (e) {} setRev(r => r + 1); setAuthed(true); setLive(true); } });
@@ -214,6 +216,7 @@
       wizard && React.createElement(window.NewTripWizard, { onClose: () => setWizard(false), toast, op }),
       capture && React.createElement(window.AICapture, { onClose: () => setCapture(false), toast, nav }),
       proposal && React.createElement(window.Propuesta, { lead: proposal, onClose: () => setProposal(null), toast }),
+      compose && React.createElement(window.Composer, { initial: compose, onClose: () => setCompose(null), toast }),
       notifOpen && React.createElement(window.NotifCenter, { op, toast, onClose: () => setNotifOpen(false),
         onGo: (n) => { const c = n.ctx || ''; if (c.startsWith('prov:')) openProvider(c.slice(5)); else if (['nam','pie','uzb','jpn'].includes(c)) openTrip(c); else if (c === 'finanzas') nav('finanzas'); else if (c.startsWith('task:') || c.startsWith('slot:')) openTrip('pie'); else toast(n.t); } }),
       railOpen && window.innerWidth <= 1100 && React.createElement('div', { onClick: () => setRailOpen(false), style: { position: 'fixed', inset: 0, zIndex: 25, background: 'rgba(0,0,0,.3)' } }),

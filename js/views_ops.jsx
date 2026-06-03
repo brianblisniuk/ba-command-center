@@ -45,7 +45,7 @@
   ];
   const SEVCAT = { Cliente: 'curso', Proveedor: 'risk', Pago: 'go', Reserva: 'go' };
 
-  function Bandeja({ toast }) {
+  function Bandeja({ toast, openCompose }) {
     const [filter, setFilter] = useState('all');
     const [sel, setSel] = useState((BA.bandeja[0] || {}).id);
     const [sent, setSent] = useState({});
@@ -78,7 +78,9 @@
         React.createElement('div', null,
           React.createElement('h1', null, React.createElement('span', { className: 'lt' }, 'Bandeja')),
           React.createElement('div', { className: 'page-greet-sub' }, 'Email + WhatsApp unificados · triage por ', React.createElement('b', null, 'IA (Claude Haiku)'))),
-        React.createElement('div', { className: 'tag' }, React.createElement(Icon, { name: 'spark' }), 'email-ai · activo')
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+          React.createElement('div', { className: 'tag' }, React.createElement(Icon, { name: 'spark' }), 'email-ai · activo'),
+          React.createElement('button', { className: 'btn primary', onClick: () => openCompose ? openCompose({ account: 'reservas' }) : toast('Redactar') }, React.createElement(Icon, { name: 'mail' }), 'Nuevo correo'))
       ),
       React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' } },
         FILTERS.map(f => React.createElement('button', { key: f.k, className: 'badge ' + (filter === f.k ? 'go' : 'ghost'),
@@ -168,7 +170,7 @@
   }
 
   // ============ FINANZAS ============
-  function Finanzas({ cur, toast }) {
+  function Finanzas({ cur, toast, openCompose }) {
     const f = BA.finanzas;
     const [paid, setPaid] = useState({});
     return React.createElement('div', { className: 'content-inner' },
@@ -214,7 +216,7 @@
                   React.createElement('td', { style: { textAlign: 'right', whiteSpace: 'nowrap' } },
                     isPaid ? React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: 'check' }), 'OK')
                       : React.createElement('span', { style: { display: 'inline-flex', gap: 6 } },
-                        React.createElement('button', { className: 'btn sm', onClick: () => toast('Recordatorio enviado a ' + c.cliente) }, 'Recordar'),
+                        React.createElement('button', { className: 'btn sm', onClick: () => { if (!openCompose) { toast('Recordar a ' + c.cliente); return; } var lk = (BA.leads || []).find(function (x) { return x.nombre === c.cliente; }); var mail = (lk && lk.email && lk.email.indexOf('@') >= 0) ? lk.email : ''; var region = s ? s.region : (c.region || ''); var body = 'Hola ' + ((c.cliente || '').split(' ')[0]) + ', ¿cómo va? Te escribo para recordarte la ' + (c.cuota || 'cuota') + ' del viaje' + (region ? ' a ' + region : '') + '. Cualquier cosa quedamos a disposición. Un abrazo.'; openCompose({ to: mail, account: 'reservas', subject: 'B&A · recordatorio de pago', name: c.cliente, body: body }); } }, 'Recordar'),
                         React.createElement('button', { className: 'btn sm primary', onClick: () => { setPaid(p => ({ ...p, [c.id]: true })); Promise.resolve(BA.source.markPaid(c.id)).then(r => { if (r && r.error) { setPaid(p => { const q = { ...p }; delete q[c.id]; return q; }); toast('No se pudo marcar: ' + r.error); } else { toast(c.cliente + ' · cobrado ✓'); } }); } }, 'Pagado'))));
               }) : React.createElement('tr', null, React.createElement('td', { colSpan: 6, style: { textAlign: 'center', color: 'var(--text-3)', padding: '20px' } }, 'Sin cuotas por cobrar.')))
           ))

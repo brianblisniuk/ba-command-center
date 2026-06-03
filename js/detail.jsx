@@ -38,7 +38,7 @@
   }
 
   // ============ LEAD DETAIL (dedicated page) ============
-  function LeadDetail({ leadId, cur, toast, back, openTrip, openProvider, openProposal }) {
+  function LeadDetail({ leadId, cur, toast, back, openTrip, openProvider, openProposal, openCompose }) {
     const lead = BA.leads.find(l => l.id === leadId);
     const [, force] = useState(0);
     const [nota, setNota] = useState('');
@@ -88,6 +88,7 @@
               React.createElement('span', { className: 'mono', style: { fontSize: 12, color: 'var(--accent)', fontWeight: 700 } }, 'US$ ' + lead.potUSD + 'k'),
               lead.empresa !== '—' && React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-3)' } }, lead.empresa)))),
         React.createElement('div', { style: { display: 'flex', gap: 9 } },
+          React.createElement('button', { className: 'btn', onClick: () => openCompose ? openCompose({ to: (lead.email && lead.email.indexOf('@') >= 0) ? lead.email : '', account: 'reservas', subject: 'B&A · ' + (lead.nombre || ''), name: lead.nombre }) : toast('Escribir email') }, React.createElement(Icon, { name: 'mail' }), 'Email'),
           lead.etapa !== 'Reservado' && lead.etapa !== 'Perdidos' && React.createElement('button', { className: 'btn primary', onClick: advance }, React.createElement(Icon, { name: 'au', style: { transform: 'rotate(90deg)' } }), 'Avanzar etapa'))
       ),
       // stage stepper
@@ -160,7 +161,7 @@
   const PT = { meal: 'Restaurante', wine: 'Bodega', lodging: 'Alojamiento', experience: 'Experiencia', transfer: 'Transfer', service: 'Servicio', villa: 'Villa', truffle: 'Trufa', access: 'Acceso', activity: 'Experiencia', culture: 'Cultura' };
   const RST = { confirmada: { c: 'go', t: 'Confirmada' }, conversando: { c: 'risk', t: 'Conversando' }, pendiente: { c: 'ghost', t: 'Pendiente' } };
 
-  function ProviderDetail({ providerId, toast, back, openTrip, op }) {
+  function ProviderDetail({ providerId, toast, back, openTrip, op, openCompose }) {
     const p = BA.providerById(providerId);
     if (!p) return null;
     const st = RST[p.reservationStatus] || RST.pendiente;
@@ -178,7 +179,7 @@
               p.michelin > 0 && React.createElement('span', { style: { color: 'var(--brass)', fontSize: 13 } }, '★'.repeat(p.michelin))))),
         React.createElement('div', { style: { display: 'flex', gap: 9 } },
           React.createElement('button', { className: 'btn', onClick: () => toast('Buscando en Google Maps… campos autocompletados ✓') }, React.createElement(Icon, { name: 'pin' }), 'Buscar en Google Maps'),
-          React.createElement('button', { className: 'btn', onClick: () => toast('Contactar proveedor') }, React.createElement(Icon, { name: 'mail' }), 'Contactar'),
+          React.createElement('button', { className: 'btn', onClick: () => openCompose ? openCompose({ to: (p.email && p.email.indexOf('@') >= 0) ? p.email : '', account: 'reservas', subject: 'B&A · ' + p.name, name: p.name }) : toast('Contactar proveedor') }, React.createElement(Icon, { name: 'mail' }), 'Contactar'),
           React.createElement('button', { className: 'btn primary', onClick: () => toast('Estado de reserva actualizado') }, React.createElement(Icon, { name: 'check' }), 'Marcar confirmada'))
       ),
       React.createElement('div', { className: 'detail-grid' },
