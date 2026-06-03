@@ -375,7 +375,7 @@ window.BA = (function () {
       breakeven: r.min_pax || 0, accesosOk: r.accesos_cerrados || 0, accesosTot: r.accesos_total || 0,
       readiness: r.readiness_pct || 0, dias: r.days_to_decision || 0,
       forecastUSD: Math.round((r.revenue_forecast || 0) / 1000),
-      resp: 'brian', lat: 0, lng: 0, glyph,
+      resp: 'brian', lat: Number(r.lat) || 0, lng: Number(r.lng) || 0, glyph,
       capacity: r.capacity, pipe: r.pipe, leadsActivos: r.leads_activos, decisionDate: r.decision_date,
       daysToDeparture: r.days_to_departure, revenueCommitted: r.revenue_committed, goStatus: r.go_status
     };
@@ -413,6 +413,30 @@ window.BA = (function () {
     return { id: r.id, cliente: r.full_name || '—', salida: r.trip_id || '', monto: Number(r.amount) || 0, estado: dueEstado(r), dias: r.dias, cuota: r.label || '', region: r.region_label || '', currency: r.currency || 'USD' };
   }
 
+  // Compone "El Puente" (cola del día) desde finanzas + leads + salidas ya hidratados
+  function composePuente() {
+    const out = []; let id = 1;
+    (finanzas.cuotas || []).forEach(c => {
+      if (c.estado === 'vencido') out.push({ id: id++, _order: 0, tipo: 'cobro', sev: 'bad', icon: 'alert', titulo: 'Cobro vencido · ' + c.cliente, meta: money(c.monto, 'USD') + ' · ' + c.cuota + ' · ' + Math.abs(c.dias) + 'd vencido', salida: c.salida, accion: 'Marcar cobrado', who: 'brian' });
+      else if (c.estado === 'proximo') out.push({ id: id++, _order: 2, tipo: 'cobro', sev: 'risk', icon: 'clock', titulo: 'Cobro próximo · ' + c.cliente, meta: money(c.monto, 'USD') + ' · ' + c.cuota + ' · vence en ' + c.dias + 'd', salida: c.salida, accion: 'Enviar recordatorio', who: 'brian' });
+    });
+    salidas.filter(s => ['risk', 'opcion'].includes(s.estado) && s.dias > 0).sort((a, b) => a.dias - b.dias).slice(0, 3).forEach(s => {
+      const beOk = s.conf >= s.breakeven, accOk = s.accesosOk >= 2;
+      if (beOk && accOk) return;
+      const faltan = []; if (!beOk) faltan.push('break-even ' + s.conf + '/' + s.breakeven); if (!accOk) faltan.push('accesos ' + s.accesosOk + '/' + s.accesosTot);
+      out.push({ id: id++, _order: s.dias <= 7 ? 1 : 3, tipo: 'gonogo', sev: s.dias <= 7 ? 'bad' : 'risk', icon: 'flag', titulo: 'Decisión GO/NO-GO · ' + s.region, meta: s.dias + 'd para decidir · falta ' + faltan.join(' + '), salida: s.id, accion: 'Abrir viaje', who: 'brian' });
+    });
+    leads.filter(l => ['negotiating', 'proposal'].includes(l.stageKey)).sort((a, b) => b.potUSD - a.potUSD).slice(0, 3).forEach(l => {
+      const s = salidaById(l.salida);
+      out.push({ id: id++, _order: 4, tipo: 'lead', sev: 'go', icon: 'spark', titulo: 'Por cerrar · ' + l.nombre, meta: l.etapa + ' · US$ ' + l.potUSD + 'k' + (s ? ' · ' + s.region : ''), salida: l.salida, accion: 'Abrir lead', who: l.resp });
+    });
+    leads.filter(l => l.dias > 10 && !['booked', 'lost'].includes(l.stageKey)).sort((a, b) => b.dias - a.dias).slice(0, 3).forEach(l => {
+      out.push({ id: id++, _order: 5, tipo: 'cadencia', sev: 'info', icon: 'snow', titulo: 'Se enfría · ' + l.nombre, meta: l.etapa + ' · ' + l.dias + 'd sin contacto · US$ ' + l.potUSD + 'k', salida: l.salida, accion: 'Preparar mail', who: l.resp });
+    });
+    out.sort((a, b) => a._order - b._order);
+    return out.slice(0, 8);
+  }
+
   const source = {
     async trips() {
       const sess = await this.getSession();
@@ -430,7 +454,39 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { salidas.length = 0; list.forEach(x => salidas.push(x)); }
       return salidas;
     },
-    async puente()     { return puente; },                        // Edge fn daily-brief
+    async puente() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return puente;                     // demo → mock
+      const composed = composePuente();
+      return composed.length ? composed : puente;
+    },                                                            // compone desde finanzas+leads+salidas (daily-brief)
+    async hydratePuente() {
+      const list = await this.puente();
+      if (Array.isArray(list) && list !== puente) { puente.length = 0; list.forEach(x => puente.push(x)); }
+      return puente;
+    },
+    async estado() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return estado;                     // demo → mock
+      const cnt = key => salidas.filter(s => s.estado === key).length;
+      const sum = (arr, f) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
+      const hot = leads.filter(l => ['qualified', 'proposal', 'negotiating'].includes(l.stageKey));
+      const active = salidas.filter(s => s.estado !== 'nogo');
+      const F = finanzas.totales || {};
+      return {
+        caja: { cobrado: Math.round((F.cobradoMes || 0) / 1000), porCobrar: Math.round((F.porCobrar || 0) / 1000), vencido: Math.round((F.vencido || 0) / 1000), prox7: Math.round((F.prox7 || 0) / 1000), unit: 'US$k' },
+        butacas: { vendidas: sum(active, s => s.conf), breakeven: sum(active, s => s.breakeven), capacidad: sum(active, s => s.capacity || 0) },
+        leadsCalientes: hot.length,
+        leadsCalientesPipeUSD: sum(hot, l => l.potUSD),
+        forecast: { val: sum(salidas, s => s.forecastUSD), unit: 'US$k', delta: null, spark: null },
+        salidasActivas: { go: cnt('go'), risk: cnt('risk'), opcion: cnt('opcion'), curso: cnt('curso') }
+      };
+    },                                                            // compone desde finanzas+leads+salidas
+    async hydrateEstado() {
+      const e = await this.estado();
+      if (e && e !== estado) { Object.assign(estado, e); }
+      return estado;
+    },
     async leads() {
       const sess = await this.getSession();
       if (!window.SB || !sess) return leads;                      // demo → mock
@@ -446,7 +502,7 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateLeads(); await this.hydrateFinanzas(); },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateLeads(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); },
     async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
     async finanzas() {
       const sess = await this.getSession();

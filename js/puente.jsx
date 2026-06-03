@@ -57,7 +57,7 @@
   }
 
   // ---------- Cola del día ----------
-  function ColaDelDia({ toast }) {
+  function ColaDelDia({ toast, nav, openTrip }) {
     const [items, setItems] = useState(window.BA.puente.map(p => ({ ...p, done: false })));
     function resolve(id, label) {
       setItems(s => s.map(it => it.id === id ? { ...it, done: true } : it));
@@ -78,7 +78,7 @@
             it.done
               ? React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: it.snoozed ? 'clock' : 'check' }), it.snoozed ? 'Pospuesto' : 'Hecho')
               : React.createElement(React.Fragment, null,
-                  React.createElement('button', { className: 'btn sm primary', onClick: () => resolve(it.id, it.accion) }, it.accion),
+                  React.createElement('button', { className: 'btn sm primary', onClick: () => { toast(it.accion); if (it.tipo === 'cobro') nav('finanzas'); else if (it.tipo === 'gonogo') openTrip(it.salida); else nav('ventas'); } }, it.accion),
                   React.createElement('button', { className: 'btn sm ghost', title: 'Posponer', onClick: () => snooze(it.id), style: { padding: '5px 8px' } }, React.createElement(Icon, { name: 'clock' }))
                 )
           )
@@ -240,15 +240,15 @@
       // KPI row
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 'var(--gap)' } },
         React.createElement(StatCard, { icon: 'trending', iconCls: '', label: 'Forecast salidas', value: k(e.forecast.val), sub: e.salidasActivas.go + e.salidasActivas.risk + e.salidasActivas.opcion + e.salidasActivas.curso + ' salidas', delta: e.forecast.delta, spark: e.forecast.spark, sparkColor: 'var(--accent)' }),
-        React.createElement(StatCard, { icon: 'wallet', iconCls: 'tint-bad', label: 'Por cobrar', value: k(e.caja.porCobrar), sub: k(e.caja.vencido) + ' vencido', delta: -4 }),
-        React.createElement(StatCard, { icon: 'users', iconCls: 'tint', label: 'Butacas vs break-even', value: e.butacas.vendidas, unit: '/ ' + e.butacas.breakeven, sub: 'capacidad ' + e.butacas.capacidad, delta: 9 }),
-        React.createElement(StatCard, { icon: 'funnel', iconCls: 'tint-brass', label: 'Leads calientes', value: e.leadsCalientes, unit: 'sin atender', sub: 'pipeline US$ 412k', delta: 8 })
+        React.createElement(StatCard, { icon: 'wallet', iconCls: 'tint-bad', label: 'Por cobrar', value: k(e.caja.porCobrar), sub: k(e.caja.vencido) + ' vencido' }),
+        React.createElement(StatCard, { icon: 'users', iconCls: 'tint', label: 'Butacas vs break-even', value: e.butacas.vendidas, unit: '/ ' + e.butacas.breakeven, sub: 'capacidad ' + e.butacas.capacidad }),
+        React.createElement(StatCard, { icon: 'funnel', iconCls: 'tint-brass', label: 'Leads calientes', value: e.leadsCalientes, unit: 'sin atender', sub: 'pipeline US$ ' + (e.leadsCalientesPipeUSD || 0) + 'k' })
       ),
       // main two-column
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'minmax(0, 1.65fr) minmax(0, 1fr)', alignItems: 'start' } },
         React.createElement('div', { className: 'grid' },
           React.createElement(Copiloto, { toast, nav, openTrip }),
-          React.createElement(ColaDelDia, { toast })
+          React.createElement(ColaDelDia, { toast, nav, openTrip })
         ),
         React.createElement('div', { className: 'grid' },
           React.createElement(GoNoGo, { openTrip }),
