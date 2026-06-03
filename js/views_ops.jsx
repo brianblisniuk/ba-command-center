@@ -166,29 +166,16 @@
           React.createElement('div', { className: 'page-greet-sub' }, 'Cobranzas · caja · márgenes — consolidado'))),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 'var(--gap)' } },
         React.createElement(StatCard, { icon: 'wallet', iconCls: '', label: 'Por cobrar', value: k(f.totales.porCobrar / 1000, cur), sub: 'total abierto' }),
-        React.createElement(StatCard, { icon: 'alert', iconCls: 'tint-bad', label: 'Vencido', value: k(f.totales.vencido / 1000, cur), sub: '2 cuotas' }),
-        React.createElement(StatCard, { icon: 'clock', iconCls: 'tint-brass', label: 'Vence ≤ 7 días', value: k(f.totales.prox7 / 1000, cur), sub: '3 cuotas' }),
-        React.createElement(StatCard, { icon: 'target', iconCls: 'tint', label: 'Margen bruto', value: f.totales.margenReal + '%', sub: 'objetivo ' + f.totales.margenObj + '%', delta: f.totales.margenReal - f.totales.margenObj })
+        React.createElement(StatCard, { icon: 'alert', iconCls: 'tint-bad', label: 'Vencido', value: k(f.totales.vencido / 1000, cur), sub: (f.totales.nVencidas || 0) + ' cuotas' }),
+        React.createElement(StatCard, { icon: 'clock', iconCls: 'tint-brass', label: 'Vence ≤ 7 días', value: k(f.totales.prox7 / 1000, cur), sub: (f.totales.nProx7 || 0) + ' cuotas' }),
+        React.createElement(StatCard, { icon: 'check', iconCls: 'tint', label: 'Cobrado (mes)', value: k(f.totales.cobradoMes / 1000, cur), sub: 'este mes' })
       ),
-      React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', alignItems: 'start', marginBottom: 'var(--gap)' } },
-        React.createElement('div', { className: 'card pad' },
-          React.createElement(CardHead, { title: 'Caja por mes', right: React.createElement('span', { className: 'eyebrow' }, 'US$ miles') }),
-          React.createElement(BarChart, { data: f.caja, keys: ['cobrado', 'porCobrar', 'vencido'], colors: ['var(--go)', 'var(--brass)', 'var(--bad)'], h: 170 }),
-          React.createElement('div', { className: 'chart-legend' },
-            [['Cobrado', 'var(--go)'], ['Por cobrar', 'var(--brass)'], ['Vencido', 'var(--bad)']].map((l, i) =>
-              React.createElement('span', { key: i, className: 'lg' }, React.createElement('i', { style: { background: l[1] } }), l[0])))
-        ),
-        React.createElement('div', { className: 'card pad' },
-          React.createElement(CardHead, { title: 'Margen por salida', right: React.createElement('span', { className: 'eyebrow' }, 'obj 60–70%') }),
-          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 } },
-            f.margenes.map(mg => { const s = BA.salidaById(mg.salida); const ok = mg.margen >= 60;
-              return React.createElement('div', { key: mg.salida },
-                React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12.5 } },
-                  React.createElement('span', { style: { color: 'var(--text-1)', fontWeight: 600 } }, s ? s.region : mg.salida),
-                  React.createElement('span', { className: 'mono', style: { fontWeight: 700, color: ok ? 'var(--go)' : 'var(--bad)' } }, mg.margen + '%')),
-                React.createElement('div', { className: 'bar' }, React.createElement('span', { style: { width: mg.margen + '%', background: ok ? 'var(--accent)' : 'var(--bad)' } })));
-            }))
-        )
+      React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
+        React.createElement(CardHead, { title: 'Caja por mes', right: React.createElement('span', { className: 'eyebrow' }, 'US$ miles') }),
+        React.createElement(BarChart, { data: f.caja, keys: ['cobrado', 'porCobrar', 'vencido'], colors: ['var(--go)', 'var(--brass)', 'var(--bad)'], h: 170 }),
+        React.createElement('div', { className: 'chart-legend' },
+          [['Cobrado', 'var(--go)'], ['Por cobrar', 'var(--brass)'], ['Vencido', 'var(--bad)']].map((l, i) =>
+            React.createElement('span', { key: i, className: 'lg' }, React.createElement('i', { style: { background: l[1] } }), l[0])))
       ),
       React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
         React.createElement(CardHead, { title: 'Proyección · ingreso por mes', right: React.createElement('span', { className: 'eyebrow' }, 'forecast vs comprometido · US$ miles') }),
@@ -204,20 +191,20 @@
             React.createElement('thead', null, React.createElement('tr', null,
               ['Cliente', 'Salida', 'Cuota', 'Monto', 'Estado', ''].map((h, i) => React.createElement('th', { key: i, style: i >= 3 ? { textAlign: 'right' } : null }, h)))),
             React.createElement('tbody', null,
-              f.cuotas.map((c, i) => { const s = BA.salidaById(c.salida);
-                const stt = paid[i] ? { c: 'go', t: 'Pagado' } : c.estado === 'vencido' ? { c: 'bad', t: c.dias + 'd vencido' } : c.estado === 'proximo' ? { c: 'risk', t: 'en ' + c.dias + 'd' } : { c: 'ghost', t: 'al corriente' };
-                return React.createElement('tr', { key: i },
+              f.cuotas.length ? f.cuotas.map((c, i) => { const s = BA.salidaById(c.salida); const isPaid = paid[c.id] || c.estado === 'pagado';
+                const stt = isPaid ? { c: 'go', t: 'Pagado' } : c.estado === 'vencido' ? { c: 'bad', t: Math.abs(c.dias) + 'd vencido' } : c.estado === 'proximo' ? { c: 'risk', t: 'en ' + c.dias + 'd' } : { c: 'ghost', t: 'al corriente' };
+                return React.createElement('tr', { key: c.id || i },
                   React.createElement('td', null, React.createElement('span', { className: 'nm' }, c.cliente)),
-                  React.createElement('td', null, s ? s.region : c.salida),
+                  React.createElement('td', null, s ? s.region : (c.region || c.salida)),
                   React.createElement('td', { className: 'mono' }, c.cuota),
                   React.createElement('td', { className: 'mono', style: { textAlign: 'right', color: 'var(--text-1)', fontWeight: 600 } }, k(c.monto / 1000, cur)),
                   React.createElement('td', { style: { textAlign: 'right' } }, React.createElement('span', { className: 'badge ' + stt.c }, stt.t)),
                   React.createElement('td', { style: { textAlign: 'right', whiteSpace: 'nowrap' } },
-                    paid[i] ? React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: 'check' }), 'OK')
+                    isPaid ? React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: 'check' }), 'OK')
                       : React.createElement('span', { style: { display: 'inline-flex', gap: 6 } },
                         React.createElement('button', { className: 'btn sm', onClick: () => toast('Recordatorio enviado a ' + c.cliente) }, 'Recordar'),
-                        React.createElement('button', { className: 'btn sm primary', onClick: () => { setPaid(p => ({ ...p, [i]: true })); toast(c.cliente + ' · marcado pagado ✓'); } }, 'Pagado'))));
-              }))
+                        React.createElement('button', { className: 'btn sm primary', onClick: () => { setPaid(p => ({ ...p, [c.id]: true })); Promise.resolve(BA.source.markPaid(c.id)).then(r => { if (r && r.error) { setPaid(p => { const q = { ...p }; delete q[c.id]; return q; }); toast('No se pudo marcar: ' + r.error); } else { toast(c.cliente + ' · cobrado ✓'); } }); } }, 'Pagado'))));
+              }) : React.createElement('tr', null, React.createElement('td', { colSpan: 6, style: { textAlign: 'center', color: 'var(--text-3)', padding: '20px' } }, 'Sin cuotas por cobrar.')))
           ))
       )
     );

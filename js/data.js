@@ -406,6 +406,13 @@ window.BA = (function () {
     };
   }
 
+  const MES_ABBR = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+  function ymToM(ym) { const mm = parseInt(String(ym || '').slice(5, 7), 10); return MES_ABBR[mm - 1] || ym; }
+  function dueEstado(r) { if (r.status === 'paid') return 'pagado'; if (r.status === 'overdue' || r.dias < 0) return 'vencido'; if (r.dias <= 7) return 'proximo'; return 'alcorriente'; }
+  function mapDue(r) {
+    return { id: r.id, cliente: r.full_name || '—', salida: r.trip_id || '', monto: Number(r.amount) || 0, estado: dueEstado(r), dias: r.dias, cuota: r.label || '', region: r.region_label || '', currency: r.currency || 'USD' };
+  }
+
   const source = {
     async trips() {
       const sess = await this.getSession();
@@ -439,9 +446,48 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateLeads(); },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateLeads(); await this.hydrateFinanzas(); },
     async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
-    async finanzas()   { return finanzas; },                      // RPC payments_due + cashflow_projection
+    async finanzas() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return finanzas;
+      try {
+        const [dueR, cashR] = await Promise.all([
+          window.SB.rpc('payments_due', { p_days: 365 }),
+          window.SB.rpc('cashflow_projection')
+        ]);
+        const due = Array.isArray(dueR.data) ? dueR.data : [];
+        const cash = Array.isArray(cashR.data) ? cashR.data : [];
+        const cuotas = due.map(mapDue);
+        const caja = cash.map(c => ({ m: ymToM(c.ym), cobrado: Math.round((Number(c.cobrado) || 0) / 1000), porCobrar: Math.round((Number(c.por_cobrar) || 0) / 1000), vencido: Math.round((Number(c.vencido) || 0) / 1000) }));
+        const nowYm = new Date().toISOString().slice(0, 7);
+        const totales = {
+          porCobrar: cash.reduce((s, c) => s + (Number(c.por_cobrar) || 0), 0),
+          vencido: cash.reduce((s, c) => s + (Number(c.vencido) || 0), 0),
+          prox7: cuotas.filter(c => c.estado !== 'pagado' && c.dias >= 0 && c.dias <= 7).reduce((s, c) => s + c.monto, 0),
+          cobradoMes: cash.filter(c => c.ym === nowYm).reduce((s, c) => s + (Number(c.cobrado) || 0), 0),
+          nVencidas: cuotas.filter(c => c.estado === 'vencido').length,
+          nProx7: cuotas.filter(c => c.estado !== 'pagado' && c.dias >= 0 && c.dias <= 7).length
+        };
+        return { totales, caja, cuotas, margenes: [] };
+      } catch (e) { return finanzas; }
+    },                                                            // RPC payments_due + cashflow_projection
+    async forecast() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return proyeccion;
+      try {
+        const { data } = await window.SB.rpc('sales_forecast');
+        if (!Array.isArray(data)) return proyeccion;
+        return data.map(r => ({ m: ymToM(r.ym), forecast: Math.round((Number(r.ingreso_forecast) || 0) / 1000), comprometido: Math.round((Number(r.ingreso_comprometido) || 0) / 1000) }));
+      } catch (e) { return proyeccion; }
+    },                                                            // RPC sales_forecast
+    async hydrateFinanzas() {
+      const f = await this.finanzas();
+      if (f && f !== finanzas) { finanzas.totales = f.totales; finanzas.caja = f.caja; finanzas.cuotas = f.cuotas; finanzas.margenes = f.margenes || []; }
+      const fc = await this.forecast();
+      if (Array.isArray(fc) && fc !== proyeccion) { proyeccion.length = 0; fc.forEach(x => proyeccion.push(x)); }
+      return finanzas;
+    },
     async bandeja()    { return bandeja; },                       // tabla emails (triage email-ai)
     async accesos()    { return accesos; },                       // tabla accesos
     async marketing()  { return marketing; },                     // meta_lead_webhook + gasto cargado
@@ -453,7 +499,23 @@ window.BA = (function () {
       const { data, error } = await window.SB.rpc('lead_change_stage', { p_lead_id: id, p_new_stage: stage, p_note: null });
       return { data, error: error ? (error.message || 'No se pudo cambiar la etapa.') : null };
     }, // RPC lead_change_stage
-    async markPaid(cuotaId) { return { ok: true }; },             // RPC mark_payment_paid
+    async markPaid(paymentId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: true };
+      const { data, error } = await window.SB.rpc('mark_payment_paid', { p_payment_id: paymentId, p_method: null, p_when: null });
+      return { data, error: error ? (error.message || 'No se pudo marcar el pago.') : null };
+    },                                                            // RPC mark_payment_paid
+    async leadFullDetail(id) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('lead_full_detail', { p_lead_id: id }); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // RPC lead_full_detail
+    async leadAddNote(id, text) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: true };
+      const { data, error } = await window.SB.rpc('lead_add_note', { p_lead_id: id, p_text: text });
+      return { data, error: error ? (error.message || 'No se pudo guardar la nota.') : null };
+    },                                                            // RPC lead_add_note
     // ---- Auth real (Supabase) ----
     async signIn(email, password) {
       if (!window.SB) return { error: 'No se pudo conectar.' };

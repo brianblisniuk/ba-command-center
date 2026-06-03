@@ -3,7 +3,10 @@
   const { Icon, Avatar, Badge, CardHead } = window;
   const { useState } = React;
   const BA = window.BA;
-  const STAGES = ['Nuevos', 'Contactados', 'Calificados', 'Propuesta', 'Negociación', 'Reservados'];
+  const STAGES = (window.BA.STAGES || []).filter(s => s.key !== 'lost').map(s => s.label);
+  const stageKeyOf = lbl => { const f = (window.BA.STAGES || []).find(s => s.label === lbl); return f ? f.key : null; };
+  function relWhen(ts) { if (!ts) return ''; const d = new Date(ts), now = new Date(); const days = Math.floor((now - d) / 86400000); if (days <= 0) return 'hoy'; if (days === 1) return 'ayer'; if (days < 30) return 'hace ' + days + ' días'; return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }); }
+  function mapEvent(ev) { const kind = ({ stage_change: 'stage', note: 'note', proposal_sent: 'email' })[ev.kind] || (EVENT[ev.kind] ? ev.kind : 'note'); return { kind, who: ev.actor_name || '—', t: ev.summary || ev.body || '—', when: relWhen(ev.occurred_at || ev.created_at) }; }
   const FUENTE = { meta_ads: 'Meta Ads', organic: 'Orgánico', referral: 'Referido', web: 'Web', directo: 'Directo' };
   const EVENT = {
     created:  { ic: 'spark', cls: '' },
@@ -39,7 +42,20 @@
     const lead = BA.leads.find(l => l.id === leadId);
     const [, force] = useState(0);
     const [nota, setNota] = useState('');
-    const [events, setEvents] = useState(() => BA.leadEventsFor(lead).slice());
+    const [events, setEvents] = useState([]);
+    React.useEffect(() => {
+      let on = true;
+      Promise.resolve(BA.source.leadFullDetail(leadId)).then(d => {
+        if (!on) return;
+        if (d && Array.isArray(d.events)) {
+          setEvents(d.events.map(mapEvent).slice().reverse()); // viene newest-first; Timeline invierte
+        } else {
+          setEvents(BA.leadEventsFor(lead).slice());           // demo / fallback
+        }
+        if (d && d.lead && d.lead.fit_score != null) { lead.fit = d.lead.fit_score; force(x => x + 1); }
+      });
+      return () => { on = false; };
+    }, [leadId]);
     const [showPlan, setShowPlan] = useState(false);
     if (!lead) return null;
     const s = BA.salidaById(lead.salida);
@@ -49,12 +65,15 @@
 
     function addEvent(ev) { setEvents(e => [...e, ev]); }
     function changeStage(to) {
-      lead.etapa = to;
-      addEvent({ kind: 'stage', who: op.short, t: 'Etapa → ' + to, when: 'ahora' });
-      toast(lead.nombre + ' → ' + to + (to === 'Reservados' ? ' 🎉' : '')); force(x => x + 1);
+      if (to === lead.etapa) return;
+      const from = lead.etapa, fromKey = lead.stageKey;
+      lead.etapa = to; lead.stageKey = stageKeyOf(to) || lead.stageKey;
+      addEvent({ kind: 'stage', who: op ? op.short : 'Yo', t: from + ' → ' + to, when: 'ahora' });
+      toast(lead.nombre + ' → ' + to + (to === 'Reservado' ? ' 🎉' : '')); force(x => x + 1);
+      Promise.resolve(BA.source.leadChangeStage(lead.id, lead.stageKey)).then(r => { if (r && r.error) { lead.etapa = from; lead.stageKey = fromKey; force(x => x + 1); toast('No se pudo cambiar: ' + r.error); } });
     }
     function advance() { const next = STAGES[Math.min(idx + 1, STAGES.length - 1)]; if (next !== lead.etapa) changeStage(next); }
-    function saveNote() { if (!nota.trim()) return; addEvent({ kind: 'note', who: op.short, t: nota.trim(), when: 'ahora' }); setNota(''); toast('Nota agregada'); }
+    function saveNote() { const t = nota.trim(); if (!t) return; addEvent({ kind: 'note', who: op ? op.short : 'Yo', t, when: 'ahora' }); setNota(''); Promise.resolve(BA.source.leadAddNote(lead.id, t)).then(r => { if (r && r.error) toast('No se pudo guardar: ' + r.error); else toast('Nota agregada'); }); }
 
     return React.createElement('div', { className: 'content-inner' },
       React.createElement('button', { className: 'backlink', onClick: back }, React.createElement(Icon, { name: 'cl' }), 'Volver a Comercial'),
@@ -64,17 +83,17 @@
           React.createElement('div', null,
             React.createElement('h1', { style: { fontSize: 27 } }, lead.nombre),
             React.createElement('div', { className: 'page-greet-sub', style: { display: 'flex', alignItems: 'center', gap: 10, marginTop: 5 } },
-              React.createElement('span', { className: 'badge ' + (lead.etapa === 'Reservados' ? 'go' : 'risk') }, lead.etapa),
+              React.createElement('span', { className: 'badge ' + (lead.etapa === 'Reservado' ? 'go' : 'risk') }, lead.etapa),
               React.createElement('span', { className: 'mono', style: { fontSize: 12, color: 'var(--accent)', fontWeight: 700 } }, 'US$ ' + lead.potUSD + 'k'),
               lead.empresa !== '—' && React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-3)' } }, lead.empresa)))),
         React.createElement('div', { style: { display: 'flex', gap: 9 } },
-          lead.etapa !== 'Reservados' && React.createElement('button', { className: 'btn primary', onClick: advance }, React.createElement(Icon, { name: 'au', style: { transform: 'rotate(90deg)' } }), 'Avanzar etapa'))
+          lead.etapa !== 'Reservado' && lead.etapa !== 'Perdidos' && React.createElement('button', { className: 'btn primary', onClick: advance }, React.createElement(Icon, { name: 'au', style: { transform: 'rotate(90deg)' } }), 'Avanzar etapa'))
       ),
       // stage stepper
       React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
         React.createElement('div', { style: { display: 'flex', gap: 5 } },
           STAGES.map((st, i) => React.createElement('button', { key: st, onClick: () => changeStage(st), style: { flex: 1, background: 'none', textAlign: 'left' } },
-            React.createElement('div', { style: { height: 6, borderRadius: 99, background: i <= idx ? (lead.etapa === 'Reservados' ? 'var(--go)' : 'var(--accent)') : 'var(--surface-sunk)' } }),
+            React.createElement('div', { style: { height: 6, borderRadius: 99, background: i <= idx ? (lead.etapa === 'Reservado' ? 'var(--go)' : 'var(--accent)') : 'var(--surface-sunk)' } }),
             React.createElement('div', { style: { fontSize: 9, marginTop: 6, fontFamily: 'var(--ff-mono)', letterSpacing: '.02em', textTransform: 'uppercase', color: i === idx ? 'var(--text-1)' : 'var(--text-faint)' } }, st)))) ),
       React.createElement('div', { className: 'detail-grid' },
         // left: timeline + nota
