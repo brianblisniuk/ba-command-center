@@ -13,7 +13,14 @@
     if (s < 86400) return 'hace ' + Math.floor(s / 3600) + ' h';
     return 'hace ' + Math.floor(s / 86400) + ' d';
   }
-  function html(s) { return { __html: (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>') }; }
+  function html(s) {
+    s = (s || '')
+      .replace(/^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/gm, '')
+      .replace(/^\s*\|(.+?)\|\s*$/gm, function (m, r) { return r.split('|').map(function (x) { return x.trim(); }).filter(Boolean).join('  ·  '); })
+      .replace(/^#{1,6}\s+/gm, '');
+    s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>');
+    return { __html: s };
+  }
 
   function IAIntegral({ toast, nav, openTrip, openLead, openCompose }) {
     const [usage, setUsage] = useState(null);

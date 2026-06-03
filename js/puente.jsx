@@ -6,26 +6,37 @@
   // ---------- Copiloto ----------
   function Copiloto({ toast, nav, openTrip, openLead, openCompose }) {
     const [q, setQ] = useState('');
-    const [ans, setAns] = useState(null);
+    const [convo, setConvo] = useState([]);
     const [typing, setTyping] = useState(false);
     const SUGGESTIONS = ['¿Cuánto tengo por cobrar este mes?', '¿Qué leads no toqué en 10 días?', '¿Qué viaje está más cerca de decidir?', '¿Qué accesos me faltan cerrar?'];
-    function doAction(ac) {
+    function doAction(ac, ansText) {
       if (!ac) return;
       if (ac.tipo === 'navegar' && ac.ref) nav(ac.ref);
       else if (ac.tipo === 'viaje' && ac.ref) openTrip(ac.ref);
       else if (ac.tipo === 'lead' && ac.ref) { openLead ? openLead(ac.ref) : nav('ventas'); }
       else if (ac.tipo === 'finanzas') nav('finanzas');
-      else if (ac.tipo === 'redactar') { openCompose ? openCompose({ to: ac.ref || '', account: 'reservas', subject: '', body: (ans && ans.a) || '' }) : nav('bandeja'); }
+      else if (ac.tipo === 'redactar') { openCompose ? openCompose({ to: ac.ref || '', account: 'reservas', subject: '', body: ansText || '' }) : nav('bandeja'); }
       else nav('bandeja');
     }
     function ask(text) {
-      setQ(text); setAns(null); setTyping(true);
-      Promise.resolve(BA.source.copiloto(text)).then(r => {
+      if (!text.trim() || typing) return;
+      setQ('');
+      const history = convo.flatMap(t => [{ role: 'user', content: t.q }, { role: 'assistant', content: t.a || '' }]);
+      setConvo(c => c.concat([{ q: text, a: null, acciones: [] }]));
+      setTyping(true);
+      Promise.resolve(BA.source.copiloto(text, history)).then(r => {
         setTyping(false);
-        setAns({ a: (r && r.respuesta) || 'No pude procesar eso ahora.', acciones: (r && r.acciones) || [] });
+        setConvo(c => c.map((t, i) => i === c.length - 1 ? { q: t.q, a: (r && r.respuesta) || 'No pude procesar eso ahora.', acciones: (r && r.acciones) || [] } : t));
       });
     }
-    function html(s) { return { __html: (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>') }; }
+    function html(s) {
+      s = (s || '')
+        .replace(/^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/gm, '')
+        .replace(/^\s*\|(.+?)\|\s*$/gm, function (m, r) { return r.split('|').map(function (x) { return x.trim(); }).filter(Boolean).join('  ·  '); })
+        .replace(/^#{1,6}\s+/gm, '');
+      s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>');
+      return { __html: s };
+    }
 
     return React.createElement('div', { className: 'copilot rise' },
       React.createElement('div', { className: 'copilot-head' },
@@ -36,22 +47,23 @@
       ),
       React.createElement('div', { className: 'copilot-body' },
         React.createElement('div', { className: 'copilot-input' },
-          React.createElement('input', { value: q, placeholder: '¿Cuánto tengo por cobrar este mes?',
+          React.createElement('input', { value: q, placeholder: convo.length ? 'Seguí preguntando…' : '¿Cuánto tengo por cobrar este mes?',
             onChange: e => setQ(e.target.value), disabled: typing,
-            onKeyDown: e => { if (e.key === 'Enter' && q.trim()) ask(q.trim()); } }),
-          React.createElement('button', { onClick: () => q.trim() && ask(q.trim()), disabled: typing }, React.createElement(Icon, { name: 'send' }))
+            onKeyDown: e => { if (e.key === 'Enter') ask(q); } }),
+          React.createElement('button', { onClick: () => ask(q), disabled: typing }, React.createElement(Icon, { name: 'send' }))
         ),
-        !ans && !typing && React.createElement('div', { className: 'copilot-chips' },
+        convo.length === 0 && React.createElement('div', { className: 'copilot-chips' },
           SUGGESTIONS.map((s, i) => React.createElement('button', { key: i, className: 'copilot-chip', onClick: () => ask(s) }, s))),
-        typing && React.createElement('div', { className: 'copilot-answer' },
-          React.createElement('span', { className: 'typing' }, React.createElement('i'), React.createElement('i'), React.createElement('i'))),
-        ans && React.createElement('div', { className: 'copilot-answer rise' },
-          React.createElement('div', { dangerouslySetInnerHTML: html(ans.a) }),
-          ans.acciones && ans.acciones.length > 0 && React.createElement('div', { className: 'ans-chips' },
-            ans.acciones.map((ac, i) => React.createElement('button', { key: i, className: i ? 'ghost' : '',
-              onClick: () => doAction(ac) }, ac.label))),
-          React.createElement('button', { className: 'copilot-chip', style: { marginTop: 12 }, onClick: () => { setAns(null); setQ(''); } }, 'Nueva pregunta')
-        )
+        convo.map((turn, i) => React.createElement('div', { key: i, style: { marginTop: 14 } },
+          React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', fontWeight: 600, marginBottom: 7 } }, '› ' + turn.q),
+          turn.a == null
+            ? React.createElement('div', { className: 'copilot-answer' }, React.createElement('span', { className: 'typing' }, React.createElement('i'), React.createElement('i'), React.createElement('i')))
+            : React.createElement('div', { className: 'copilot-answer rise' },
+                React.createElement('div', { dangerouslySetInnerHTML: html(turn.a) }),
+                turn.acciones && turn.acciones.length > 0 && React.createElement('div', { className: 'ans-chips' },
+                  turn.acciones.map((ac, j) => React.createElement('button', { key: j, className: j ? 'ghost' : '',
+                    onClick: () => doAction(ac, turn.a) }, ac.label)))))),
+        convo.length > 0 && !typing && React.createElement('button', { className: 'copilot-chip', style: { marginTop: 12 }, onClick: () => { setConvo([]); setQ(''); } }, 'Nueva conversación')
       )
     );
   }

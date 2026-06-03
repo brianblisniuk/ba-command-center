@@ -598,11 +598,11 @@ window.BA = (function () {
         return { ok: !!(data && data.ok), status: data && data.status };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // RPC set_acceso_etapa (persiste reservationStatus en trips.data)
-    async copiloto(question) {
+    async copiloto(question, history) {
       const sess = await this.getSession();
       if (!window.SB || !sess) return { ok: false, respuesta: 'El copiloto necesita una sesión activa.', acciones: [] };
       try {
-        const { data, error } = await window.SB.functions.invoke('copiloto', { body: { question } });
+        const { data, error } = await window.SB.functions.invoke('copiloto', { body: { question, history: history || [] } });
         if (error) {
           let msg = error.message;
           try { const j = await error.context.json(); if (j && (j.respuesta || j.error)) msg = j.respuesta || j.error; } catch (e) {}
