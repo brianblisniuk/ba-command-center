@@ -635,6 +635,40 @@ window.BA = (function () {
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // edge fn email-send (Resend)
     async marketing()  { return marketing; },                     // meta_lead_webhook + gasto cargado
+    async leadQuality() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('lead_quality_board'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // RPC lead_quality_board (scoring IA)
+    async marketingBoard() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('marketing_board'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // RPC marketing_board (Meta + campañas)
+    async marketingContentBoard() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('marketing_content_board'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // RPC marketing_content_board (piezas)
+    async generateContent(tripId, channel, n) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.functions.invoke('mkt-actions', { body: { op: 'generate_content', trip_id: tripId, channel: channel || 'instagram', n: n || 3 } });
+        if (error) { let m = error.message; try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (e2) {} return { ok: false, error: m }; }
+        return data || { ok: false, error: 'sin respuesta' };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // edge fn mkt-actions → marketing-content
+    async rescoreLeads(leadId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const body = leadId ? { op: 'rescore', lead_id: leadId } : { op: 'rescore', limit: 20 };
+        const { data, error } = await window.SB.functions.invoke('mkt-actions', { body });
+        if (error) { let m = error.message; try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (e2) {} return { ok: false, error: m }; }
+        return data || { ok: false, error: 'sin respuesta' };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // edge fn mkt-actions → lead-score
     async cadencias()  { return cadencias; },                     // RPC cadence_render
     async calendario() { return { mes: calMes, eventos: calEventos }; },
     async leadChangeStage(id, stage) {
