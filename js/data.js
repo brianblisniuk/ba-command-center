@@ -502,7 +502,7 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateLeads(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateLeads(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); },
     async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
     async finanzas() {
       const sess = await this.getSession();
@@ -544,7 +544,37 @@ window.BA = (function () {
       if (Array.isArray(fc) && fc !== proyeccion) { proyeccion.length = 0; fc.forEach(x => proyeccion.push(x)); }
       return finanzas;
     },
-    async bandeja()    { return bandeja; },                       // tabla emails (triage email-ai)
+    async bandeja() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return bandeja;
+      try {
+        const { data, error } = await window.SB.rpc('emails_list', { p_limit: 100 });
+        if (error || !Array.isArray(data)) return bandeja;
+        const rel = (iso) => { if (!iso) return ''; const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000); if (mins < 60) return 'hace ' + Math.max(1, mins) + ' min'; const h = Math.floor(mins / 60); if (h < 24) return 'hace ' + h + ' h'; return 'hace ' + Math.floor(h / 24) + ' d'; };
+        return data.map(e => {
+          const fromRaw = e.from_addr || '';
+          const mm = fromRaw.match(/^\s*"?([^"<]+?)"?\s*</);
+          const de = (mm ? mm[1].trim() : fromRaw) || '—';
+          const prio = e.ai_priority || 'Normal';
+          const sev = prio === 'Alta' ? 'bad' : prio === 'Media' ? 'risk' : 'info';
+          const extra = (e.ai_extracted && typeof e.ai_extracted === 'object' && !Array.isArray(e.ai_extracted)) ? e.ai_extracted : {};
+          return {
+            id: e.id, de, cuenta: (e.account || 'info') + '@', asunto: e.subject || '(sin asunto)',
+            cat: e.ai_category || 'Sin clasificar', sev, prio, idioma: e.ai_language || 'ES',
+            hace: rel(e.ts), salida: e.trip_id || null,
+            resumen: e.ai_summary || e.snippet || e.body_text || '',
+            extra, necesitaResp: e.direction === 'inbound' && e.status !== 'replied' && e.status !== 'archived',
+            leido: !!e.is_read || e.status === 'read' || e.status === 'replied',
+            borrador: e.ai_suggested_reply || ''
+          };
+        });
+      } catch (e) { return bandeja; }
+    },                                                            // RPC emails_list (triage email-ai cuando exista)
+    async hydrateBandeja() {
+      const list = await this.bandeja();
+      if (Array.isArray(list) && list !== bandeja) { bandeja.length = 0; list.forEach(x => bandeja.push(x)); }
+      return bandeja;
+    },
     async accesos()    { return accesos; },                       // tabla accesos
     async marketing()  { return marketing; },                     // meta_lead_webhook + gasto cargado
     async cadencias()  { return cadencias; },                     // RPC cadence_render

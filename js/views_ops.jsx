@@ -47,7 +47,7 @@
 
   function Bandeja({ toast }) {
     const [filter, setFilter] = useState('all');
-    const [sel, setSel] = useState(BA.bandeja[0].id);
+    const [sel, setSel] = useState((BA.bandeja[0] || {}).id);
     const [sent, setSent] = useState({});
     const [draft, setDraft] = useState('');
     const list = BA.bandeja.filter(m => filter === 'all' ? true
