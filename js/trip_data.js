@@ -163,7 +163,7 @@
     ];
   }
 
-  BA.tripData = function (id) {
+  BA._tripDataMock = function (id) {
     const s = BA.salidaById(id);
     if (!s) return null;
     return {
@@ -173,5 +173,71 @@
       reservas: buildReservas(s),
       tareas: buildTareas(s),
     };
+  };
+
+  // ---- Cache + selector real/mock (Plano Viaje en vivo) ----
+  BA._tripCache = BA._tripCache || {};
+  BA.tripData = function (id) { return (BA._tripCache && BA._tripCache[id]) || BA._tripDataMock(id); };
+
+  // ---- Mapper: trips.data (real) → shape de tripData ----
+  const TMAP = { restaurant: 'meal', winery: 'wine', wine: 'wine', truffle: 'truffle', activity: 'activity', experience: 'activity', transfer: 'transfer', service: 'service', villa: 'lodging', lodging: 'lodging', hotel: 'lodging', expert: 'access', access: 'access', culture: 'culture', meal: 'meal' };
+  const SV = { ok: 'Confirmado', warn: 'Por confirmar', info: 'Confirmado', danger: 'En gestión', '': 'Confirmado' };
+  const RES = { confirmed: 'confirmada', pending: 'pendiente', negotiating: 'conversando', contacted: 'conversando', identified: 'pendiente', declined: 'pendiente' };
+  function inferType(title) { const t = (title || '').toLowerCase(); if (/transfer|traslado|llegada|salida|aeropuerto|pickup|check-?out/.test(t)) return 'transfer'; if (/cena|almuerzo|dinner|lunch|comida|brunch|desayuno|merienda|aperitivo|degustaci/.test(t)) return 'meal'; if (/cata|vino|bodega|winery|nebbiolo|barolo|viñ|vendim/.test(t)) return 'wine'; if (/trufa|truffle/.test(t)) return 'truffle'; if (/dormir|noche|check-?in|villa|hotel|alojam|lodge/.test(t)) return 'lodging'; if (/taller|visita|paseo|recorrido|excursi|experiencia|tour|caminata/.test(t)) return 'activity'; return 'service'; }
+
+  BA._mapTripData = function (id, data) {
+    data = data || {};
+    const meta = data.meta || {};
+    const provs = Array.isArray(data.providers) ? data.providers : [];
+    const pById = {}; provs.forEach(p => { if (p && p.id) pById[p.id] = p; });
+    const fx = meta.fx || { USD: 1 }; const baseCur = meta.baseCurrency || 'USD';
+    const toUSD = (amt, cur) => { const c = cur || baseCur; const r = Number(fx[c]) || 1; const u = Number(fx.USD) || 1; return Math.round((Number(amt) || 0) * (u / r)); };
+    const budget = Array.isArray(data.budget) ? data.budget : [];
+
+    const itinerario = (Array.isArray(data.itinerary) ? data.itinerary : []).map((d, di) => {
+      const slots = (Array.isArray(d.slots) ? d.slots : []).map(sl => {
+        const pv = sl.providerId ? pById[sl.providerId] : null;
+        const type = pv ? (TMAP[pv.type] || 'service') : inferType(sl.title);
+        const access = pv ? (pv.type === 'expert' || pv.type === 'access') : /\bacceso\b|encuentro privado|a puertas cerradas/.test(((sl.title || '') + ' ' + (sl.description || '')).toLowerCase());
+        const stRaw = sl.status || (sl.internal && sl.internal.status) || '';
+        const extra = (sl.verdict && sl.verdict.trim()) ? (' · ' + sl.verdict.trim()) : '';
+        return {
+          id: sl.id, time: sl.timeStart || sl.time || '', end: sl.timeEnd || '',
+          type, title: sl.title || '', desc: sl.description || '',
+          verdict: SV[stRaw] || 'Confirmado',
+          clientVisible: !(sl.client && sl.client.visible === false), conflict: false, access,
+          provider: pv ? pv.name : '—', attachments: (sl.attachments || []).length, comments: 0,
+          internal: { title: (sl.internal && sl.internal.title) || sl.title || '', status: SV[(sl.internal && sl.internal.status) || stRaw] || 'Confirmado', desc: ((sl.internal && sl.internal.description) || sl.description || '') + extra },
+          client: { title: (sl.client && sl.client.title) || sl.title || '', visible: !(sl.client && sl.client.visible === false), desc: (sl.client && sl.client.description) || '' }
+        };
+      });
+      const estUSD = budget.filter(b => b.dayRef === d.id).reduce((a, b) => a + toUSD(b.amount, b.currency), 0);
+      return { n: d.dayNumber || (di + 1), dow: (d.weekday || '').slice(0, 3), cover: di % 2 ? 'var(--laurel)' : 'var(--laurel-deep)', title: d.title || ('Día ' + (di + 1)), slots, free: 0, estUSD };
+    });
+
+    const proveedores = provs.map(p => ({
+      tipo: p.type || 'service', nombre: p.name || '—', michelin: Number(p.michelin) || 0,
+      lugar: p.location || meta.region || '', precioUSD: 0, priceRange: p.priceRange || '',
+      estado: RES[p.reservationStatus] || 'pendiente', cierra: p.closingDays || '—',
+      phone: p.phone || '', web: p.web || '', id: p.id
+    }));
+
+    const pax = meta.payingPax || meta.pax || 1; const ticket = Number(meta.ticketUSD) || 0;
+    const byCat = {}; budget.forEach(b => { const c = b.category || 'Varios'; byCat[c] = (byCat[c] || 0) + toUSD(b.amount, b.currency); });
+    let lineas = Object.keys(byCat).map(c => ({ cat: c, montoUSD: byCat[c] })).sort((a, b) => b.montoUSD - a.montoUSD);
+    if (lineas.length > 6) { const top = lineas.slice(0, 5); const rest = lineas.slice(5).reduce((a, l) => a + l.montoUSD, 0); top.push({ cat: 'Otros', montoUSD: rest }); lineas = top; }
+    const costoTotal = lineas.reduce((a, l) => a + l.montoUSD, 0);
+    lineas = lineas.map(l => ({ cat: l.cat, montoUSD: l.montoUSD, pct: costoTotal ? l.montoUSD / costoTotal : 0 }));
+    const ingreso = ticket * pax; const margen = ingreso ? Math.round((1 - costoTotal / ingreso) * 100) : 0;
+    const presupuesto = { pax, ticket, lineas, costoTotal, ingreso, costoPax: pax ? Math.round(costoTotal / pax) : 0, margen };
+
+    const pipeline = (BA.leads || []).filter(l => l.salida === id);
+    const confirmados = pipeline.filter(l => l.stageKey === 'booked').map(l => ({ nombre: l.nombre, pax: l.pax || 1, pagado: 0, cuota: '—', alergias: '—', movilidad: 'OK' }));
+    const reservas = { confirmados, pipeline };
+
+    const TT2 = { reservation: 'reserva', contact: 'contacto', research: 'research', purchase: 'compra', logistics: 'logística', logistic: 'logística' };
+    const tareas = (Array.isArray(data.actions) ? data.actions : []).map(a => ({ p: a.priority || 'P3', tipo: TT2[a.type] || 'otro', t: a.task || a.description || '—', done: !!a.done, due: a.dueDate || '' }));
+
+    return { itinerario, proveedores, presupuesto, reservas, tareas };
   };
 })();

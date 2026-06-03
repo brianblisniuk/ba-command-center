@@ -578,6 +578,20 @@ window.BA = (function () {
       const { data, error } = await window.SB.rpc('generate_payment_plan', { p_lead_id: leadId });
       return { data, error: error ? (error.message || 'No se pudo generar el plan.') : null };
     },                                                            // RPC generate_payment_plan
+    async getTrip(id) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;                        // demo → caller usa el mock
+      try {
+        const { data, error } = await window.SB.from('trips').select('id,title,status,data').eq('id', id).single();
+        if (error || !data) return null;
+        return window.BA._mapTripData(id, data.data || {});
+      } catch (e) { return null; }
+    },                                                            // SELECT trips.data (RLS operador)
+    async hydrateTrip(id) {
+      const mapped = await this.getTrip(id);
+      if (mapped) { window.BA._tripCache[id] = mapped; }
+      return mapped;
+    },
     // ---- Auth real (Supabase) ----
     async signIn(email, password) {
       if (!window.SB) return { error: 'No se pudo conectar.' };

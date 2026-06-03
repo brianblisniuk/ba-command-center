@@ -132,6 +132,19 @@
     if (!s) return null;
     const accCount = BA.accesos.filter(a => a.salida === s.id).length;
     const brass = ['Gastro', 'Vino', 'A medida'].includes(s.cat);
+    const needsData = ['Itinerario', 'Ruta', 'Proveedores', 'Presupuesto', 'Reservas', 'Tareas'].includes(tab);
+    const [ready, setReady] = useState(!!(BA._tripCache && BA._tripCache[tripId]));
+    React.useEffect(() => {
+      let on = true;
+      if (BA._tripCache && BA._tripCache[tripId]) { setReady(true); return () => { on = false; }; }
+      setReady(false);
+      Promise.resolve(BA.source.hydrateTrip(tripId)).then(() => { if (on) setReady(true); });
+      return () => { on = false; };
+    }, [tripId]);
+    const loadingCard = React.createElement('div', { className: 'card' }, React.createElement('div', { className: 'stub' },
+      React.createElement('div', { className: 'ic' }, React.createElement(Icon, { name: 'compass' })),
+      React.createElement('h3', null, 'Cargando el plano…'),
+      React.createElement('p', null, 'Trayendo itinerario, proveedores, presupuesto y tareas del viaje.')));
     return React.createElement('div', { className: 'content-inner' },
       React.createElement('button', { className: 'backlink', onClick: back }, React.createElement(Icon, { name: 'cl' }), 'Volver a Negocio'),
       React.createElement('div', { className: 'page-head', style: { alignItems: 'center' } },
@@ -149,7 +162,8 @@
       React.createElement('div', { className: 'tabs', style: { marginBottom: 'var(--gap)' } },
         TABS.map(t => React.createElement('button', { key: t, className: tab === t ? 'on' : '', onClick: () => setTab(t) },
           t, t === 'Accesos' && React.createElement('span', { className: 'b' }, s.accesosOk + '/' + accCount)))),
-      tab === 'Resumen' ? React.createElement(Resumen, { s, cur, toast })
+      (needsData && !ready) ? loadingCard
+        : tab === 'Resumen' ? React.createElement(Resumen, { s, cur, toast })
         : tab === 'Accesos' ? React.createElement(Accesos, { s, toast })
         : tab === 'Itinerario' ? React.createElement(window.Itinerario, { s, cur, toast, openProvider, op })
         : tab === 'Ruta' ? React.createElement(window.Ruta, { s, cur, toast })
