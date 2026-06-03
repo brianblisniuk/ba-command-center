@@ -4,53 +4,53 @@
   const { useState, useRef, useEffect } = React;
 
   // ---------- Copiloto ----------
-  function Copiloto({ toast, nav, openTrip }) {
+  function Copiloto({ toast, nav, openTrip, openLead, openCompose }) {
     const [q, setQ] = useState('');
     const [ans, setAns] = useState(null);
     const [typing, setTyping] = useState(false);
-    const data = window.BA.copiloto;
-    function chipGo(c) {
-      const t = c.toLowerCase();
-      if (/finanzas|cobro|recordatorio/.test(t)) nav('finanzas');
-      else if (/venta|pulso/.test(t)) nav('ventas');
-      else if (/mail|borrador|bandeja|enviar/.test(t)) nav('bandeja');
-      else if (/acceso|salida|uzbek|itinerario/.test(t)) openTrip('uzb');
+    const SUGGESTIONS = ['¿Cuánto tengo por cobrar este mes?', '¿Qué leads no toqué en 10 días?', '¿Qué viaje está más cerca de decidir?', '¿Qué accesos me faltan cerrar?'];
+    function doAction(ac) {
+      if (!ac) return;
+      if (ac.tipo === 'navegar' && ac.ref) nav(ac.ref);
+      else if (ac.tipo === 'viaje' && ac.ref) openTrip(ac.ref);
+      else if (ac.tipo === 'lead' && ac.ref) { openLead ? openLead(ac.ref) : nav('ventas'); }
+      else if (ac.tipo === 'finanzas') nav('finanzas');
+      else if (ac.tipo === 'redactar') { openCompose ? openCompose({ to: ac.ref || '', account: 'reservas', subject: '', body: (ans && ans.a) || '' }) : nav('bandeja'); }
       else nav('bandeja');
-      toast(c);
     }
-
     function ask(text) {
-      const found = data.find(d => d.q.toLowerCase() === text.toLowerCase())
-        || data.find(d => text && d.q.toLowerCase().includes(text.toLowerCase().slice(0, 8)))
-        || { a: 'Te armo eso ahora mismo. (En la app real ejecuto sobre tus 23 RPCs y el orquestador de Claude.)', chips: [] };
       setQ(text); setAns(null); setTyping(true);
-      setTimeout(() => { setTyping(false); setAns(found); }, 950);
+      Promise.resolve(BA.source.copiloto(text)).then(r => {
+        setTyping(false);
+        setAns({ a: (r && r.respuesta) || 'No pude procesar eso ahora.', acciones: (r && r.acciones) || [] });
+      });
     }
-    function html(s) { return { __html: s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') }; }
+    function html(s) { return { __html: (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br/>') }; }
 
     return React.createElement('div', { className: 'copilot rise' },
       React.createElement('div', { className: 'copilot-head' },
         React.createElement('div', { className: 'copilot-orb' }, React.createElement(Icon, { name: 'spark' })),
         React.createElement('div', null,
           React.createElement('div', { className: 'copilot-title' }, 'Preguntale a ', React.createElement('em', null, 'B&A')),
-          React.createElement('div', { className: 'copilot-sub' }, 'Copiloto · lenguaje natural sobre todo el negocio'))
+          React.createElement('div', { className: 'copilot-sub' }, 'Copiloto · Claude Sonnet sobre todo el negocio'))
       ),
       React.createElement('div', { className: 'copilot-body' },
         React.createElement('div', { className: 'copilot-input' },
           React.createElement('input', { value: q, placeholder: '¿Cuánto tengo por cobrar este mes?',
-            onChange: e => setQ(e.target.value),
+            onChange: e => setQ(e.target.value), disabled: typing,
             onKeyDown: e => { if (e.key === 'Enter' && q.trim()) ask(q.trim()); } }),
-          React.createElement('button', { onClick: () => q.trim() && ask(q.trim()) }, React.createElement(Icon, { name: 'send' }))
+          React.createElement('button', { onClick: () => q.trim() && ask(q.trim()), disabled: typing }, React.createElement(Icon, { name: 'send' }))
         ),
         !ans && !typing && React.createElement('div', { className: 'copilot-chips' },
-          data.map((d, i) => React.createElement('button', { key: i, className: 'copilot-chip', onClick: () => ask(d.q) }, d.q))),
+          SUGGESTIONS.map((s, i) => React.createElement('button', { key: i, className: 'copilot-chip', onClick: () => ask(s) }, s))),
         typing && React.createElement('div', { className: 'copilot-answer' },
           React.createElement('span', { className: 'typing' }, React.createElement('i'), React.createElement('i'), React.createElement('i'))),
         ans && React.createElement('div', { className: 'copilot-answer rise' },
           React.createElement('div', { dangerouslySetInnerHTML: html(ans.a) }),
-          ans.chips && ans.chips.length > 0 && React.createElement('div', { className: 'ans-chips' },
-            ans.chips.map((c, i) => React.createElement('button', { key: i, className: i ? 'ghost' : '',
-              onClick: () => chipGo(c) }, c)))
+          ans.acciones && ans.acciones.length > 0 && React.createElement('div', { className: 'ans-chips' },
+            ans.acciones.map((ac, i) => React.createElement('button', { key: i, className: i ? 'ghost' : '',
+              onClick: () => doAction(ac) }, ac.label))),
+          React.createElement('button', { className: 'copilot-chip', style: { marginTop: 12 }, onClick: () => { setAns(null); setQ(''); } }, 'Nueva pregunta')
         )
       )
     );
@@ -221,7 +221,7 @@
   }
 
   // ---------- main ----------
-  function Puente({ cur, op, toast, nav, openTrip }) {
+  function Puente({ cur, op, toast, nav, openTrip, openLead, openCompose }) {
     const e = window.BA.estado;
     const hour = new Date().getHours();
     const greet = hour < 12 ? 'Buen día' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
@@ -247,7 +247,7 @@
       // main two-column
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'minmax(0, 1.65fr) minmax(0, 1fr)', alignItems: 'start' } },
         React.createElement('div', { className: 'grid' },
-          React.createElement(Copiloto, { toast, nav, openTrip }),
+          React.createElement(Copiloto, { toast, nav, openTrip, openLead, openCompose }),
           React.createElement(ColaDelDia, { toast, nav, openTrip })
         ),
         React.createElement('div', { className: 'grid' },
