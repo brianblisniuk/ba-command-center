@@ -670,6 +670,25 @@ window.BA = (function () {
         return data || { ok: false };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // la fábrica escribe el guion de una pieza (La Editorial)
+    async assetsBoard() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('assets_board'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // biblioteca de assets + cobertura del kit por destino
+    async assetAdd(asset) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false };
+      try {
+        const { data, error } = await window.SB.from('content_assets').insert(asset).select('id').maybeSingle();
+        if (error) return { ok: false, error: error.message };
+        return { ok: true, id: data && data.id };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // alta de asset (La Editorial)
+    async assetDelete(id) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false };
+      try { const { error } = await window.SB.from('content_assets').delete().eq('id', id); return { ok: !error, error: error && error.message }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // baja de asset (La Editorial)
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {

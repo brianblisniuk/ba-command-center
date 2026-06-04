@@ -95,6 +95,26 @@
       navigator.clipboard.writeText(t).then(() => toast('Copiado al portapapeles')).catch(() => toast('No se pudo copiar'));
     }
 
+    const [aSt, setASt] = useState({ loading: false, data: null });
+    const [aOpen, setAOpen] = useState(null);
+    const [fa, setFa] = useState({ trip: '', slot: '', tipo: 'foto', proc: 'proveedor', url: '', titulo: '', consent: 'no_aplica' });
+    function loadAssets() {
+      setASt(s => ({ loading: true, data: s.data }));
+      BA.source.assetsBoard().then(d => setASt({ loading: false, data: d })).catch(() => setASt({ loading: false, data: null }));
+    }
+    useEffect(() => { if (tab === 'assets' && !aSt.data && !aSt.loading) loadAssets(); }, [tab]);
+    async function addAsset() {
+      if (!fa.trip || !fa.url.trim()) { toast('Elegí viaje y pegá una URL'); return; }
+      const r = await BA.source.assetAdd({ trip_id: fa.trip, kit_slot: fa.slot || null, tipo: fa.tipo, procedencia: fa.proc, url: fa.url.trim(), titulo: fa.titulo.trim() || null, consentimiento: fa.consent });
+      if (r && r.ok) { toast('Material agregado a la biblioteca'); setFa(f => ({ ...f, url: '', titulo: '' })); setAOpen(fa.trip); loadAssets(); }
+      else { toast('No se pudo agregar: ' + ((r && r.error) || 'error')); }
+    }
+    async function delAsset(id) {
+      const r = await BA.source.assetDelete(id);
+      if (r && r.ok) { toast('Material eliminado'); loadAssets(); }
+      else { toast('No se pudo eliminar: ' + ((r && r.error) || 'error')); }
+    }
+
     function load() {
       setSt(s => ({ ...s, loading: true }));
       BA.source.editorialBoard()
@@ -126,7 +146,7 @@
       else { toast('No se pudo generar: ' + ((r && r.error) || 'error')); }
     }
 
-    const TABS = [['plan', 'Plan', 'calendar'], ['adn', 'Semana tipo', 'layers'], ['highlights', 'Highlights', 'star']];
+    const TABS = [['plan', 'Plan', 'calendar'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
     const tabbar = React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--gap)' } },
       TABS.map(t => React.createElement('button', { key: t[0], className: 'btn sm' + (tab === t[0] ? ' primary' : ''), onClick: () => setTab(t[0]) },
         React.createElement(Icon, { name: t[2] }), t[1])));
@@ -218,6 +238,71 @@
           React.createElement(CardHead, { title: 'Kit de captura universal', count: kit.length, right: React.createElement('span', { className: 'eyebrow' }, 'cobertura por destino → E3') }),
           React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
             kit.map((k, i) => chip(k, 'k' + i)))));
+    } else if (tab === 'assets') {
+      const A = aSt.data || {};
+      const kitArr = A.kit || [];
+      const viajes = A.viajes || [];
+      const inSt = { width: '100%', padding: '9px 10px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 };
+      function fld(label, el) {
+        return React.createElement('div', { style: { flex: '1 1 170px', minWidth: 150 } },
+          React.createElement('label', { className: 'eyebrow', style: { display: 'block', marginBottom: 5 } }, label), el);
+      }
+      function barColor(pct) { return pct >= 0.7 ? '#4A6A4B' : pct >= 0.35 ? '#B07D3A' : '#9A938A'; }
+      if (aSt.loading && !aSt.data) {
+        bodyInner = React.createElement('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, 'Cargando biblioteca…');
+      } else if (!aSt.data) {
+        bodyInner = React.createElement('div', { className: 'card pad' }, 'No se pudo cargar la biblioteca de assets.');
+      } else {
+        bodyInner = React.createElement(React.Fragment, null,
+          React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
+            React.createElement(CardHead, { title: 'Agregar material', right: React.createElement('span', { className: 'eyebrow' }, 'real: propio · proveedor · stock') }),
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' } },
+              fld('Viaje', React.createElement('select', { value: fa.trip, onChange: e => setFa(f => ({ ...f, trip: e.target.value })), style: inSt },
+                React.createElement('option', { value: '' }, '— elegir —'),
+                viajes.map(v => React.createElement('option', { key: v.trip_id, value: v.trip_id }, v.viaje || v.trip_id)))),
+              fld('Toma del kit', React.createElement('select', { value: fa.slot, onChange: e => setFa(f => ({ ...f, slot: e.target.value })), style: inSt },
+                React.createElement('option', { value: '' }, '— sin asignar —'),
+                kitArr.map((k, i) => React.createElement('option', { key: i, value: k }, k)))),
+              fld('Tipo', React.createElement('select', { value: fa.tipo, onChange: e => setFa(f => ({ ...f, tipo: e.target.value })), style: inSt },
+                ['foto', 'clip'].map(t => React.createElement('option', { key: t, value: t }, t)))),
+              fld('Procedencia', React.createElement('select', { value: fa.proc, onChange: e => setFa(f => ({ ...f, proc: e.target.value })), style: inSt },
+                ['propio', 'proveedor', 'pexels', 'wikimedia', 'otro'].map(t => React.createElement('option', { key: t, value: t }, t)))),
+              fld('Consentimiento', React.createElement('select', { value: fa.consent, onChange: e => setFa(f => ({ ...f, consent: e.target.value })), style: inSt },
+                ['no_aplica', 'pendiente', 'obtenido'].map(t => React.createElement('option', { key: t, value: t }, t))))),
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginTop: 10 } },
+              fld('URL del material', React.createElement('input', { value: fa.url, placeholder: 'https://… (Drive, CDN del proveedor, stock)', onChange: e => setFa(f => ({ ...f, url: e.target.value })), style: inSt })),
+              fld('Título (opcional)', React.createElement('input', { value: fa.titulo, placeholder: 'Macro de trufa blanca…', onChange: e => setFa(f => ({ ...f, titulo: e.target.value })), style: inSt })),
+              React.createElement('button', { className: 'btn sm primary', style: { flexShrink: 0 }, onClick: addAsset }, React.createElement(Icon, { name: 'plus' }), 'Agregar'))),
+          viajes.map(v => {
+            const pct = kitArr.length ? (v.cubiertos / kitArr.length) : 0;
+            const open = aOpen === v.trip_id;
+            return React.createElement('div', { key: v.trip_id, className: 'card pad', style: { marginBottom: 10 } },
+              React.createElement('div', { onClick: () => setAOpen(open ? null : v.trip_id), style: { display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' } },
+                React.createElement('div', { style: { minWidth: 0, flex: '0 1 240px' } },
+                  React.createElement('div', { style: { fontSize: 13.5, fontWeight: 700, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, v.viaje || v.trip_id),
+                  React.createElement('div', { className: 'sub', style: { marginTop: 2 } }, v.total + (v.total === 1 ? ' material' : ' materiales'))),
+                React.createElement('div', { style: { flex: 1, height: 22, borderRadius: 7, background: 'var(--surface-2)', overflow: 'hidden' } },
+                  React.createElement('div', { style: { width: Math.max(pct * 100, 2) + '%', height: '100%', background: barColor(pct), borderRadius: 7 } })),
+                React.createElement('span', { className: 'mono', style: { fontSize: 11.5, color: 'var(--text-2)', flexShrink: 0 } }, 'kit ' + v.cubiertos + '/' + kitArr.length)),
+              open && React.createElement('div', { style: { marginTop: 12 } },
+                (v.faltantes || []).length > 0 && React.createElement(React.Fragment, null,
+                  React.createElement('div', { className: 'eyebrow', style: { marginBottom: 5 } }, 'Shotlist · faltan ' + v.faltantes.length),
+                  React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 } },
+                    v.faltantes.map((k, i) => chip(k, 'fk' + i, { borderColor: '#B07D3A', color: '#B07D3A' })))),
+                (v.assets || []).length === 0
+                  ? React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)' } }, 'Sin material cargado para este destino.')
+                  : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+                    v.assets.map(a => React.createElement('div', { key: a.id, style: { display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)' } },
+                      React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex' } }, React.createElement(Icon, { name: a.tipo === 'clip' ? 'play' : 'eye' })),
+                      React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                        React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, a.titulo || a.url),
+                        React.createElement('div', { style: { display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3 } },
+                          a.kit_slot ? chip(a.kit_slot, 'ks') : null, chip(a.procedencia, 'pr'),
+                          a.consentimiento === 'pendiente' ? chip('consentimiento pendiente', 'cp', { borderColor: '#C0563A', color: '#C0563A' }) : null)),
+                      React.createElement('a', { href: a.url, target: '_blank', rel: 'noopener', className: 'btn sm', style: { flexShrink: 0, textDecoration: 'none' } }, 'Abrir'),
+                      React.createElement('button', { className: 'btn sm', style: { flexShrink: 0 }, onClick: () => delAsset(a.id) }, React.createElement(Icon, { name: 'x' })))))));
+          }));
+      }
     } else {
       // highlights
       bodyInner = React.createElement(React.Fragment, null,
