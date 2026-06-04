@@ -141,6 +141,25 @@
     const Q = qSt.data || {};
     const qPend = (Q.pendientes || []).length;
 
+    // ---- Feed IG (E4): preview de la grilla + portadas ----
+    const [fSt, setFSt] = useState({ loading: false, data: null });
+    const [fSel, setFSel] = useState(null);
+    const [fUrl, setFUrl] = useState('');
+    const [fBusy, setFBusy] = useState(false);
+    function loadFeed() {
+      setFSt(s => ({ loading: true, data: s.data }));
+      BA.source.feedGrid().then(d => setFSt({ loading: false, data: d })).catch(() => setFSt({ loading: false, data: null }));
+    }
+    useEffect(() => { if (tab === 'feed') { if (!fSt.data && !fSt.loading) loadFeed(); if (!aSt.data && !aSt.loading) loadAssets(); } }, [tab]);
+    async function setCover(pieza, url) {
+      if (fBusy) return;
+      setFBusy(true);
+      const r = await BA.source.piezaSetCover(pieza.id, url);
+      setFBusy(false);
+      if (r && r.ok) { toast(url ? 'Portada asignada' : 'Portada quitada'); setFSel(null); setFUrl(''); loadFeed(); }
+      else { toast('No se pudo: ' + ((r && r.error) || 'error')); }
+    }
+
     function load() {
       setSt(s => ({ ...s, loading: true }));
       BA.source.editorialBoard()
@@ -172,7 +191,7 @@
       else { toast('No se pudo generar: ' + ((r && r.error) || 'error')); }
     }
 
-    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
+    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
     const tabbar = React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--gap)' } },
       TABS.map(t => React.createElement('button', { key: t[0], className: 'btn sm' + (tab === t[0] ? ' primary' : ''), onClick: () => setTab(t[0]) },
         React.createElement(Icon, { name: t[2] }), t[1] + (t[0] === 'aprobar' && qPend > 0 ? ' · ' + qPend : ''))));
@@ -286,6 +305,49 @@
               React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p.titulo),
               React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 } }, (p.canal || '') + ' · sale ' + fDia(p.publicar_el))),
             React.createElement('button', { className: 'btn sm', disabled: !!revBusy, onClick: () => review(p.id, 'reabrir') }, 'Reabrir')))));
+    } else if (tab === 'feed') {
+      const FP = (fSt.data || {}).piezas || [];
+      const SERIE_COLOR = { desde_arriba: '#3D5A3E', tres_datos: '#9A5A3A', el_criterio: '#6B6258', la_mesa: '#7A4533', la_textura: '#A8987F', fauna: '#4E6B50' };
+      const DOT = { idea: '#9A938A', guion: '#B07D3A', aprobada: '#4A6A4B', programada: '#2F5D8A', publicada: '#3D5A3E' };
+      const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+      function fCorta(iso) { if (!iso) return ''; const d = new Date(iso); return d.getDate() + ' ' + MESES[d.getMonth()]; }
+      const glyph = f => f === 'reel' ? '▶' : f === 'carrusel' ? '⧉' : '✦';
+      const viajesA = (aSt.data || {}).viajes || [];
+      const grupoA = fSel ? viajesA.find(v => v.trip_id === fSel.destino) : null;
+      const fotosA = grupoA ? (grupoA.assets || []).filter(a2 => a2.tipo === 'foto' && a2.url) : [];
+      bodyInner = React.createElement('div', { className: 'card pad' },
+        React.createElement(CardHead, { title: 'Grilla del feed', count: FP.length, right: React.createElement('button', { className: 'btn sm', onClick: loadFeed, disabled: fSt.loading }, React.createElement(Icon, { name: 'refresh' }), fSt.loading ? 'Cargando…' : 'Actualizar') }),
+        React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginBottom: 12, lineHeight: 1.5 } }, 'Así se ve el perfil: lo más nuevo arriba a la izquierda. Tocá una pieza para asignarle portada desde la biblioteca.'),
+        fSel && React.createElement('div', { style: { marginBottom: 12, padding: '12px 14px', border: '1px solid var(--brass)', borderRadius: 'var(--radius-sm)', background: 'var(--surface-2)' } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 } },
+            React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+              React.createElement('div', { style: { fontSize: 13, fontWeight: 700, color: 'var(--text-1)' } }, fSel.titulo),
+              React.createElement('div', { className: 'eyebrow', style: { marginTop: 3 } }, 'Portada · ' + (fSel.cover_url ? 'asignada' : 'sin asignar'))),
+            React.createElement('button', { className: 'btn sm', onClick: () => { setFSel(null); setFUrl(''); } }, React.createElement(Icon, { name: 'x' }))),
+          fotosA.length > 0
+            ? React.createElement('div', { style: { display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 9 } },
+              fotosA.map(a2 => React.createElement('img', { key: a2.id, src: a2.url, title: a2.titulo || '', onClick: () => setCover(fSel, a2.url), style: { width: 64, height: 80, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', flexShrink: 0, border: fSel.cover_url === a2.url ? '2px solid var(--brass)' : '2px solid transparent' } })))
+            : React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginBottom: 9 } }, 'Sin fotos en la biblioteca para este destino — cargalas en Assets o pegá una URL.'),
+          React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
+            React.createElement('input', { value: fUrl, placeholder: 'https://… (URL de la imagen)', onChange: e => setFUrl(e.target.value), style: { flex: '1 1 220px', padding: '9px 10px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface)', color: 'var(--text-1)', fontSize: 13 } }),
+            React.createElement('button', { className: 'btn sm primary', disabled: fBusy || !fUrl.trim(), onClick: () => setCover(fSel, fUrl.trim()) }, 'Usar URL'),
+            fSel.cover_url && React.createElement('button', { className: 'btn sm', disabled: fBusy, onClick: () => setCover(fSel, '') }, 'Quitar portada'))),
+        FP.length === 0
+          ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', padding: '6px 0' } }, 'Sin piezas de Instagram en el plan todavía.')
+          : React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3, maxWidth: 560, margin: '0 auto' } },
+            FP.map(p2 => {
+              const col = SERIE_COLOR[p2.serie] || '#6B6258';
+              return React.createElement('div', { key: p2.id, onClick: () => { setFSel(p2); setFUrl(''); }, style: { position: 'relative', aspectRatio: '3 / 4', borderRadius: 4, overflow: 'hidden', cursor: 'pointer', background: col, outline: fSel && fSel.id === p2.id ? '2px solid var(--brass)' : 'none' } },
+                p2.cover_url
+                  ? React.createElement('img', { src: p2.cover_url, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } })
+                  : React.createElement('div', { style: { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '10px 10px 26px' } },
+                    React.createElement('div', { style: { fontSize: 8.5, letterSpacing: '.8px', textTransform: 'uppercase', color: 'rgba(245,241,234,.75)', marginBottom: 4, fontFamily: 'var(--ff-mono)' } }, (p2.serie || '').replace(/_/g, ' ')),
+                    React.createElement('div', { style: { fontSize: 11.5, lineHeight: 1.35, color: '#F5F1EA', fontWeight: 600, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' } }, p2.hook || p2.titulo || '')),
+                React.createElement('span', { style: { position: 'absolute', top: 6, right: 7, fontSize: 12, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,.55)' } }, glyph(p2.formato)),
+                React.createElement('div', { style: { position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 7px', background: 'linear-gradient(transparent, rgba(26,26,26,.55))' } },
+                  React.createElement('span', { style: { fontSize: 9.5, color: 'rgba(245,241,234,.9)', fontFamily: 'var(--ff-mono)' } }, fCorta(p2.publicar_el)),
+                  React.createElement('span', { title: p2.estado, style: { width: 8, height: 8, borderRadius: 99, background: DOT[p2.estado] || '#9A938A', boxShadow: '0 0 0 1.5px rgba(245,241,234,.6)' } })));
+            })));
     } else if (tab === 'adn') {
       const slots = (semana.slots || []).slice().sort((a, b) => (a.dow - b.dow));
       bodyInner = React.createElement(React.Fragment, null,

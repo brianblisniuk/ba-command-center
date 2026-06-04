@@ -732,6 +732,20 @@ window.BA = (function () {
         return data || { ok: false };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // aprobar / rechazar / reabrir pieza
+    async feedGrid() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('feed_grid'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // grilla del feed IG (E4)
+    async piezaSetCover(piezaId, url) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.rpc('pieza_set_cover', { p_pieza_id: piezaId, p_url: url || null });
+        if (error) return { ok: false, error: error.message };
+        return data || { ok: false };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // portada de una pieza del feed
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {
