@@ -187,6 +187,34 @@
       else { toast('No se pudo enriquecer: ' + ((r && r.error) || 'error')); }
     }
 
+    // ---- Colabs por pieza desde Proveedores (E4) ----
+    const [cMap, setCMap] = useState({});
+    const [cOpen, setCOpen] = useState(null);
+    function toggleColabs(id) {
+      if (cOpen === id) { setCOpen(null); return; }
+      setCOpen(id);
+      if (!cMap[id]) {
+        setCMap(m => ({ ...m, [id]: { loading: true } }));
+        BA.source.piezaColabs(id).then(d => setCMap(m => ({ ...m, [id]: { loading: false, data: d } }))).catch(() => setCMap(m => ({ ...m, [id]: { loading: false, data: null } })));
+      }
+    }
+    function renderColabs(id) {
+      const c = cMap[id];
+      if (!c || c.loading) return React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)' } }, 'Buscando colabs del destino…');
+      const grupos = (c.data || {}).grupos || [];
+      if (grupos.length === 0) return React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)' } }, 'Esta pieza no tiene un destino con proveedores cargados.');
+      return React.createElement('div', null,
+        React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginBottom: 9, lineHeight: 1.5 } }, 'Figuras y lugares del destino para sumar como colaboración: etiquetar, co-crear, repost. Distribución sin cara.'),
+        grupos.map(g => React.createElement('div', { key: g.tipo, style: { marginBottom: 11 } },
+          React.createElement('div', { className: 'eyebrow', style: { marginBottom: 5 } }, g.label + ' · ' + (g.items || []).length),
+          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
+            (g.items || []).map((it, i) => React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 12.5 } },
+              React.createElement('span', { style: { color: 'var(--text-1)', fontWeight: 600, flexShrink: 0 } }, it.name),
+              it.michelin > 0 ? React.createElement('span', { title: it.michelin + ' Michelin', style: { color: '#9A5A3A', fontSize: 11, flexShrink: 0 } }, '★'.repeat(it.michelin)) : null,
+              it.location ? React.createElement('span', { style: { color: 'var(--text-3)', fontSize: 11, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, it.location) : null,
+              it.web ? React.createElement('a', { href: (it.web.indexOf('http') === 0 ? it.web : 'https://' + it.web), target: '_blank', rel: 'noopener', style: { color: 'var(--brass)', fontSize: 11, marginLeft: 'auto', flexShrink: 0, textDecoration: 'none', whiteSpace: 'nowrap' } }, 'web ↗') : null))))));
+    }
+
     function load() {
       setSt(s => ({ ...s, loading: true }));
       BA.source.editorialBoard()
@@ -308,13 +336,15 @@
                     React.createElement('button', { className: 'btn primary', style: { padding: '9px 18px' }, disabled: !!revBusy, onClick: () => review(p.id, 'aprobar') }, React.createElement(Icon, { name: 'check' }), 'Aprobar'),
                     React.createElement('button', { className: 'btn', style: { padding: '9px 14px', color: '#C0563A' }, disabled: !!revBusy, onClick: () => { setRejId(rejId === p.id ? null : p.id); setRejMotivo(''); } }, React.createElement(Icon, { name: 'x' }), 'Rechazar'),
                     React.createElement('button', { className: 'btn sm', onClick: () => copiar(p.guion) }, React.createElement(Icon, { name: 'copy' }), 'Copiar'),
-                    React.createElement('button', { className: 'btn sm', onClick: () => setQOpen(open ? null : p.id) }, React.createElement(Icon, { name: open ? 'cd' : 'cr' }), open ? 'Ocultar guion' : 'Ver guion')),
+                    React.createElement('button', { className: 'btn sm', onClick: () => setQOpen(open ? null : p.id) }, React.createElement(Icon, { name: open ? 'cd' : 'cr' }), open ? 'Ocultar guion' : 'Ver guion'),
+                    React.createElement('button', { className: 'btn sm', onClick: () => toggleColabs(p.id) }, React.createElement(Icon, { name: 'users' }), cOpen === p.id ? 'Ocultar colabs' : 'Colabs')),
                   rejId === p.id && React.createElement('div', { style: { marginTop: 10 } },
                     React.createElement('textarea', { value: rejMotivo, rows: 2, placeholder: 'Motivo (opcional) — le sirve al laboratorio', onChange: e => setRejMotivo(e.target.value), style: { width: '100%', padding: '9px 10px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface)', color: 'var(--text-1)', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' } }),
                     React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
                       React.createElement('button', { className: 'btn sm', style: { borderColor: '#C0563A', color: '#C0563A' }, disabled: !!revBusy, onClick: () => review(p.id, 'rechazar', rejMotivo) }, 'Confirmar rechazo'),
                       React.createElement('button', { className: 'btn sm', onClick: () => { setRejId(null); setRejMotivo(''); } }, 'Cancelar')))),
-                open && React.createElement('div', { style: { padding: '4px 14px 14px', borderTop: '1px solid var(--line)' } }, renderGuion(p.guion)));
+                open && React.createElement('div', { style: { padding: '4px 14px 14px', borderTop: '1px solid var(--line)' } }, renderGuion(p.guion)),
+                cOpen === p.id && React.createElement('div', { style: { padding: '10px 14px 14px', borderTop: '1px solid var(--line)' } }, renderColabs(p.id)));
             })),
         rech.length > 0 && React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
           React.createElement(CardHead, { title: 'Rechazadas', count: rech.length, right: React.createElement('span', { className: 'eyebrow' }, 'vuelven a la fábrica') }),

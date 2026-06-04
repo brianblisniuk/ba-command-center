@@ -687,6 +687,11 @@ window.BA = (function () {
         return data || { ok: false };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // la fábrica enriquece un highlight (E4)
+    async piezaColabs(piezaId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('pieza_colabs', { p_pieza_id: piezaId }); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // figuras y lugares del destino como colab (E4)
     async assetsBoard() {
       const sess = await this.getSession();
       if (!window.SB || !sess) return null;
