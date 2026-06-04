@@ -252,6 +252,11 @@
       else { toast('No se pudo publicar: ' + ((r && r.error) || 'error')); }
     }
 
+    function copyText(t) {
+      try { navigator.clipboard.writeText(t || ''); toast('Copiado'); }
+      catch (e) { toast('No se pudo copiar'); }
+    }
+
     // ---- Suscriptores del Cuaderno (E5) ----
     const [subSt, setSubSt] = useState({ loading: false, data: null });
     const [subEmail, setSubEmail] = useState('');
@@ -593,15 +598,46 @@
                 React.createElement('input', { value: slugVal, placeholder: 'se genera del título', onChange: ev => setBlogSlugs(o => Object.assign({}, o, { [p2.id]: ev.target.value })), style: { flex: 1, minWidth: 140, padding: '7px 9px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 12, fontFamily: 'var(--ff-mono)' } }),
                 React.createElement('button', { className: 'btn sm primary', disabled: busy, onClick: () => blogPublish(p2) }, React.createElement(Icon, { name: 'send' }), busy ? 'Publicando…' : (yaPub ? 'Actualizar en el blog' : 'Publicar al blog'))));
           })) : null,
-        resto.length > 0 ? React.createElement('div', { className: 'eyebrow', style: { margin: '14px 0 8px' } }, 'En cola para su canal · ' + resto.length) : null,
-        resto.length > 0 ? React.createElement('div', { className: 'card pad' },
-          React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginBottom: 10, lineHeight: 1.5 } }, 'Piezas aprobadas para redes. La publicación a Instagram, TikTok y LinkedIn llega en los próximos pasos.'),
-          resto.map((p2, i) => React.createElement('div', { key: p2.id, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid var(--line)' : 'none' } },
-            React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex' } }, React.createElement(Icon, { name: CANAL_IC[p2.canal] || 'send' })),
-            React.createElement('div', { style: { minWidth: 0, flex: 1 } },
-              React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p2.titulo),
-              React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)', marginTop: 2 } }, p2.canal + (p2.publicar_el ? ' · sale ' + fFecha(p2.publicar_el) : ''))),
-            estChip(p2.estado)))) : null);
+        resto.length > 0 ? React.createElement('div', { className: 'eyebrow', style: { margin: '14px 0 8px' } }, 'Para redes · ' + resto.length) : null,
+        resto.length > 0 ? React.createElement('div', { className: 'card pad', style: { display: 'flex', flexDirection: 'column', gap: 4 } },
+          React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginBottom: 6, lineHeight: 1.5 } }, 'Exportá el texto y los assets para postear a mano en Instagram, TikTok o LinkedIn. La publicación automática llega más adelante.'),
+          resto.map((p2, i) => {
+            const open = pbOpen === p2.id;
+            const cap = p2.caption || [p2.hook, p2.cuerpo].filter(Boolean).join('\n\n') || p2.titulo || '';
+            const camp = String(p2.serie || p2.destino || p2.id || '');
+            const utm = 'https://blisniukamanov.com/contact.html?utm_source=' + encodeURIComponent(p2.canal || 'social') + '&utm_medium=organic_social&utm_campaign=' + encodeURIComponent(camp);
+            const escenas = Array.isArray(p2.escenas) ? p2.escenas : [];
+            const shot = escenas.map((ev, k) => (k + 1) + '. [' + (ev.dur_seg || '?') + 's] ' + (ev.texto_pantalla || '') + '\n   ' + (ev.visual || '')).join('\n\n');
+            return React.createElement('div', { key: p2.id, style: { padding: i > 0 ? '10px 0 0' : 0, borderTop: i > 0 ? '1px solid var(--line)' : 'none' } },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+                React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex' } }, React.createElement(Icon, { name: CANAL_IC[p2.canal] || 'send' })),
+                React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                  React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p2.titulo),
+                  React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)', marginTop: 2 } }, p2.canal + (p2.serie ? ' · ' + p2.serie : '') + (p2.publicar_el ? ' · sale ' + fFecha(p2.publicar_el) : ''))),
+                React.createElement('button', { className: 'btn sm', onClick: () => setPbOpen(open ? null : p2.id) }, React.createElement(Icon, { name: open ? 'cd' : 'cr' }), open ? 'Cerrar' : 'Exportar')),
+              open ? React.createElement('div', { style: { marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 12 } },
+                React.createElement('div', null,
+                  React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 } },
+                    React.createElement('span', { className: 'eyebrow', style: { margin: 0 } }, 'Texto del posteo'),
+                    React.createElement('button', { className: 'btn sm', onClick: () => copyText(cap) }, React.createElement(Icon, { name: 'copy' }), 'Copiar texto')),
+                  React.createElement('div', { style: { fontSize: 13, color: 'var(--text-1)', lineHeight: 1.6, whiteSpace: 'pre-wrap', background: 'var(--surface-2)', border: '1px solid var(--rule)', borderRadius: 8, padding: '10px 12px' } }, cap)),
+                p2.cover_url ? React.createElement('div', null,
+                  React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 } },
+                    React.createElement('span', { className: 'eyebrow', style: { margin: 0 } }, 'Imagen / portada'),
+                    React.createElement('a', { className: 'btn sm', href: p2.cover_url, target: '_blank', rel: 'noopener' }, React.createElement(Icon, { name: 'eye' }), 'Abrir')),
+                  React.createElement('img', { src: p2.cover_url, alt: '', style: { maxWidth: 180, borderRadius: 8, border: '1px solid var(--rule)', display: 'block' } })) : null,
+                escenas.length > 0 ? React.createElement('div', null,
+                  React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 } },
+                    React.createElement('span', { className: 'eyebrow', style: { margin: 0 } }, 'Guion de rodaje · ' + escenas.length + ' tomas'),
+                    React.createElement('button', { className: 'btn sm', onClick: () => copyText(shot) }, React.createElement(Icon, { name: 'copy' }), 'Copiar guion')),
+                  React.createElement('div', { style: { fontSize: 12, color: 'var(--text-2)', lineHeight: 1.55, whiteSpace: 'pre-wrap', fontFamily: 'var(--ff-mono)' } }, shot),
+                  p2.audio ? React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginTop: 6, fontStyle: 'italic' } }, 'Audio: ' + p2.audio) : null) : null,
+                React.createElement('div', null,
+                  React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 } },
+                    React.createElement('span', { className: 'eyebrow', style: { margin: 0 } }, 'Link para bio / historia (con UTM)'),
+                    React.createElement('button', { className: 'btn sm', onClick: () => copyText(utm) }, React.createElement(Icon, { name: 'copy' }), 'Copiar link')),
+                  React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-2)', wordBreak: 'break-all', fontFamily: 'var(--ff-mono)', background: 'var(--surface-2)', border: '1px solid var(--rule)', borderRadius: 8, padding: '8px 10px' } }, utm))) : null);
+          })) : null);
     } else if (tab === 'subs') {
       const SB2 = subSt.data || {};
       const lista = SB2.lista || [];
