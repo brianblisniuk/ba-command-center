@@ -221,6 +221,7 @@
     const [pbBusy, setPbBusy] = useState('');
     const [pbOpen, setPbOpen] = useState(null);
     const [blogSlugs, setBlogSlugs] = useState({});
+    const [schedVals, setSchedVals] = useState({});
     function loadPB() {
       setPbSt(s => ({ loading: true, data: s.data }));
       BA.source.publicarBoard().then(d => setPbSt({ loading: false, data: d })).catch(() => setPbSt({ loading: false, data: null }));
@@ -261,6 +262,21 @@
     function copyText(t) {
       try { navigator.clipboard.writeText(t || ''); toast('Copiado'); }
       catch (e) { toast('No se pudo copiar'); }
+    }
+
+    async function programar(p2) {
+      const v = schedVals[p2.id];
+      if (!v) { toast('Elegí fecha y hora'); return; }
+      setPbBusy(p2.id + ':sched');
+      const r = await BA.source.programarPieza(p2.id, new Date(v).toISOString());
+      setPbBusy('');
+      if (r && r.ok) { toast('Programada'); loadPB(); }
+      else { toast('No se pudo programar: ' + ((r && r.error) || 'error')); }
+    }
+    async function cancelarProg(p2) {
+      const r = await BA.source.programarPieza(p2.id, null);
+      if (r && r.ok) { toast('Programación cancelada'); loadPB(); }
+      else { toast('No se pudo'); }
     }
 
     // ---- Suscriptores del Cuaderno (E5) ----
@@ -582,6 +598,17 @@
       const blogs = otras.filter(x => x.canal === 'blog');
       const resto = otras.filter(x => x.canal !== 'blog');
       const fFecha = iso => { if (!iso) return ''; const d = new Date(iso); return d.getDate() + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]; };
+      const fFechaHora = iso => { if (!iso) return ''; const d = new Date(iso); const ms = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; const hh = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); return d.getDate() + ' ' + ms[d.getMonth()] + ' ' + hh; };
+      const schedInStyle = { padding: '7px 9px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 12.5 };
+      const schedRow = (p2) => p2.estado === 'programada'
+        ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, flexWrap: 'wrap' } },
+            React.createElement('span', { style: { fontSize: 11.5, color: '#3D5A3E', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 } }, React.createElement(Icon, { name: 'calendar' }), 'Programada · ' + fFechaHora(p2.publicar_el)),
+            React.createElement('button', { className: 'btn sm', onClick: () => cancelarProg(p2) }, 'Cancelar'))
+        : p2.estado === 'aprobada'
+          ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, flexWrap: 'wrap' } },
+              React.createElement('input', { type: 'datetime-local', value: schedVals[p2.id] || '', onChange: ev => setSchedVals(o => Object.assign({}, o, { [p2.id]: ev.target.value })), style: schedInStyle }),
+              React.createElement('button', { className: 'btn sm', disabled: pbBusy === p2.id + ':sched', onClick: () => programar(p2) }, React.createElement(Icon, { name: 'calendar' }), 'Programar'))
+          : null;
       const estChip = e => e === 'publicada' ? chip('publicada', 'e', { borderColor: '#3D5A3E', color: '#3D5A3E' }) : e === 'programada' ? chip('programada', 'e', { borderColor: '#2F5D8A', color: '#2F5D8A' }) : chip('aprobada', 'e', { borderColor: '#4A6A4B', color: '#4A6A4B' });
       bodyInner = React.createElement(React.Fragment, null,
         React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', borderLeft: '3px solid var(--brass)', display: 'flex', alignItems: 'center', gap: 12 } },
@@ -612,6 +639,7 @@
                 React.createElement('button', { className: 'btn sm primary', disabled: pbBusy === p2.id + ':test', onClick: () => enviarPrueba(p2) }, React.createElement(Icon, { name: 'send' }), pbBusy === p2.id + ':test' ? 'Enviando…' : 'Enviar prueba'),
                 React.createElement('button', { className: 'btn sm', disabled: nSubs === 0 || pbBusy === p2.id + ':live', onClick: () => enviarLista(p2, nSubs) }, React.createElement(Icon, { name: 'mail' }), pbBusy === p2.id + ':live' ? 'Enviando…' : 'A la lista (' + nSubs + ')'),
                 React.createElement('button', { className: 'btn sm', onClick: () => setPbOpen(open ? null : p2.id) }, React.createElement(Icon, { name: open ? 'cd' : 'cr' }), open ? 'Ocultar' : 'Ver carta')),
+              schedRow(p2),
               open ? React.createElement('div', { style: { marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--text-1)', lineHeight: 1.65, whiteSpace: 'pre-wrap' } }, p2.cuerpo || '(sin cuerpo en el guion)') : null);
           }),
         blogs.length > 0 ? React.createElement('div', { className: 'eyebrow', style: { margin: '4px 0 8px' } }, 'Listo para el blog · ' + blogs.length) : null,
@@ -632,7 +660,7 @@
               React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, alignItems: 'center' } },
                 React.createElement('span', { style: { fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--ff-mono)' } }, '/blog/'),
                 React.createElement('input', { value: slugVal, placeholder: 'se genera del título', onChange: ev => setBlogSlugs(o => Object.assign({}, o, { [p2.id]: ev.target.value })), style: { flex: 1, minWidth: 140, padding: '7px 9px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 12, fontFamily: 'var(--ff-mono)' } }),
-                React.createElement('button', { className: 'btn sm primary', disabled: busy, onClick: () => blogPublish(p2) }, React.createElement(Icon, { name: 'send' }), busy ? 'Publicando…' : (yaPub ? 'Actualizar en el blog' : 'Publicar al blog'))));
+                React.createElement('button', { className: 'btn sm primary', disabled: busy, onClick: () => blogPublish(p2) }, React.createElement(Icon, { name: 'send' }), busy ? 'Publicando…' : (yaPub ? 'Actualizar en el blog' : 'Publicar al blog'))), schedRow(p2));
           })) : null,
         resto.length > 0 ? React.createElement('div', { className: 'eyebrow', style: { margin: '14px 0 8px' } }, 'Para redes · ' + resto.length) : null,
         resto.length > 0 ? React.createElement('div', { className: 'card pad', style: { display: 'flex', flexDirection: 'column', gap: 4 } },

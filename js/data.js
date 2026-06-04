@@ -703,6 +703,12 @@ window.BA = (function () {
       if (!window.SB || !sess) return null;
       try { const { data, error } = await window.SB.rpc('lab_series'); if (error) return null; return data; } catch (e) { return null; }
     },                                                            // laboratorio por serie (Fase 4)
+
+    async programarPieza(id, whenIso) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try { const { data, error } = await window.SB.rpc('pieza_set_schedule', { p_id: id, p_when: whenIso }); if (error) return { ok: false, error: error.message }; return data; } catch (e) { return { ok: false, error: String(e) }; }
+    },                                                            // programar/desprogramar pieza (Fase 4)
     async blogPublish(piezaId, slug) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {
