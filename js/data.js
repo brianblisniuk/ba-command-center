@@ -689,6 +689,35 @@ window.BA = (function () {
       if (!window.SB || !sess) return { ok: false };
       try { const { error } = await window.SB.from('content_assets').delete().eq('id', id); return { ok: !error, error: error && error.message }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // baja de asset (La Editorial)
+    async itineraryApply(tripId, op, payload) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.rpc('itinerary_apply', { p_trip_id: tripId, p_op: op, p_payload: payload || {} });
+        if (error) return { ok: false, error: error.message };
+        if (data && data.ok && data.data && window.BA && window.BA._mapTripData) {
+          window.BA._tripCache[tripId] = window.BA._mapTripData(tripId, data.data);
+          return { ok: true, itinerario: window.BA._tripCache[tripId].itinerario };
+        }
+        return data || { ok: false };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // editor de itinerario: ops sobre trips.data->itinerary
+    async fileUpload(path, file) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const { error } = await window.SB.storage.from('trip-files').upload(path, file, { upsert: false });
+        if (error) return { ok: false, error: error.message };
+        return { ok: true, path };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // sube adjunto al bucket trip-files
+    async fileSignedUrl(path) {
+      if (!window.SB) return null;
+      try { const { data, error } = await window.SB.storage.from('trip-files').createSignedUrl(path, 3600); if (error) return null; return data && data.signedUrl; } catch (e) { return null; }
+    },                                                            // URL firmada (1 h) para abrir un adjunto
+    async fileRemove(path) {
+      if (!window.SB) return { ok: false };
+      try { const { error } = await window.SB.storage.from('trip-files').remove([path]); return { ok: !error, error: error && error.message }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // borra un adjunto del bucket
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {

@@ -5,34 +5,34 @@
   const BA = window.BA;
   const M = (usd, cur) => BA.money(usd, cur);
 
-  // ============ ITINERARIO ============
+  // ============ ITINERARIO (editable, persiste en trips.data) ============
   function Itinerario({ s, cur, toast, openProvider, op }) {
-    const data = BA.tripData(s.id).itinerario;
+    const [days, setDays] = useState(() => ((BA.tripData(s.id) || {}).itinerario || []));
     const [capa, setCapa] = useState('op'); // op | cliente
-    const [open, setOpen] = useState(() => new Set(data.map(d => d.n)));
+    const [open, setOpen] = useState(() => new Set((((BA.tripData(s.id) || {}).itinerario) || []).map(d => d.n)));
     const [expanded, setExpanded] = useState(null); // slot id
-    const [verdicts, setVerdicts] = useState({}); // id -> verdict override
-    const [vis, setVis] = useState({}); // id -> bool override
-    function toggle(n) { setOpen(o => { const x = new Set(o); x.has(n) ? x.delete(n) : x.add(n); return x; }); }
-    const allOpen = open.size === data.length;
+    const [busy, setBusy] = useState('');
+    const [ed, setEd] = useState(null); // { mode:'new'|'edit', dayId, dia, slotId?, f:{time,end,title,desc,status} }
+    const fileRef = React.useRef(null);
+    const fileTarget = React.useRef(null); // { dayId, slotId }
+
     const VERDICTS = ['Confirmado', 'Por confirmar', 'En gestión'];
+    const V2RAW = { 'Confirmado': 'ok', 'Por confirmar': 'warn', 'En gestión': 'danger' };
     const vClass = v => v === 'Confirmado' ? 'go' : v === 'Por confirmar' ? 'risk' : 'bad';
-    function cycleVerdict(id, cur) { const next = VERDICTS[(VERDICTS.indexOf(cur) + 1) % 3]; setVerdicts(s => ({ ...s, [id]: next })); toast('Veredicto → ' + next); }
-    function vOf(sl) { return verdicts[sl.id] || sl.verdict; }
-    function visOf(sl) { return vis[sl.id] != null ? vis[sl.id] : sl.clientVisible; }
-    function toggleVis(id, cur) { setVis(s => ({ ...s, [id]: !cur })); toast(!cur ? 'Visible al cliente' : 'Oculto al cliente'); }
+    const inSt = { width: '100%', padding: '9px 10px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 };
+
+    function toggle(n) { setOpen(o => { const x = new Set(o); x.has(n) ? x.delete(n) : x.add(n); return x; }); }
+    const allOpen = days.length > 0 && open.size === days.length;
 
     // ★ highlights (La Editorial) — persisten en content_highlights
     const [hl, setHl] = useState({}); // 'dia|titulo' -> id
-    React.useEffect(() => {
-      let on = true;
+    function loadHl() {
       Promise.resolve(BA.source.highlightsList(s.id)).then(rows => {
-        if (!on) return;
         const m = {}; (rows || []).forEach(r => { m[r.dia + '|' + r.titulo] = r.id; });
         setHl(m);
       });
-      return () => { on = false; };
-    }, [s.id]);
+    }
+    React.useEffect(() => { loadHl(); }, [s.id]);
     function hlKey(day, sl) { return day.n + '|' + sl.title; }
     function toggleHl(day, sl) {
       const k = hlKey(day, sl); const was = !!hl[k];
@@ -45,46 +45,146 @@
     }
     const hlCount = Object.keys(hl).length;
 
+    // ---- persistencia (RPC itinerary_apply) ----
+    async function applyOp(opName, payload, okMsg) {
+      if (busy) return null;
+      setBusy(opName);
+      const r = await BA.source.itineraryApply(s.id, opName, payload);
+      setBusy('');
+      if (r && r.ok) {
+        const it = r.itinerario || [];
+        setDays(it);
+        if (opName === 'day_add' && it.length) setOpen(o => new Set([...o, it[it.length - 1].n]));
+        if (okMsg) toast(okMsg);
+        loadHl();
+        return r;
+      }
+      toast('No se pudo guardar: ' + ((r && r.error) || 'error'));
+      return null;
+    }
+
+    function startNew(day) { setEd({ mode: 'new', dayId: day.id, dia: day.n, f: { time: '', end: '', title: '', desc: '', status: 'ok' } }); setOpen(o => new Set([...o, day.n])); }
+    function startEdit(day, sl) { setEd({ mode: 'edit', dayId: day.id, dia: day.n, slotId: sl.id, f: { time: sl.time || '', end: sl.end || '', title: sl.title || '', desc: sl.desc || '', status: sl.rawStatus || 'ok' } }); }
+    async function saveEd() {
+      if (!ed) return;
+      const f = ed.f;
+      if (!f.title.trim()) { toast('El momento necesita un título'); return; }
+      const campos = { title: f.title.trim(), timeStart: f.time.trim(), timeEnd: f.end.trim(), description: f.desc.trim(), status: f.status };
+      const r = ed.mode === 'new'
+        ? await applyOp('slot_add', { dayId: ed.dayId, slot: campos }, 'Momento agregado')
+        : await applyOp('slot_upd', { dayId: ed.dayId, slotId: ed.slotId, patch: campos }, 'Momento actualizado');
+      if (r) setEd(null);
+    }
+    async function delSlot() {
+      if (!ed || ed.mode !== 'edit') return;
+      if (!window.confirm('¿Eliminar este momento del itinerario?')) return;
+      const r = await applyOp('slot_del', { dayId: ed.dayId, slotId: ed.slotId }, 'Momento eliminado');
+      if (r) { setEd(null); setExpanded(null); }
+    }
+    function moveSlot(dir) { if (!ed || ed.mode !== 'edit') return; applyOp('slot_move', { dayId: ed.dayId, slotId: ed.slotId, dir }, null); }
+    function cycleVerdict(day, sl) {
+      const next = VERDICTS[(VERDICTS.indexOf(sl.verdict) + 1) % 3];
+      applyOp('slot_upd', { dayId: day.id, slotId: sl.id, patch: { status: V2RAW[next] } }, 'Veredicto → ' + next);
+    }
+    function toggleVis(day, sl) {
+      applyOp('slot_vis', { dayId: day.id, slotId: sl.id, visible: !sl.clientVisible }, !sl.clientVisible ? 'Visible al cliente' : 'Oculto al cliente');
+    }
+    function renameDay(day) {
+      const t = window.prompt('Título del día', day.title || '');
+      if (t == null) return;
+      applyOp('day_upd', { dayId: day.id, title: t.trim() }, 'Día actualizado');
+    }
+    function delDay(day) {
+      if (!window.confirm('¿Eliminar el Día ' + day.n + ' completo (' + day.slots.length + ' momentos)? Sus ★ también se quitan.')) return;
+      applyOp('day_del', { dayId: day.id }, 'Día eliminado');
+    }
+
+    // ---- adjuntos (Storage trip-files) ----
+    function pickFile(day, sl) { fileTarget.current = { dayId: day.id, slotId: sl.id }; if (fileRef.current) fileRef.current.click(); }
+    async function onFile(e) {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      const tgt = fileTarget.current;
+      if (!file || !tgt) return;
+      if (file.size > 25 * 1024 * 1024) { toast('Máximo 25 MB por adjunto'); return; }
+      setBusy('att');
+      const limpio = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80);
+      const path = s.id + '/' + tgt.slotId + '/' + Date.now() + '_' + limpio;
+      const up = await BA.source.fileUpload(path, file);
+      setBusy('');
+      if (!up || !up.ok) { toast('No se pudo subir: ' + ((up && up.error) || 'error')); return; }
+      await applyOp('att_add', { dayId: tgt.dayId, slotId: tgt.slotId, att: { name: file.name, path, mime: file.type || '', size: file.size } }, 'Adjunto subido');
+    }
+    async function openAtt(a) {
+      if (!a.path) { toast('Adjunto sin archivo'); return; }
+      const url = await BA.source.fileSignedUrl(a.path);
+      if (url) window.open(url, '_blank'); else toast('No se pudo abrir el adjunto');
+    }
+    async function delAtt(day, sl, a) {
+      if (!window.confirm('¿Eliminar el adjunto "' + (a.name || 'archivo') + '"?')) return;
+      if (a.path) await BA.source.fileRemove(a.path);
+      await applyOp('att_del', { dayId: day.id, slotId: sl.id, path: a.path || '' }, 'Adjunto eliminado');
+    }
+
+    function editorCard(day) {
+      if (!ed || ed.dayId !== day.id) return null;
+      const f = ed.f;
+      const set = (k, v) => setEd(x => ({ ...x, f: Object.assign({}, x.f, { [k]: v }) }));
+      const fld = (label, w, el) => React.createElement('div', { style: { flex: w } },
+        React.createElement('label', { className: 'eyebrow', style: { display: 'block', marginBottom: 5 } }, label), el);
+      return React.createElement('div', { style: { marginTop: 10, padding: '13px 15px', border: '1px solid var(--brass)', borderRadius: 'var(--radius-sm)', background: 'var(--surface)' } },
+        React.createElement('div', { className: 'eyebrow', style: { marginBottom: 9 } }, (ed.mode === 'new' ? 'Nuevo momento' : 'Editando momento') + ' · Día ' + day.n),
+        React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 10 } },
+          fld('Desde', '0 1 100px', React.createElement('input', { value: f.time, placeholder: '09:00', onChange: e => set('time', e.target.value), style: inSt })),
+          fld('Hasta', '0 1 100px', React.createElement('input', { value: f.end, placeholder: '11:00', onChange: e => set('end', e.target.value), style: inSt })),
+          fld('Título', '1 1 220px', React.createElement('input', { value: f.title, placeholder: 'Título del momento', onChange: e => set('title', e.target.value), style: inSt })),
+          fld('Estado', '0 1 150px', React.createElement('select', { value: f.status, onChange: e => set('status', e.target.value), style: inSt },
+            [['ok', 'Confirmado'], ['warn', 'Por confirmar'], ['danger', 'En gestión']].map(([v, t]) => React.createElement('option', { key: v, value: v }, t))))),
+        React.createElement('div', { style: { marginTop: 10 } },
+          React.createElement('label', { className: 'eyebrow', style: { display: 'block', marginBottom: 5 } }, 'Descripción'),
+          React.createElement('textarea', { value: f.desc, rows: 2, placeholder: 'Descripción (capa operativa)', onChange: e => set('desc', e.target.value), style: Object.assign({}, inSt, { resize: 'vertical', fontFamily: 'inherit' }) })),
+        React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 } },
+          React.createElement('button', { className: 'btn sm primary', disabled: !!busy, onClick: saveEd }, React.createElement(Icon, { name: 'check' }), busy ? 'Guardando…' : 'Guardar'),
+          React.createElement('button', { className: 'btn sm', onClick: () => setEd(null) }, 'Cancelar'),
+          ed.mode === 'edit' && React.createElement('button', { className: 'btn sm', disabled: !!busy, title: 'Subir', onClick: () => moveSlot('up') }, React.createElement(Icon, { name: 'au' })),
+          ed.mode === 'edit' && React.createElement('button', { className: 'btn sm', disabled: !!busy, title: 'Bajar', onClick: () => moveSlot('down') }, React.createElement(Icon, { name: 'ad' })),
+          ed.mode === 'edit' && React.createElement('button', { className: 'btn sm', disabled: !!busy, style: { color: 'var(--bad)' }, onClick: delSlot }, React.createElement(Icon, { name: 'x' }), 'Eliminar')));
+    }
+
     return React.createElement('div', null,
+      React.createElement('input', { ref: fileRef, type: 'file', style: { display: 'none' }, onChange: onFile }),
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' } },
         React.createElement('div', { className: 'tb-seg' },
           [['op', 'Operativo'], ['cliente', 'Cliente']].map(([k, t]) => React.createElement('button', { key: k, className: capa === k ? 'on' : '', onClick: () => setCapa(k) }, t))),
         React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
           hlCount > 0 && React.createElement('span', { className: 'tag', style: { padding: '5px 10px', color: 'var(--brass)' } },
             React.createElement(Icon, { name: 'star', style: { width: 12, height: 12, fill: 'currentColor' } }), hlCount + (hlCount === 1 ? ' highlight' : ' highlights')),
-          React.createElement('button', { className: 'btn sm', onClick: () => setOpen(allOpen ? new Set() : new Set(data.map(d => d.n))) }, React.createElement(Icon, { name: 'layers' }), allOpen ? 'Colapsar' : 'Expandir'),
-          React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Día agregado al final') }, React.createElement(Icon, { name: 'plus' }), 'Agregar día'))
+          React.createElement('button', { className: 'btn sm', onClick: () => setOpen(allOpen ? new Set() : new Set(days.map(d => d.n))) }, React.createElement(Icon, { name: 'layers' }), allOpen ? 'Colapsar' : 'Expandir'),
+          React.createElement('button', { className: 'btn sm primary', disabled: !!busy, onClick: () => applyOp('day_add', {}, 'Día agregado') }, React.createElement(Icon, { name: 'plus' }), 'Agregar día'))
       ),
-      // leyenda de tipos de slot
-      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16, padding: '11px 15px', background: capa === 'cliente' ? 'var(--curso-bg)' : 'var(--surface-2)', borderRadius: 'var(--radius-sm)' } },
-        capa === 'cliente'
-          ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: 'var(--text-2)' } }, React.createElement(Icon, { name: 'eye', style: { width: 16, height: 16, color: 'var(--curso)' } }), 'Capa narrativa — así lo ve el huésped: sin precios, sin notas internas, sin accesos en gestión.')
-          : ['meal', 'wine', 'access', 'culture', 'activity', 'transfer', 'lodging'].map(tp => { const st = BA.STYPE[tp];
-              return React.createElement('span', { key: tp, style: { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-3)' } },
-                React.createElement('span', { className: 'slot-glyph', style: { width: 18, height: 18, fontSize: 10, background: st.c } }, st.g), st.t); })
-      ),
-      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 14 } },
-        data.map(day => {
+      days.length === 0 && React.createElement('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)', padding: '34px 20px' } },
+        'Sin itinerario todavía. Tocá "Agregar día" para empezar a armarlo.'),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
+        days.map(day => {
           const isOpen = open.has(day.n);
-          const slots = capa === 'cliente' ? day.slots.filter(sl => visOf(sl) && vOf(sl) !== 'En gestión') : day.slots;
-          return React.createElement('div', { key: day.n, className: 'card', style: { overflow: 'hidden' } },
-            React.createElement('div', { onClick: () => toggle(day.n), style: { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', cursor: 'pointer' } },
-              React.createElement('div', { className: 'day-cover', style: { background: 'linear-gradient(150deg, var(--laurel-soft), ' + day.cover + ')' } },
-                React.createElement('div', { style: { textAlign: 'center', lineHeight: 1 } },
-                  React.createElement('div', { style: { fontSize: 22 } }, day.n),
-                  React.createElement('div', { style: { fontFamily: 'var(--ff-mono)', fontSize: 8, letterSpacing: '.1em', opacity: .85, marginTop: 2 } }, day.dow))),
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('div', { style: { fontSize: 16, fontWeight: 650, color: 'var(--text-1)', fontFamily: 'var(--ff-display)' } }, day.title),
+          const slots = day.slots.filter(sl => capa === 'op' || sl.clientVisible);
+          return React.createElement('div', { key: day.id || day.n, className: 'card', style: { overflow: 'hidden' } },
+            React.createElement('div', { onClick: () => toggle(day.n), style: { display: 'flex', alignItems: 'center', gap: 13, padding: '14px 18px', cursor: 'pointer' } },
+              React.createElement('div', { style: { width: 40, height: 40, borderRadius: 10, background: day.cover, color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+                React.createElement('span', { style: { fontSize: 9, opacity: .8, textTransform: 'uppercase', letterSpacing: '.5px' } }, day.dow || 'Día'),
+                React.createElement('span', { style: { fontFamily: 'var(--ff-display)', fontSize: 17, lineHeight: 1 } }, day.n)),
+              React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                React.createElement('div', { className: 'nm', style: { fontSize: 14.5 } }, day.title),
                 React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginTop: 3, fontFamily: 'var(--ff-mono)' } },
-                  slots.length + ' slots · ' + day.free + ' h libres' + (capa === 'op' ? ' · est. ' + M(day.estUSD, cur) : ''))),
-              capa === 'op' && React.createElement('button', { className: 'tag', title: 'Templates de día', style: { padding: '5px 9px' }, onClick: e => { e.stopPropagation(); toast('Guardar día como template'); } }, React.createElement(Icon, { name: 'copy' }), 'Template'),
+                  slots.length + (slots.length === 1 ? ' momento' : ' momentos') + (capa === 'op' ? ' · est. ' + M(day.estUSD, cur) : ''))),
+              capa === 'op' && React.createElement('button', { className: 'tag', title: 'Renombrar día', style: { padding: '5px 9px' }, onClick: e => { e.stopPropagation(); renameDay(day); } }, '✎'),
+              capa === 'op' && React.createElement('button', { className: 'tag', title: 'Eliminar día', style: { padding: '5px 9px' }, onClick: e => { e.stopPropagation(); delDay(day); } }, React.createElement(Icon, { name: 'x', style: { width: 12, height: 12 } })),
               React.createElement(Icon, { name: isOpen ? 'cd' : 'cr', style: { color: 'var(--text-3)' } })),
             isOpen && React.createElement('div', { style: { padding: '0 18px 18px' } },
               slots.map((sl, i) => {
-                const st = BA.STYPE[sl.type]; const v = vOf(sl); const isExp = expanded === sl.id; const showV = visOf(sl);
-                return React.createElement('div', { key: sl.id },
-                  i > 0 && capa === 'op' && React.createElement('div', { className: 'travel-chip' }, React.createElement(Icon, { name: i % 2 ? 'route' : 'pin' }), i % 2 ? 'auto · ' + (8 + i * 2) + ' min' : 'a pie · ' + (4 + i) + ' min'),
-                  React.createElement('div', { className: 'slot' + (sl.conflict && capa === 'op' ? ' conflict' : ''), style: { marginTop: i === 0 ? 6 : 4 } },
+                const st = BA.STYPE[sl.type] || BA.STYPE.service; const v = sl.verdict; const isExp = expanded === sl.id; const showV = sl.clientVisible;
+                return React.createElement('div', { key: sl.id || i },
+                  React.createElement('div', { className: 'slot' + (sl.conflict && capa === 'op' ? ' conflict' : ''), style: { marginTop: i === 0 ? 6 : 6 } },
                     React.createElement('div', { style: { width: 5, flexShrink: 0, background: st.c } }),
                     React.createElement('div', { className: 'slot-time' },
                       React.createElement('div', { className: 'a' }, sl.time),
@@ -99,17 +199,14 @@
                           style: { background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0, flexShrink: 0, color: hl[hlKey(day, sl)] ? 'var(--brass)' : 'var(--text-faint)' }
                         }, React.createElement(Icon, { name: 'star', style: { width: 15, height: 15, fill: hl[hlKey(day, sl)] ? 'currentColor' : 'none' } })),
                         capa === 'op' && sl.access && React.createElement('span', { className: 'badge brass', style: { padding: '2px 7px' } }, React.createElement(Icon, { name: 'key', style: { width: 10, height: 10 } }), 'Acceso'),
-                        capa === 'op' && React.createElement('span', { className: 'badge ' + vClass(v), style: { padding: '2px 7px', cursor: 'pointer' }, onClick: e => { e.stopPropagation(); cycleVerdict(sl.id, v); } }, v),
+                        capa === 'op' && React.createElement('span', { className: 'badge ' + vClass(v), style: { padding: '2px 7px', cursor: 'pointer' }, onClick: e => { e.stopPropagation(); cycleVerdict(day, sl); } }, v),
                         capa === 'op' && React.createElement(Icon, { name: isExp ? 'cd' : 'cr', style: { color: 'var(--text-faint)', width: 16, height: 16 } })),
                       React.createElement('div', { className: 'slot-desc' }, capa === 'cliente' ? sl.client.desc : sl.desc),
                       capa === 'op' && React.createElement('div', { className: 'slot-meta' },
                         React.createElement('span', { className: 'tag', style: { padding: '2px 8px' } }, st.t),
                         sl.provider !== '—' && React.createElement('span', { className: 'tag', style: { padding: '2px 8px', cursor: 'pointer' }, onClick: e => { e.stopPropagation(); sl.providerId && openProvider ? openProvider(sl.providerId) : toast(sl.provider); } }, React.createElement(Icon, { name: 'users' }), sl.provider),
-                        sl.attachments > 0 && React.createElement('span', { className: 'tag', style: { padding: '2px 8px' } }, React.createElement(Icon, { name: 'book' }), sl.attachments),
-                        sl.comments > 0 && React.createElement('span', { className: 'tag', style: { padding: '2px 8px' } }, React.createElement(Icon, { name: 'chat' }), sl.comments),
-                        sl.conflict && React.createElement('span', { className: 'badge bad', style: { padding: '2px 7px' } }, React.createElement(Icon, { name: 'alert', style: { width: 10, height: 10 } }), 'Conflicto horario'),
-                        React.createElement('span', { className: 'vis-toggle' + (showV ? ' on' : ''), onClick: e => { e.stopPropagation(); toggleVis(sl.id, showV); } }, React.createElement(Icon, { name: 'eye' }), showV ? 'Visible' : 'Oculto')),
-                      // expanded: dos capas
+                        sl.attachments.length > 0 && React.createElement('span', { className: 'tag', style: { padding: '2px 8px' } }, React.createElement(Icon, { name: 'book' }), sl.attachments.length),
+                        React.createElement('span', { className: 'vis-toggle' + (showV ? ' on' : ''), onClick: e => { e.stopPropagation(); toggleVis(day, sl); } }, React.createElement(Icon, { name: 'eye' }), showV ? 'Visible' : 'Oculto')),
                       isExp && capa === 'op' && React.createElement('div', { className: 'slot-expand' },
                         React.createElement('div', { className: 'layer' },
                           React.createElement('div', { className: 'layer-h' }, React.createElement(Icon, { name: 'settings', style: { width: 12, height: 12 } }), 'Operativo (interno)'),
@@ -119,18 +216,24 @@
                           React.createElement('div', { className: 'layer-h' }, React.createElement(Icon, { name: 'eye', style: { width: 12, height: 12 } }), 'Cliente (narrativa)'),
                           React.createElement('div', { className: 'layer-t' }, sl.client.title),
                           React.createElement('div', { className: 'layer-d' }, sl.client.desc))),
+                      isExp && capa === 'op' && sl.attachments.length > 0 && React.createElement('div', { style: { paddingLeft: 35, marginTop: 9, display: 'flex', flexDirection: 'column', gap: 6 } },
+                        sl.attachments.map((a, ai) => React.createElement('div', { key: ai, style: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 } },
+                          React.createElement(Icon, { name: 'download', style: { width: 13, height: 13, color: 'var(--text-3)', flexShrink: 0 } }),
+                          React.createElement('span', { style: { color: 'var(--text-1)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 } }, a.name || 'archivo'),
+                          a.path && React.createElement('button', { className: 'btn sm', onClick: e => { e.stopPropagation(); openAtt(a); } }, 'Abrir'),
+                          React.createElement('button', { className: 'btn sm', onClick: e => { e.stopPropagation(); delAtt(day, sl, a); } }, React.createElement(Icon, { name: 'x', style: { width: 12, height: 12 } }))))),
                       isExp && capa === 'op' && React.createElement('div', { className: 'slot-actions' },
-                        React.createElement('button', { className: 'btn sm', onClick: e => { e.stopPropagation(); toast('Editar slot'); } }, React.createElement(Icon, { name: 'list' }), 'Editar'),
-                        React.createElement('button', { className: 'btn sm', onClick: e => { e.stopPropagation(); sl.providerId && openProvider ? openProvider(sl.providerId) : toast('Asignar proveedor'); } }, React.createElement(Icon, { name: 'users' }), 'Proveedor'),
-                        React.createElement('button', { className: 'btn sm', onClick: e => { e.stopPropagation(); toast('Adjuntar archivo'); } }, React.createElement(Icon, { name: 'plus' }), 'Adjunto'),
-                        sl.access && React.createElement('button', { className: 'btn sm', onClick: e => { e.stopPropagation(); toast('Marcar acceso confirmado'); } }, React.createElement(Icon, { name: 'key' }), 'Acceso')),
+                        React.createElement('button', { className: 'btn sm', onClick: e => { e.stopPropagation(); startEdit(day, sl); } }, React.createElement(Icon, { name: 'list' }), 'Editar'),
+                        React.createElement('button', { className: 'btn sm', disabled: busy === 'att', onClick: e => { e.stopPropagation(); pickFile(day, sl); } }, React.createElement(Icon, { name: 'plus' }), busy === 'att' ? 'Subiendo…' : 'Adjuntar'),
+                        React.createElement('button', { className: 'btn sm', onClick: e => { e.stopPropagation(); sl.providerId && openProvider ? openProvider(sl.providerId) : toast('Sin proveedor asignado'); } }, React.createElement(Icon, { name: 'users' }), 'Proveedor')),
                       isExp && capa === 'op' && op && window.CommentsSection && React.createElement('div', { onClick: e => e.stopPropagation(), style: { paddingLeft: 35 } },
                         React.createElement(window.CommentsSection, { ckey: 'slot:' + sl.id, op, toast }))
                     )
                   )
                 );
               }),
-              capa === 'op' && React.createElement('button', { className: 'btn sm', style: { marginTop: 12, marginLeft: 0 }, onClick: () => toast('Agregar slot al día ' + day.n) }, React.createElement(Icon, { name: 'plus' }), 'Agregar slot')
+              editorCard(day),
+              capa === 'op' && React.createElement('button', { className: 'btn sm', style: { marginTop: 12, marginLeft: 0 }, disabled: !!busy, onClick: () => startNew(day) }, React.createElement(Icon, { name: 'plus' }), 'Agregar momento')
             )
           );
         })
@@ -145,6 +248,7 @@
     const [modo, setModo] = useState('dia'); // dia | p2p
     const [sheet, setSheet] = useState(null); // stop seleccionado
     const day = data.find(d => d.n === dia) || data[0];
+    if (!day) return React.createElement('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, 'Sin itinerario todavía. Cargalo en la pestaña Itinerario.');
     const stops = day.slots.filter(sl => sl.type !== 'lodging');
     const legs = stops.slice(1).map((sl, i) => ({ from: stops[i].title, to: sl.title, mode: i % 2 ? 'auto' : 'a pie', mins: i % 2 ? 12 + i * 3 : 6 + i * 2 }));
     const totalDrive = legs.filter(l => l.mode === 'auto').reduce((a, l) => a + l.mins, 0);

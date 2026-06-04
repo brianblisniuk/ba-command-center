@@ -167,7 +167,7 @@
     const s = BA.salidaById(id);
     if (!s) return null;
     return {
-      itinerario: buildItinerario(s),
+      itinerario: [],
       proveedores: buildProveedores(s),
       presupuesto: buildPresupuesto(s),
       reservas: buildReservas(s),
@@ -219,15 +219,16 @@
         return {
           id: sl.id, time: sl.timeStart || sl.time || '', end: sl.timeEnd || '',
           type, title: sl.title || '', desc: sl.description || '',
-          verdict: SV[stRaw] || 'Confirmado',
+          verdict: SV[stRaw] || 'Confirmado', rawStatus: stRaw || 'ok',
           clientVisible: !(sl.client && sl.client.visible === false), conflict: false, access,
-          providerId: pv ? pv.id : '', provider: pv ? pv.name : '—', attachments: (sl.attachments || []).length, comments: 0,
+          providerId: pv ? pv.id : '', provider: pv ? pv.name : '—',
+          attachments: (Array.isArray(sl.attachments) ? sl.attachments : []).map(a => (typeof a === 'string' ? { name: a, path: '' } : a)), comments: 0,
           internal: { title: (sl.internal && sl.internal.title) || sl.title || '', status: SV[(sl.internal && sl.internal.status) || stRaw] || 'Confirmado', desc: ((sl.internal && sl.internal.description) || sl.description || '') + extra },
           client: { title: (sl.client && sl.client.title) || sl.title || '', visible: !(sl.client && sl.client.visible === false), desc: (sl.client && sl.client.description) || '' }
         };
       });
       const estUSD = budget.filter(b => b.dayRef === d.id).reduce((a, b) => a + toUSD(b.amount, b.currency), 0);
-      return { n: d.dayNumber || (di + 1), dow: (d.weekday || '').slice(0, 3), cover: di % 2 ? 'var(--laurel)' : 'var(--laurel-deep)', title: d.title || ('Día ' + (di + 1)), slots, free: 0, estUSD };
+      return { id: d.id, n: d.dayNumber || (di + 1), dow: (d.weekday || '').slice(0, 3), cover: di % 2 ? 'var(--laurel)' : 'var(--laurel-deep)', title: d.title || ('Día ' + (di + 1)), slots, free: 0, estUSD };
     });
 
     const proveedores = provs.map(p => ({
