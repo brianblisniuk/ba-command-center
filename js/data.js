@@ -697,6 +697,23 @@ window.BA = (function () {
       if (!window.SB || !sess) return null;
       try { const { data, error } = await window.SB.rpc('publicar_board'); if (error) return null; return data; } catch (e) { return null; }
     },                                                            // tablero de publicación (E5)
+    async blogPublish(piezaId, slug) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const s = (slug || '').trim();
+        if (s) {
+          const { error: se } = await window.SB.rpc('blog_set_slug', { p_id: piezaId, p_slug: s });
+          if (se) return { ok: false, error: 'slug: ' + (se.message || 'error') };
+        }
+        const { data, error } = await window.SB.functions.invoke('blog-publish', { body: { pieza_id: piezaId } });
+        if (error) {
+          let msg = error.message || 'error';
+          try { const ctx = await error.context.json(); if (ctx && ctx.error) msg = ctx.error; } catch (e2) {}
+          return { ok: false, error: msg };
+        }
+        return data || { ok: false };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },
     async newsletterSend(piezaId, mode, testTo) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {

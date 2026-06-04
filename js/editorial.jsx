@@ -219,6 +219,7 @@
     const [pbSt, setPbSt] = useState({ loading: false, data: null });
     const [pbBusy, setPbBusy] = useState('');
     const [pbOpen, setPbOpen] = useState(null);
+    const [blogSlugs, setBlogSlugs] = useState({});
     function loadPB() {
       setPbSt(s => ({ loading: true, data: s.data }));
       BA.source.publicarBoard().then(d => setPbSt({ loading: false, data: d })).catch(() => setPbSt({ loading: false, data: null }));
@@ -240,6 +241,15 @@
       setPbBusy('');
       if (r && r.ok) { toast('Enviada a ' + r.enviados + '/' + r.total + ' · pieza publicada'); loadPB(); }
       else { toast('No se pudo enviar: ' + ((r && r.error) || 'error')); }
+    }
+
+    async function blogPublish(p2) {
+      if (pbBusy) return;
+      setPbBusy(p2.id + ':blog');
+      const r = await BA.source.blogPublish(p2.id, blogSlugs[p2.id]);
+      setPbBusy('');
+      if (r && r.ok) { toast('Publicada en el blog' + (r.url ? ' · ' + r.url : '')); loadPB(); }
+      else { toast('No se pudo publicar: ' + ((r && r.error) || 'error')); }
     }
 
     // ---- Suscriptores del Cuaderno (E5) ----
@@ -530,6 +540,8 @@
       const nSubs = PB.subscribers_activos || 0;
       const news = piezasPB.filter(x => x.canal === 'newsletter');
       const otras = piezasPB.filter(x => x.canal !== 'newsletter');
+      const blogs = otras.filter(x => x.canal === 'blog');
+      const resto = otras.filter(x => x.canal !== 'blog');
       const fFecha = iso => { if (!iso) return ''; const d = new Date(iso); return d.getDate() + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]; };
       const estChip = e => e === 'publicada' ? chip('publicada', 'e', { borderColor: '#3D5A3E', color: '#3D5A3E' }) : e === 'programada' ? chip('programada', 'e', { borderColor: '#2F5D8A', color: '#2F5D8A' }) : chip('aprobada', 'e', { borderColor: '#4A6A4B', color: '#4A6A4B' });
       bodyInner = React.createElement(React.Fragment, null,
@@ -561,10 +573,30 @@
                 React.createElement('button', { className: 'btn sm', onClick: () => setPbOpen(open ? null : p2.id) }, React.createElement(Icon, { name: open ? 'cd' : 'cr' }), open ? 'Ocultar' : 'Ver carta')),
               open ? React.createElement('div', { style: { marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--text-1)', lineHeight: 1.65, whiteSpace: 'pre-wrap' } }, p2.cuerpo || '(sin cuerpo en el guion)') : null);
           }),
-        otras.length > 0 ? React.createElement('div', { className: 'eyebrow', style: { margin: '4px 0 8px' } }, 'En cola para su canal · ' + otras.length) : null,
-        otras.length > 0 ? React.createElement('div', { className: 'card pad' },
-          React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginBottom: 10, lineHeight: 1.5 } }, 'Piezas aprobadas de otros canales. El envío a blog (WordPress) y redes llega en los próximos pasos.'),
-          otras.map((p2, i) => React.createElement('div', { key: p2.id, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid var(--line)' : 'none' } },
+        blogs.length > 0 ? React.createElement('div', { className: 'eyebrow', style: { margin: '4px 0 8px' } }, 'Listo para el blog · ' + blogs.length) : null,
+        blogs.length > 0 ? React.createElement('div', { className: 'card pad', style: { display: 'flex', flexDirection: 'column', gap: 4 } },
+          blogs.map((p2, i) => {
+            const bpub = p2.publicado || {};
+            const yaPub = p2.estado === 'publicada' && bpub.url;
+            const busy = pbBusy === p2.id + ':blog';
+            const slugVal = (blogSlugs[p2.id] !== undefined) ? blogSlugs[p2.id] : (bpub.slug || '');
+            return React.createElement('div', { key: p2.id, style: { padding: i > 0 ? '12px 0 0' : 0, borderTop: i > 0 ? '1px solid var(--line)' : 'none' } },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 10 } },
+                React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex', marginTop: 2 } }, React.createElement(Icon, { name: 'book' })),
+                React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                  React.createElement('div', { style: { fontSize: 13.5, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1.35 } }, p2.titulo),
+                  React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' } },
+                    estChip(p2.estado),
+                    yaPub ? React.createElement('a', { href: 'https://blisniukamanov.com' + bpub.url, target: '_blank', rel: 'noopener', style: { fontSize: 11, color: 'var(--brass)', textDecoration: 'none' } }, 'ver nota ↗') : null))),
+              React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, alignItems: 'center' } },
+                React.createElement('span', { style: { fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--ff-mono)' } }, '/blog/'),
+                React.createElement('input', { value: slugVal, placeholder: 'se genera del título', onChange: ev => setBlogSlugs(o => Object.assign({}, o, { [p2.id]: ev.target.value })), style: { flex: 1, minWidth: 140, padding: '7px 9px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 12, fontFamily: 'var(--ff-mono)' } }),
+                React.createElement('button', { className: 'btn sm primary', disabled: busy, onClick: () => blogPublish(p2) }, React.createElement(Icon, { name: 'send' }), busy ? 'Publicando…' : (yaPub ? 'Actualizar en el blog' : 'Publicar al blog'))));
+          })) : null,
+        resto.length > 0 ? React.createElement('div', { className: 'eyebrow', style: { margin: '14px 0 8px' } }, 'En cola para su canal · ' + resto.length) : null,
+        resto.length > 0 ? React.createElement('div', { className: 'card pad' },
+          React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginBottom: 10, lineHeight: 1.5 } }, 'Piezas aprobadas para redes. La publicación a Instagram, TikTok y LinkedIn llega en los próximos pasos.'),
+          resto.map((p2, i) => React.createElement('div', { key: p2.id, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid var(--line)' : 'none' } },
             React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex' } }, React.createElement(Icon, { name: CANAL_IC[p2.canal] || 'send' })),
             React.createElement('div', { style: { minWidth: 0, flex: 1 } },
               React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p2.titulo),
