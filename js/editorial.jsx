@@ -160,6 +160,15 @@
       else { toast('No se pudo: ' + ((r && r.error) || 'error')); }
     }
 
+    // ---- Tanda (E4): semanas de producción + colchón ----
+    const [tSt, setTSt] = useState({ loading: false, data: null });
+    const [tOpen, setTOpen] = useState(null);
+    function loadTanda() {
+      setTSt(s => ({ loading: true, data: s.data }));
+      BA.source.tandaBoard().then(d => setTSt({ loading: false, data: d })).catch(() => setTSt({ loading: false, data: null }));
+    }
+    useEffect(() => { if (tab === 'tanda' && !tSt.data && !tSt.loading) loadTanda(); }, [tab]);
+
     function load() {
       setSt(s => ({ ...s, loading: true }));
       BA.source.editorialBoard()
@@ -191,7 +200,7 @@
       else { toast('No se pudo generar: ' + ((r && r.error) || 'error')); }
     }
 
-    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
+    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['tanda', 'Tanda', 'list'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
     const tabbar = React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--gap)' } },
       TABS.map(t => React.createElement('button', { key: t[0], className: 'btn sm' + (tab === t[0] ? ' primary' : ''), onClick: () => setTab(t[0]) },
         React.createElement(Icon, { name: t[2] }), t[1] + (t[0] === 'aprobar' && qPend > 0 ? ' · ' + qPend : ''))));
@@ -348,6 +357,60 @@
                   React.createElement('span', { style: { fontSize: 9.5, color: 'rgba(245,241,234,.9)', fontFamily: 'var(--ff-mono)' } }, fCorta(p2.publicar_el)),
                   React.createElement('span', { title: p2.estado, style: { width: 8, height: 8, borderRadius: 99, background: DOT[p2.estado] || '#9A938A', boxShadow: '0 0 0 1.5px rgba(245,241,234,.6)' } })));
             })));
+    } else if (tab === 'tanda') {
+      const TB = tSt.data || {};
+      const tandas = TB.tandas || [];
+      const ESTC = { idea: '#9A938A', guion: '#B07D3A', aprobada: '#4A6A4B', programada: '#2F5D8A', publicada: '#3D5A3E' };
+      const MES2 = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+      const MESL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      function monday(s) { const x = new Date(s + 'T00:00:00'); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); x.setHours(0, 0, 0, 0); return x; }
+      const hoyM = monday(TB.hoy || new Date().toISOString().slice(0, 10));
+      function relLabel(s) { const wk = Math.round((monday(s) - hoyM) / 6048e5); return wk === 0 ? 'esta semana' : wk === 1 ? 'próxima' : wk > 1 ? 'en ' + wk + ' sem' : wk === -1 ? 'pasada' : 'hace ' + (-wk) + ' sem'; }
+      function fSemana(s) { const d = new Date(s + 'T00:00:00'); return 'Semana del ' + d.getDate() + ' ' + MES2[d.getMonth()]; }
+      const listas = tandas.filter(t => monday(t.tanda) > hoyM && t.lista).length;
+      const bufCol = listas >= 2 ? '#4A6A4B' : listas === 1 ? '#B07D3A' : '#C0563A';
+      const meses = [];
+      tandas.forEach(t => {
+        const d = new Date(t.tanda + 'T00:00:00'); const key = d.getFullYear() + '-' + d.getMonth();
+        let g = meses.find(x => x.key === key);
+        if (!g) { g = { key, label: MESL[d.getMonth()] + ' ' + d.getFullYear(), items: [] }; meses.push(g); }
+        g.items.push(t);
+      });
+      bodyInner = React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', borderLeft: '3px solid ' + bufCol } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 14 } },
+            React.createElement('div', { style: { fontFamily: 'var(--ff-display)', fontSize: 38, lineHeight: 1, color: bufCol } }, listas),
+            React.createElement('div', { style: { flex: 1 } },
+              React.createElement('div', { style: { fontSize: 14, fontWeight: 700, color: 'var(--text-1)' } }, listas === 1 ? 'semana lista por delante' : 'semanas listas por delante'),
+              React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 3, lineHeight: 1.5 } }, 'Colchón de producción · objetivo ≥2. Una semana está lista cuando no le queda nada en idea ni en guion.')),
+            React.createElement('button', { className: 'btn sm', onClick: loadTanda, disabled: tSt.loading }, React.createElement(Icon, { name: 'refresh' }), tSt.loading ? '…' : 'Actualizar'))),
+        tandas.length === 0
+          ? React.createElement('div', { className: 'card pad', style: { fontSize: 12.5, color: 'var(--text-3)' } }, 'Sin tandas todavía. Generá una semana en el Plan.')
+          : meses.map(m => React.createElement('div', { key: m.key, style: { marginBottom: 'var(--gap)' } },
+            React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, m.label + ' · Tanda Mayor'),
+            React.createElement('div', { className: 'card pad' },
+              m.items.map((t, ti) => {
+                const open = tOpen === t.tanda;
+                const segs = ['publicada', 'programada', 'aprobada', 'guion', 'idea'].filter(k => (t.por_estado[k] || 0) > 0);
+                return React.createElement('div', { key: t.tanda, style: { borderTop: ti > 0 ? '1px solid var(--line)' : 'none', paddingTop: ti > 0 ? 12 : 0, marginTop: ti > 0 ? 12 : 0 } },
+                  React.createElement('div', { onClick: () => setTOpen(open ? null : t.tanda), style: { cursor: 'pointer' } },
+                    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' } },
+                      React.createElement('span', { style: { fontSize: 13.5, fontWeight: 700, color: 'var(--text-1)' } }, fSemana(t.tanda)),
+                      React.createElement('span', { className: 'tag', style: { padding: '2px 8px' } }, relLabel(t.tanda)),
+                      React.createElement('span', { className: 'badge ' + (t.lista ? 'go' : 'risk'), style: { padding: '2px 8px' } }, t.lista ? '✓ Lista' : '⚠ Pendiente'),
+                      React.createElement('span', { style: { marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-3)', fontFamily: 'var(--ff-mono)' } }, t.listos + '/' + t.total + ' listas'),
+                      React.createElement(Icon, { name: open ? 'cd' : 'cr', style: { color: 'var(--text-faint)', width: 16, height: 16 } })),
+                    React.createElement('div', { style: { display: 'flex', height: 7, borderRadius: 4, overflow: 'hidden', margin: '8px 0 6px', background: 'var(--surface-2)' } },
+                      segs.map(k => React.createElement('div', { key: k, title: k + ': ' + t.por_estado[k], style: { flexGrow: t.por_estado[k], background: ESTC[k] } }))),
+                    React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)' } }, 'Canales: ' + ((t.canales || []).join(' · ') || '—'))),
+                  open && React.createElement('div', { style: { marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 } },
+                    (t.piezas || []).map(p3 => React.createElement('div', { key: p3.id, style: { display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)' } },
+                      React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex' } }, React.createElement(Icon, { name: CANAL_IC[p3.canal] || 'send' })),
+                      React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                        React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p3.titulo),
+                        p3.hook && React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 } }, p3.hook)),
+                      React.createElement('span', { title: p3.estado, style: { flexShrink: 0, width: 8, height: 8, borderRadius: 99, background: ESTC[p3.estado] || '#9A938A' } })))));
+              })))));
     } else if (tab === 'adn') {
       const slots = (semana.slots || []).slice().sort((a, b) => (a.dow - b.dow));
       bodyInner = React.createElement(React.Fragment, null,

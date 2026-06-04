@@ -746,6 +746,11 @@ window.BA = (function () {
         return data || { ok: false };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // portada de una pieza del feed
+    async tandaBoard() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('tanda_board'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // vista Tanda: semanas + colchón (E4)
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {
