@@ -697,6 +697,12 @@ window.BA = (function () {
       if (!window.SB || !sess) return null;
       try { const { data, error } = await window.SB.rpc('publicar_board'); if (error) return null; return data; } catch (e) { return null; }
     },                                                            // tablero de publicación (E5)
+
+    async labSeries() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('lab_series'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // laboratorio por serie (Fase 4)
     async blogPublish(piezaId, slug) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {

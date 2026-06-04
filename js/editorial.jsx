@@ -217,6 +217,7 @@
 
     // ---- Publicar (E5): newsletter por Resend ----
     const [pbSt, setPbSt] = useState({ loading: false, data: null });
+    const [labSt, setLabSt] = useState({ loading: false, data: null });
     const [pbBusy, setPbBusy] = useState('');
     const [pbOpen, setPbOpen] = useState(null);
     const [blogSlugs, setBlogSlugs] = useState({});
@@ -225,6 +226,11 @@
       BA.source.publicarBoard().then(d => setPbSt({ loading: false, data: d })).catch(() => setPbSt({ loading: false, data: null }));
     }
     useEffect(() => { if (tab === 'publicar' && !pbSt.data && !pbSt.loading) loadPB(); }, [tab]);
+    function loadLab() {
+      setLabSt(s => ({ loading: true, data: s.data }));
+      BA.source.labSeries().then(d => setLabSt({ loading: false, data: d })).catch(() => setLabSt({ loading: false, data: null }));
+    }
+    useEffect(() => { if (tab === 'lab' && !labSt.data && !labSt.loading) loadLab(); }, [tab]);
     async function enviarPrueba(p2) {
       if (pbBusy) return;
       setPbBusy(p2.id + ':test');
@@ -326,7 +332,7 @@
       else { toast('No se pudo generar: ' + ((r && r.error) || 'error')); }
     }
 
-    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['tanda', 'Tanda', 'list'], ['publicar', 'Publicar', 'send'], ['subs', 'Suscriptores', 'users'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
+    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['tanda', 'Tanda', 'list'], ['publicar', 'Publicar', 'send'], ['subs', 'Suscriptores', 'users'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star'], ['lab', 'Laboratorio', 'list']];
     const tabbar = React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--gap)' } },
       TABS.map(t => React.createElement('button', { key: t[0], className: 'btn sm' + (tab === t[0] ? ' primary' : ''), onClick: () => setTab(t[0]) },
         React.createElement(Icon, { name: t[2] }), t[1] + (t[0] === 'aprobar' && qPend > 0 ? ' · ' + qPend : ''))));
@@ -336,6 +342,34 @@
       bodyInner = React.createElement('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, 'Cargando La Editorial…');
     } else if (!st.board) {
       bodyInner = React.createElement('div', { className: 'card pad' }, 'No se pudo cargar el tablero editorial.');
+    } else if (tab === 'lab') {
+      const L = labSt.data || {};
+      const series = L.series || [];
+      const niceSerie = (x) => String(x || '').replace(/_/g, ' ');
+      const cols = '1.4fr repeat(5, 0.7fr) 0.95fr';
+      const headCell = (t, right) => React.createElement('div', { style: { textAlign: right ? 'right' : 'left' } }, t);
+      const numCell = (v) => React.createElement('div', { style: { textAlign: 'right', fontFamily: 'var(--ff-mono)', fontSize: 12.5, color: v ? 'var(--text-1)' : 'var(--text-faint)' } }, String(v || 0));
+      bodyInner = React.createElement('div', null,
+        React.createElement('div', { className: 'eyebrow', style: { marginBottom: 6 } }, 'Laboratorio \u00b7 rendimiento por serie'),
+        React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginBottom: 12, lineHeight: 1.5 } }, 'Qu\u00e9 abre, qu\u00e9 se clickea y qu\u00e9 trae consultas. La se\u00f1al es para decidir qu\u00e9 duplicar y qu\u00e9 dejar ir.'),
+        (labSt.loading && series.length === 0) ? React.createElement('div', { className: 'card pad', style: { fontSize: 12.5, color: 'var(--text-3)' } }, 'Cargando\u2026') :
+          series.length === 0 ? React.createElement('div', { className: 'card pad', style: { fontSize: 12.5, color: 'var(--text-3)' } }, 'Todav\u00eda no hay series con piezas.') :
+            React.createElement('div', { className: 'card pad', style: { overflowX: 'auto' } },
+              React.createElement('div', { style: { minWidth: 560 } },
+                React.createElement('div', { style: { display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '0 0 8px', borderBottom: '1px solid var(--rule)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)', fontFamily: 'var(--ff-mono)' } },
+                  headCell('Serie', false), headCell('Piezas', true), headCell('Aperturas', true), headCell('Clics', true), headCell('WhatsApp', true), headCell('Consultas', true), headCell('Se\u00f1al', true)),
+                series.map((r, i) => {
+                  const leads = r.leads || 0, opens = r.opens || 0, clicks = r.clicks || 0, wa = r.wa_clicks || 0, tot = r.piezas_total || 0, pub = r.piezas_publicadas || 0;
+                  let sig = '\u2014', sc = 'var(--text-faint)';
+                  if (leads >= 1) { sig = 'duplicar'; sc = '#3D5A3E'; }
+                  else if (opens >= 1 || clicks >= 1 || wa >= 1) { sig = 'sigue'; sc = 'var(--text-2)'; }
+                  else if (pub >= 1) { sig = 'revisar'; sc = '#B8945A'; }
+                  return React.createElement('div', { key: r.serie || i, style: { display: 'grid', gridTemplateColumns: cols, gap: 8, alignItems: 'center', padding: '10px 0', borderTop: i > 0 ? '1px solid var(--line)' : 'none' } },
+                    React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', textTransform: 'capitalize' } }, niceSerie(r.serie), pub > 0 ? React.createElement('span', { style: { fontWeight: 400, color: 'var(--text-faint)', fontSize: 10.5, marginLeft: 6 } }, pub + ' pub') : null),
+                    numCell(tot), numCell(opens), numCell(clicks), numCell(wa), numCell(leads),
+                    React.createElement('div', { style: { textAlign: 'right' } }, React.createElement('span', { style: { fontSize: 10, fontFamily: 'var(--ff-mono)', textTransform: 'uppercase', letterSpacing: '0.05em', color: sc, border: '1px solid ' + sc, borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' } }, sig)));
+                }))),
+        React.createElement('div', { style: { fontSize: 11, color: 'var(--text-faint)', marginTop: 10, lineHeight: 1.5 } }, (L.leads_atribuidos || 0) + ' de ' + (L.leads_total || 0) + ' consultas con origen identificado. Las aperturas y clics aparecen cuando Resend manda los eventos; las consultas, cuando entran por los links con UTM.'));
     } else if (tab === 'plan') {
       // agrupar próximas piezas por día
       const grupos = [];
