@@ -670,6 +670,23 @@ window.BA = (function () {
         return data || { ok: false };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // la fábrica escribe el guion de una pieza (La Editorial)
+    async highlightsFull() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('highlights_full'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // highlights con enriquecimiento (E4)
+    async highlightEnrich(highlightId) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const { data, error } = await window.SB.functions.invoke('editorial-factory', { body: { op: 'highlight', highlight_id: highlightId } });
+        if (error) {
+          let msg = error.message || 'error';
+          try { const ctx = await error.context.json(); if (ctx && ctx.error) msg = ctx.error; } catch (e2) {}
+          return { ok: false, error: msg };
+        }
+        return data || { ok: false };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // la fábrica enriquece un highlight (E4)
     async assetsBoard() {
       const sess = await this.getSession();
       if (!window.SB || !sess) return null;

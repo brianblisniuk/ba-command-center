@@ -169,6 +169,24 @@
     }
     useEffect(() => { if (tab === 'tanda' && !tSt.data && !tSt.loading) loadTanda(); }, [tab]);
 
+    // ---- Highlights enriquecidos (E4) ----
+    const [hfSt, setHfSt] = useState({ loading: false, data: null });
+    const [hfOpen, setHfOpen] = useState(null);
+    const [hlBusy, setHlBusy] = useState('');
+    function loadHF() {
+      setHfSt(s => ({ loading: true, data: s.data }));
+      BA.source.highlightsFull().then(d => setHfSt({ loading: false, data: d })).catch(() => setHfSt({ loading: false, data: null }));
+    }
+    useEffect(() => { if (tab === 'highlights' && !hfSt.data && !hfSt.loading) loadHF(); }, [tab]);
+    async function enrich(it) {
+      if (hlBusy) return;
+      setHlBusy(it.id);
+      const r = await BA.source.highlightEnrich(it.id);
+      setHlBusy('');
+      if (r && r.ok) { toast('★ enriquecido' + (r.advertencias && r.advertencias.length ? ' · ' + r.advertencias.length + ' a revisar' : '')); setHfOpen(it.id); loadHF(); }
+      else { toast('No se pudo enriquecer: ' + ((r && r.error) || 'error')); }
+    }
+
     function load() {
       setSt(s => ({ ...s, loading: true }));
       BA.source.editorialBoard()
@@ -510,21 +528,53 @@
           }));
       }
     } else {
-      // highlights
+      // highlights enriquecidos
+      const HV = (hfSt.data || {}).viajes || [];
+      function serieN(id) { const s = series.find(x => x.id === id); return s ? s.nombre : id; }
+      function detalle(e) {
+        if (!e) return null;
+        const sec = (label, arr, gl) => (Array.isArray(arr) && arr.length) ? React.createElement('div', { style: { marginTop: 8 } },
+          React.createElement('div', { className: 'eyebrow', style: { marginBottom: 4 } }, label),
+          React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3 } },
+            arr.map((x, i) => React.createElement('div', { key: i, style: { fontSize: 12, color: 'var(--text-1)', lineHeight: 1.5, display: 'flex', gap: 6 } },
+              gl ? React.createElement('span', { style: { color: 'var(--text-faint)', flexShrink: 0 } }, gl) : null, x)))) : null;
+        const chipRow = (label, arr, mapper) => (Array.isArray(arr) && arr.length) ? React.createElement('div', { style: { marginTop: 8 } },
+          React.createElement('div', { className: 'eyebrow', style: { marginBottom: 4 } }, label),
+          React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } }, arr.map((x, i) => chip(mapper ? mapper(x) : x, 'c' + i)))) : null;
+        return React.createElement('div', { style: { marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--line)' } },
+          e.sintesis ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-1)', fontStyle: 'italic', lineHeight: 1.55 } }, e.sintesis) : null,
+          sec('Ángulos', e.angulos),
+          chipRow('Series que encajan', e.series, serieN),
+          chipRow('Formatos', e.formatos),
+          sec('Tomas a conseguir', e.capturas, '◦'),
+          e.gancho ? React.createElement('div', { style: { marginTop: 8 } },
+            React.createElement('div', { className: 'eyebrow', style: { marginBottom: 4 } }, 'Gancho'),
+            React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-2)', fontStyle: 'italic' } }, '“' + e.gancho + '”')) : null,
+          (e.advertencias && e.advertencias.length) ? React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 } },
+            e.advertencias.map((a2, i) => chip('✕ ' + a2, 'adv' + i, { borderColor: '#C0563A', color: '#C0563A' }))) : null);
+      }
       bodyInner = React.createElement(React.Fragment, null,
-        React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', borderLeft: '3px solid var(--brass)' } },
-          React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.55 } },
-            'Los ★ marcados en el itinerario de cada viaje son la materia prima de las piezas. Marcá los momentos con potencial de contenido y la fábrica los convierte en guiones (E2).')),
-        highlights.length === 0
+        React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', borderLeft: '3px solid var(--brass)', display: 'flex', alignItems: 'center', gap: 12 } },
+          React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.55, flex: 1 } },
+            'Los ★ del itinerario son la materia prima. Enriquecé cada uno y la IA te da el criterio: por qué importa, qué ángulos da, qué series y formatos encajan, y qué tomas reales conseguir.'),
+          React.createElement('button', { className: 'btn sm', onClick: loadHF, disabled: hfSt.loading }, React.createElement(Icon, { name: 'refresh' }), hfSt.loading ? '…' : 'Actualizar')),
+        HV.length === 0
           ? React.createElement('div', { className: 'card pad' }, 'Sin highlights todavía. Abrí un viaje → Itinerario → marcá ★.')
-          : highlights.map(h => React.createElement('div', { key: h.trip_id, className: 'card pad', style: { marginBottom: 10 } },
+          : HV.map(h => React.createElement('div', { key: h.trip_id, className: 'card pad', style: { marginBottom: 10 } },
             React.createElement(CardHead, { title: h.viaje, count: h.total, right: openTrip && React.createElement('button', { className: 'btn sm', onClick: () => openTrip(h.trip_id) }, React.createElement(Icon, { name: 'route' }), 'Itinerario') }),
-            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-              (h.items || []).map(it => React.createElement('div', { key: it.id, style: { display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5 } },
-                React.createElement('span', { style: { color: 'var(--brass)', flexShrink: 0 } }, '★'),
-                React.createElement('span', { className: 'mono', style: { color: 'var(--text-3)', flexShrink: 0, fontSize: 11 } }, 'Día ' + it.dia),
-                React.createElement('span', { style: { color: 'var(--text-1)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, it.titulo),
-                it.jerarquia ? chip(it.jerarquia, 'j') : null))))));
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+              (h.items || []).map(it => {
+                const open = hfOpen === it.id; const enr = it.enriquecido;
+                return React.createElement('div', { key: it.id, style: { padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)' } },
+                  React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' } },
+                    React.createElement('span', { style: { color: 'var(--brass)', flexShrink: 0 } }, '★'),
+                    React.createElement('span', { className: 'mono', style: { color: 'var(--text-3)', flexShrink: 0, fontSize: 11 } }, 'Día ' + it.dia),
+                    React.createElement('span', { style: { color: 'var(--text-1)', minWidth: 120, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 12.5 } }, it.titulo),
+                    it.jerarquia ? chip(it.jerarquia, 'j', it.jerarquia === 'alta' ? { borderColor: '#4A6A4B', color: '#4A6A4B' } : it.jerarquia === 'media' ? { borderColor: '#B07D3A', color: '#B07D3A' } : null) : null,
+                    enr ? React.createElement('button', { className: 'btn sm', onClick: () => setHfOpen(open ? null : it.id) }, React.createElement(Icon, { name: open ? 'cd' : 'cr' })) : null,
+                    React.createElement('button', { className: 'btn sm' + (enr ? '' : ' primary'), disabled: hlBusy === it.id, onClick: () => enrich(it) }, React.createElement(Icon, { name: enr ? 'refresh' : 'spark' }), hlBusy === it.id ? 'Pensando…' : (enr ? 'Regenerar' : 'Enriquecer'))),
+                  enr && open ? detalle(enr) : null);
+              })))));
     }
 
     return React.createElement('div', null, tabbar, bodyInner);
