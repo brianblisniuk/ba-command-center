@@ -242,6 +242,44 @@
       else { toast('No se pudo enviar: ' + ((r && r.error) || 'error')); }
     }
 
+    // ---- Suscriptores del Cuaderno (E5) ----
+    const [subSt, setSubSt] = useState({ loading: false, data: null });
+    const [subEmail, setSubEmail] = useState('');
+    const [subName, setSubName] = useState('');
+    const [subBusy, setSubBusy] = useState(false);
+    const [subImpOpen, setSubImpOpen] = useState(false);
+    const [subImp, setSubImp] = useState('');
+    const [subActB, setSubActB] = useState('');
+    function loadSubs() {
+      setSubSt(s => ({ loading: true, data: s.data }));
+      BA.source.subscribersBoard().then(d => setSubSt({ loading: false, data: d })).catch(() => setSubSt({ loading: false, data: null }));
+    }
+    useEffect(() => { if (tab === 'subs' && !subSt.data && !subSt.loading) loadSubs(); }, [tab]);
+    async function addSub() {
+      const em = subEmail.trim(); if (!em || subBusy) return;
+      setSubBusy(true);
+      const r = await BA.source.subscriberAdd(em, subName.trim());
+      setSubBusy(false);
+      if (r && r.ok) { toast(r.estado === 'existente' ? 'Ya estaba en la lista' : r.estado === 'reactivado' ? 'Reactivado' : 'Sumado'); setSubEmail(''); setSubName(''); loadSubs(); }
+      else { toast('No se pudo: ' + ((r && r.error) || 'error')); }
+    }
+    async function importSubs() {
+      const raw = subImp.trim(); if (!raw || subBusy) return;
+      setSubBusy(true);
+      const r = await BA.source.subscribersImport(raw);
+      setSubBusy(false);
+      if (r && r.ok) { toast(r.agregados + ' agregados · ' + r.saltados + ' repetidos' + (r.invalidos ? ' · ' + r.invalidos + ' inválidos' : '')); setSubImp(''); setSubImpOpen(false); loadSubs(); }
+      else { toast('No se pudo importar: ' + ((r && r.error) || 'error')); }
+    }
+    async function toggleSub(s) {
+      if (subActB) return;
+      const next = s.status === 'subscribed' ? 'unsubscribed' : 'subscribed';
+      setSubActB(s.id);
+      const r = await BA.source.subscriberSetStatus(s.id, next);
+      setSubActB('');
+      if (r && r.ok) { loadSubs(); } else { toast('No se pudo: ' + ((r && r.error) || 'error')); }
+    }
+
     function load() {
       setSt(s => ({ ...s, loading: true }));
       BA.source.editorialBoard()
@@ -273,7 +311,7 @@
       else { toast('No se pudo generar: ' + ((r && r.error) || 'error')); }
     }
 
-    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['tanda', 'Tanda', 'list'], ['publicar', 'Publicar', 'send'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
+    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['tanda', 'Tanda', 'list'], ['publicar', 'Publicar', 'send'], ['subs', 'Suscriptores', 'users'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
     const tabbar = React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--gap)' } },
       TABS.map(t => React.createElement('button', { key: t[0], className: 'btn sm' + (tab === t[0] ? ' primary' : ''), onClick: () => setTab(t[0]) },
         React.createElement(Icon, { name: t[2] }), t[1] + (t[0] === 'aprobar' && qPend > 0 ? ' · ' + qPend : ''))));
@@ -532,6 +570,45 @@
               React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p2.titulo),
               React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)', marginTop: 2 } }, p2.canal + (p2.publicar_el ? ' · sale ' + fFecha(p2.publicar_el) : ''))),
             estChip(p2.estado)))) : null);
+    } else if (tab === 'subs') {
+      const SB2 = subSt.data || {};
+      const lista = SB2.lista || [];
+      const inpSt = { padding: '9px 10px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 };
+      const fF = iso => { if (!iso) return ''; const d = new Date(iso); return d.getDate() + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]; };
+      bodyInner = React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', borderLeft: '3px solid var(--brass)', display: 'flex', alignItems: 'center', gap: 16 } },
+          React.createElement('div', { style: { textAlign: 'center', flexShrink: 0 } },
+            React.createElement('div', { style: { fontFamily: 'var(--ff-display)', fontSize: 34, lineHeight: 1, color: '#3D5A3E' } }, SB2.activos || 0),
+            React.createElement('div', { className: 'eyebrow', style: { marginTop: 3 } }, 'activos')),
+          React.createElement('div', { style: { flex: 1 } },
+            React.createElement('div', { style: { fontSize: 13, fontWeight: 700, color: 'var(--text-1)' } }, 'Lista del Cuaderno B&A'),
+            React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 3, lineHeight: 1.5 } }, 'Es aparte de los leads: el lead es prospecto de venta; el suscriptor pidió recibir el contenido. Si un lead se suscribe, se linkean.'),
+            React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-faint)', marginTop: 5, fontFamily: 'var(--ff-mono)' } }, (SB2.total || 0) + ' en total · ' + (SB2.baja || 0) + ' de baja')),
+          React.createElement('button', { className: 'btn sm', onClick: loadSubs, disabled: subSt.loading }, React.createElement(Icon, { name: 'refresh' }), subSt.loading ? '…' : 'Actualizar')),
+        React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
+          React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Sumar suscriptor'),
+          React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' } },
+            React.createElement('input', { value: subEmail, placeholder: 'email', onChange: e => setSubEmail(e.target.value), onKeyDown: e => { if (e.key === 'Enter') addSub(); }, style: { ...inpSt, flex: '2 1 200px' } }),
+            React.createElement('input', { value: subName, placeholder: 'nombre (opcional)', onChange: e => setSubName(e.target.value), onKeyDown: e => { if (e.key === 'Enter') addSub(); }, style: { ...inpSt, flex: '1 1 140px' } }),
+            React.createElement('button', { className: 'btn sm primary', disabled: subBusy || !subEmail.trim(), onClick: addSub }, React.createElement(Icon, { name: 'plus' }), 'Sumar'),
+            React.createElement('button', { className: 'btn sm', onClick: () => setSubImpOpen(!subImpOpen) }, React.createElement(Icon, { name: 'download' }), 'Importar')),
+          subImpOpen ? React.createElement('div', { style: { marginTop: 12 } },
+            React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginBottom: 6 } }, 'Pegá emails, uno por línea (puede incluir el nombre: "Ana Pérez ana@mail.com").'),
+            React.createElement('textarea', { value: subImp, onChange: e => setSubImp(e.target.value), rows: 5, placeholder: 'ana@mail.com\njuan@mail.com', style: { ...inpSt, width: '100%', resize: 'vertical', fontFamily: 'var(--ff-mono)' } }),
+            React.createElement('div', { style: { marginTop: 8 } },
+              React.createElement('button', { className: 'btn sm primary', disabled: subBusy || !subImp.trim(), onClick: importSubs }, React.createElement(Icon, { name: 'check' }), subBusy ? 'Importando…' : 'Importar lista'))) : null),
+        React.createElement('div', { className: 'card pad' },
+          React.createElement(CardHead, { title: 'En la lista', count: lista.length }),
+          lista.length === 0
+            ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', padding: '4px 0' } }, 'Lista vacía. Sumá el primer suscriptor o importá una lista. La forma sana de llenarla es un formulario de alta en el sitio.')
+            : React.createElement('div', { style: { display: 'flex', flexDirection: 'column' } },
+              lista.map((s, i) => React.createElement('div', { key: s.id, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: i > 0 ? '1px solid var(--line)' : 'none' } },
+                React.createElement('span', { title: s.status, style: { flexShrink: 0, width: 8, height: 8, borderRadius: 99, background: s.status === 'subscribed' ? '#4A6A4B' : '#B0A89C' } }),
+                React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                  React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, s.email),
+                  React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, (s.name ? s.name + ' · ' : '') + (s.source || '') + (s.subscribed_at ? ' · ' + fF(s.subscribed_at) : ''))),
+                s.lead_id ? chip('desde lead', 'l', { borderColor: '#6B6258', color: '#6B6258' }) : null,
+                React.createElement('button', { className: 'btn sm', disabled: subActB === s.id, onClick: () => toggleSub(s) }, s.status === 'subscribed' ? 'Dar de baja' : 'Reactivar'))))));
     } else if (tab === 'adn') {
       const slots = (semana.slots || []).slice().sort((a, b) => (a.dow - b.dow));
       bodyInner = React.createElement(React.Fragment, null,

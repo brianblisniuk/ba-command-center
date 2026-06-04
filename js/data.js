@@ -709,6 +709,23 @@ window.BA = (function () {
         return data || { ok: false };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // envía newsletter por Resend (E5)
+    async subscribersBoard() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('subscribers_board'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // lista del Cuaderno (E5)
+    async subscriberAdd(email, name) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try { const { data, error } = await window.SB.rpc('subscriber_add', { p_email: email, p_name: name || null }); if (error) return { ok: false, error: error.message }; return data || { ok: false }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // sumar suscriptor (E5)
+    async subscriberSetStatus(id, status) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try { const { data, error } = await window.SB.rpc('subscriber_set_status', { p_id: id, p_status: status }); if (error) return { ok: false, error: error.message }; return data || { ok: false }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // alta/baja suscriptor (E5)
+    async subscribersImport(raw) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try { const { data, error } = await window.SB.rpc('subscribers_import', { p_raw: raw }); if (error) return { ok: false, error: error.message }; return data || { ok: false }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // importar lista (E5)
     async assetsBoard() {
       const sess = await this.getSession();
       if (!window.SB || !sess) return null;
