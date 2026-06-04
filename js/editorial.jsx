@@ -6,9 +6,10 @@
   const DOW = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   const CANAL_IC = { instagram: 'play', stories: 'play', tiktok: 'play', blog: 'book', linkedin: 'globe', newsletter: 'mail', whatsapp: 'chat' };
   function estadoBadge(e) {
-    if (e === 'publicada' || e === 'programada') return 'go';
-    if (e === 'idea') return 'ghost';
-    return 'risk'; // guion / assets / edicion
+    if (e === 'aprobada' || e === 'publicada' || e === 'programada') return 'go';
+    if (e === 'rechazada') return 'bad';
+    if (e === 'guion') return 'risk';
+    return '';
   }
   function fDia(iso) {
     try { return new Date(iso).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'short' }); } catch (e) { return iso; }
@@ -115,6 +116,31 @@
       else { toast('No se pudo eliminar: ' + ((r && r.error) || 'error')); }
     }
 
+    // ---- Aprobación (E4): nada sale sin el visto de Brian ----
+    const [qSt, setQSt] = useState({ loading: false, data: null });
+    const [qOpen, setQOpen] = useState(null);
+    const [rejId, setRejId] = useState(null);
+    const [rejMotivo, setRejMotivo] = useState('');
+    const [revBusy, setRevBusy] = useState('');
+    function loadCola() {
+      setQSt(s => ({ loading: true, data: s.data }));
+      BA.source.aprobacionCola().then(d => setQSt({ loading: false, data: d })).catch(() => setQSt({ loading: false, data: null }));
+    }
+    useEffect(() => { loadCola(); }, []);
+    async function review(id, decision, motivo) {
+      if (revBusy) return;
+      setRevBusy(id + decision);
+      const r = await BA.source.piezaReview(id, decision, motivo);
+      setRevBusy('');
+      if (r && r.ok) {
+        toast(decision === 'aprobar' ? '✓ Aprobada — lista para programar' : decision === 'rechazar' ? 'Rechazada — vuelve a la fábrica' : 'Reabierta — vuelve a la cola');
+        setRejId(null); setRejMotivo('');
+        loadCola(); load();
+      } else { toast('No se pudo: ' + ((r && r.error) || 'error')); }
+    }
+    const Q = qSt.data || {};
+    const qPend = (Q.pendientes || []).length;
+
     function load() {
       setSt(s => ({ ...s, loading: true }));
       BA.source.editorialBoard()
@@ -146,10 +172,10 @@
       else { toast('No se pudo generar: ' + ((r && r.error) || 'error')); }
     }
 
-    const TABS = [['plan', 'Plan', 'calendar'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
+    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
     const tabbar = React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--gap)' } },
       TABS.map(t => React.createElement('button', { key: t[0], className: 'btn sm' + (tab === t[0] ? ' primary' : ''), onClick: () => setTab(t[0]) },
-        React.createElement(Icon, { name: t[2] }), t[1])));
+        React.createElement(Icon, { name: t[2] }), t[1] + (t[0] === 'aprobar' && qPend > 0 ? ' · ' + qPend : ''))));
 
     let bodyInner;
     if (st.loading) {
@@ -205,6 +231,61 @@
                       : React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 9, lineHeight: 1.5 } }, 'Sin guion todavía. La fábrica lo escribe con el destino, la serie, los ★ y la voz B&A — validado contra los prohibidos.')));
               })))) 
       );
+    } else if (tab === 'aprobar') {
+      const pend = Q.pendientes || [];
+      const rech = Q.rechazadas || [];
+      const aprob = Q.aprobadas || [];
+      bodyInner = React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
+          React.createElement(CardHead, { title: 'Cola de aprobación', count: pend.length, right: React.createElement('button', { className: 'btn sm', onClick: loadCola, disabled: qSt.loading }, React.createElement(Icon, { name: 'refresh' }), qSt.loading ? 'Cargando…' : 'Actualizar') }),
+          React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginBottom: 12, lineHeight: 1.5 } }, 'Nada se publica sin tu visto. Aprobá o rechazá cada pieza con guion; las rechazadas vuelven a la fábrica con tu motivo.'),
+          pend.length === 0
+            ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', padding: '6px 0' } }, 'Nada pendiente. Las piezas llegan acá cuando la fábrica escribe el guion.')
+            : pend.map(p => {
+              const open = qOpen === p.id;
+              const dest = (p.guion && p.guion.destino) || '';
+              const advs = (p.guion && p.guion.advertencias) || [];
+              const hook = p.hook || (p.guion && (p.guion.hook_texto || p.guion.gancho || p.guion.asunto || p.guion.titulo)) || '';
+              return React.createElement('div', { key: p.id, style: { marginBottom: 12, border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' } },
+                React.createElement('div', { style: { padding: '12px 14px', background: 'var(--surface-2)' } },
+                  React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 10 } },
+                    React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex', marginTop: 2 } }, React.createElement(Icon, { name: CANAL_IC[p.canal] || 'send' })),
+                    React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                      React.createElement('div', { style: { fontSize: 13.5, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1.35 } }, p.titulo),
+                      React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 5 } },
+                        chip(p.canal, 'c'), p.serie ? chip(serieNombre(p.serie), 's') : null, dest ? chip(dest, 'd') : null,
+                        chip(fDia(p.publicar_el) + ' · ' + fHora(p.publicar_el), 't')))),
+                  hook && React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-2)', fontStyle: 'italic', marginTop: 8, lineHeight: 1.5 } }, '\u201c' + hook + '\u201d'),
+                  advs.length > 0 && React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 } },
+                    advs.map((a2, i) => chip('✕ ' + a2, 'adv' + i, { borderColor: '#C0563A', color: '#C0563A' }))),
+                  React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 11 } },
+                    React.createElement('button', { className: 'btn primary', style: { padding: '9px 18px' }, disabled: !!revBusy, onClick: () => review(p.id, 'aprobar') }, React.createElement(Icon, { name: 'check' }), 'Aprobar'),
+                    React.createElement('button', { className: 'btn', style: { padding: '9px 14px', color: '#C0563A' }, disabled: !!revBusy, onClick: () => { setRejId(rejId === p.id ? null : p.id); setRejMotivo(''); } }, React.createElement(Icon, { name: 'x' }), 'Rechazar'),
+                    React.createElement('button', { className: 'btn sm', onClick: () => copiar(p.guion) }, React.createElement(Icon, { name: 'copy' }), 'Copiar'),
+                    React.createElement('button', { className: 'btn sm', onClick: () => setQOpen(open ? null : p.id) }, React.createElement(Icon, { name: open ? 'cd' : 'cr' }), open ? 'Ocultar guion' : 'Ver guion')),
+                  rejId === p.id && React.createElement('div', { style: { marginTop: 10 } },
+                    React.createElement('textarea', { value: rejMotivo, rows: 2, placeholder: 'Motivo (opcional) — le sirve al laboratorio', onChange: e => setRejMotivo(e.target.value), style: { width: '100%', padding: '9px 10px', borderRadius: 8, border: '1px solid var(--rule)', background: 'var(--surface)', color: 'var(--text-1)', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' } }),
+                    React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
+                      React.createElement('button', { className: 'btn sm', style: { borderColor: '#C0563A', color: '#C0563A' }, disabled: !!revBusy, onClick: () => review(p.id, 'rechazar', rejMotivo) }, 'Confirmar rechazo'),
+                      React.createElement('button', { className: 'btn sm', onClick: () => { setRejId(null); setRejMotivo(''); } }, 'Cancelar')))),
+                open && React.createElement('div', { style: { padding: '4px 14px 14px', borderTop: '1px solid var(--line)' } }, renderGuion(p.guion)));
+            })),
+        rech.length > 0 && React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
+          React.createElement(CardHead, { title: 'Rechazadas', count: rech.length, right: React.createElement('span', { className: 'eyebrow' }, 'vuelven a la fábrica') }),
+          rech.map(p => React.createElement('div', { key: p.id, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--line)' } },
+            React.createElement('span', { style: { flexShrink: 0, color: '#C0563A', display: 'flex' } }, React.createElement(Icon, { name: 'x', style: { width: 13, height: 13 } })),
+            React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+              React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p.titulo),
+              p.review_motivo && React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', fontStyle: 'italic', marginTop: 2 } }, p.review_motivo)),
+            React.createElement('button', { className: 'btn sm', disabled: !!revBusy, onClick: () => review(p.id, 'reabrir') }, 'Reabrir')))),
+        aprob.length > 0 && React.createElement('div', { className: 'card pad' },
+          React.createElement(CardHead, { title: 'Aprobadas', count: aprob.length, right: React.createElement('span', { className: 'eyebrow' }, 'listas para programar') }),
+          aprob.map(p => React.createElement('div', { key: p.id, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--line)' } },
+            React.createElement('span', { style: { flexShrink: 0, color: '#4A6A4B', display: 'flex' } }, React.createElement(Icon, { name: 'check', style: { width: 13, height: 13 } })),
+            React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+              React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p.titulo),
+              React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 } }, (p.canal || '') + ' · sale ' + fDia(p.publicar_el))),
+            React.createElement('button', { className: 'btn sm', disabled: !!revBusy, onClick: () => review(p.id, 'reabrir') }, 'Reabrir')))));
     } else if (tab === 'adn') {
       const slots = (semana.slots || []).slice().sort((a, b) => (a.dow - b.dow));
       bodyInner = React.createElement(React.Fragment, null,

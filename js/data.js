@@ -718,6 +718,20 @@ window.BA = (function () {
       if (!window.SB) return { ok: false };
       try { const { error } = await window.SB.storage.from('trip-files').remove([path]); return { ok: !error, error: error && error.message }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // borra un adjunto del bucket
+    async aprobacionCola() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('aprobacion_cola'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // cola de aprobación (E4)
+    async piezaReview(piezaId, decision, motivo) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.rpc('pieza_review', { p_pieza_id: piezaId, p_decision: decision, p_motivo: motivo || null });
+        if (error) return { ok: false, error: error.message };
+        return data || { ok: false };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // aprobar / rechazar / reabrir pieza
     async sendEmail({ account, to, subject, html, text, replyToId }) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {
