@@ -215,6 +215,33 @@
               it.web ? React.createElement('a', { href: (it.web.indexOf('http') === 0 ? it.web : 'https://' + it.web), target: '_blank', rel: 'noopener', style: { color: 'var(--brass)', fontSize: 11, marginLeft: 'auto', flexShrink: 0, textDecoration: 'none', whiteSpace: 'nowrap' } }, 'web ↗') : null))))));
     }
 
+    // ---- Publicar (E5): newsletter por Resend ----
+    const [pbSt, setPbSt] = useState({ loading: false, data: null });
+    const [pbBusy, setPbBusy] = useState('');
+    const [pbOpen, setPbOpen] = useState(null);
+    function loadPB() {
+      setPbSt(s => ({ loading: true, data: s.data }));
+      BA.source.publicarBoard().then(d => setPbSt({ loading: false, data: d })).catch(() => setPbSt({ loading: false, data: null }));
+    }
+    useEffect(() => { if (tab === 'publicar' && !pbSt.data && !pbSt.loading) loadPB(); }, [tab]);
+    async function enviarPrueba(p2) {
+      if (pbBusy) return;
+      setPbBusy(p2.id + ':test');
+      const r = await BA.source.newsletterSend(p2.id, 'test');
+      setPbBusy('');
+      if (r && r.ok) { toast('Prueba enviada a ' + (r.to || 'tu correo')); loadPB(); }
+      else { toast('No se pudo enviar: ' + ((r && r.error) || 'error')); }
+    }
+    async function enviarLista(p2, n) {
+      if (pbBusy) return;
+      if (!window.confirm('Enviar esta carta a ' + n + ' suscriptor' + (n === 1 ? '' : 'es') + ' de la lista. ¿Confirmás?')) return;
+      setPbBusy(p2.id + ':live');
+      const r = await BA.source.newsletterSend(p2.id, 'live');
+      setPbBusy('');
+      if (r && r.ok) { toast('Enviada a ' + r.enviados + '/' + r.total + ' · pieza publicada'); loadPB(); }
+      else { toast('No se pudo enviar: ' + ((r && r.error) || 'error')); }
+    }
+
     function load() {
       setSt(s => ({ ...s, loading: true }));
       BA.source.editorialBoard()
@@ -246,7 +273,7 @@
       else { toast('No se pudo generar: ' + ((r && r.error) || 'error')); }
     }
 
-    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['tanda', 'Tanda', 'list'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
+    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['tanda', 'Tanda', 'list'], ['publicar', 'Publicar', 'send'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star']];
     const tabbar = React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--gap)' } },
       TABS.map(t => React.createElement('button', { key: t[0], className: 'btn sm' + (tab === t[0] ? ' primary' : ''), onClick: () => setTab(t[0]) },
         React.createElement(Icon, { name: t[2] }), t[1] + (t[0] === 'aprobar' && qPend > 0 ? ' · ' + qPend : ''))));
@@ -459,6 +486,52 @@
                         p3.hook && React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 } }, p3.hook)),
                       React.createElement('span', { title: p3.estado, style: { flexShrink: 0, width: 8, height: 8, borderRadius: 99, background: ESTC[p3.estado] || '#9A938A' } })))));
               })))));
+    } else if (tab === 'publicar') {
+      const PB = pbSt.data || {};
+      const piezasPB = PB.piezas || [];
+      const nSubs = PB.subscribers_activos || 0;
+      const news = piezasPB.filter(x => x.canal === 'newsletter');
+      const otras = piezasPB.filter(x => x.canal !== 'newsletter');
+      const fFecha = iso => { if (!iso) return ''; const d = new Date(iso); return d.getDate() + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]; };
+      const estChip = e => e === 'publicada' ? chip('publicada', 'e', { borderColor: '#3D5A3E', color: '#3D5A3E' }) : e === 'programada' ? chip('programada', 'e', { borderColor: '#2F5D8A', color: '#2F5D8A' }) : chip('aprobada', 'e', { borderColor: '#4A6A4B', color: '#4A6A4B' });
+      bodyInner = React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', borderLeft: '3px solid var(--brass)', display: 'flex', alignItems: 'center', gap: 12 } },
+          React.createElement('div', { style: { flex: 1 } },
+            React.createElement('div', { style: { fontSize: 13, fontWeight: 700, color: 'var(--text-1)' } }, 'Cuaderno B&A · lista de correo'),
+            React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 3, lineHeight: 1.5 } }, nSubs + ' suscriptor' + (nSubs === 1 ? '' : 'es') + ' activo' + (nSubs === 1 ? '' : 's') + '. Sale desde newsletter@blisniukamanov.com. Probá a tu correo antes de mandar a la lista.')),
+          React.createElement('button', { className: 'btn sm', onClick: loadPB, disabled: pbSt.loading }, React.createElement(Icon, { name: 'refresh' }), pbSt.loading ? '…' : 'Actualizar')),
+        React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Newsletter · ' + news.length),
+        news.length === 0
+          ? React.createElement('div', { className: 'card pad', style: { fontSize: 12.5, color: 'var(--text-3)', marginBottom: 'var(--gap)' } }, 'Sin cartas aprobadas. Cuando aprobés una pieza de newsletter, aparece acá para enviar.')
+          : news.map(p2 => {
+            const open = pbOpen === p2.id;
+            const pub = p2.publicado || {};
+            const prueba = pub.ultima_prueba;
+            return React.createElement('div', { key: p2.id, className: 'card pad', style: { marginBottom: 10 } },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 10 } },
+                React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex', marginTop: 2 } }, React.createElement(Icon, { name: 'mail' })),
+                React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+                  React.createElement('div', { style: { fontSize: 13.5, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1.35 } }, p2.asunto || p2.titulo),
+                  p2.preheader ? React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 3, fontStyle: 'italic' } }, p2.preheader) : null,
+                  React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 } },
+                    estChip(p2.estado), p2.publicar_el ? chip('sale ' + fFecha(p2.publicar_el), 'f') : null,
+                    p2.estado === 'publicada' && pub.enviados ? chip('enviada a ' + pub.enviados, 'env', { borderColor: '#3D5A3E', color: '#3D5A3E' }) : null))),
+              prueba ? React.createElement('div', { style: { fontSize: 11, color: 'var(--text-faint)', marginTop: 8 } }, 'Última prueba: ' + prueba.to) : null,
+              React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 11 } },
+                React.createElement('button', { className: 'btn sm primary', disabled: pbBusy === p2.id + ':test', onClick: () => enviarPrueba(p2) }, React.createElement(Icon, { name: 'send' }), pbBusy === p2.id + ':test' ? 'Enviando…' : 'Enviar prueba'),
+                React.createElement('button', { className: 'btn sm', disabled: nSubs === 0 || pbBusy === p2.id + ':live', onClick: () => enviarLista(p2, nSubs) }, React.createElement(Icon, { name: 'mail' }), pbBusy === p2.id + ':live' ? 'Enviando…' : 'A la lista (' + nSubs + ')'),
+                React.createElement('button', { className: 'btn sm', onClick: () => setPbOpen(open ? null : p2.id) }, React.createElement(Icon, { name: open ? 'cd' : 'cr' }), open ? 'Ocultar' : 'Ver carta')),
+              open ? React.createElement('div', { style: { marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)', fontSize: 13, color: 'var(--text-1)', lineHeight: 1.65, whiteSpace: 'pre-wrap' } }, p2.cuerpo || '(sin cuerpo en el guion)') : null);
+          }),
+        otras.length > 0 ? React.createElement('div', { className: 'eyebrow', style: { margin: '4px 0 8px' } }, 'En cola para su canal · ' + otras.length) : null,
+        otras.length > 0 ? React.createElement('div', { className: 'card pad' },
+          React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginBottom: 10, lineHeight: 1.5 } }, 'Piezas aprobadas de otros canales. El envío a blog (WordPress) y redes llega en los próximos pasos.'),
+          otras.map((p2, i) => React.createElement('div', { key: p2.id, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid var(--line)' : 'none' } },
+            React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex' } }, React.createElement(Icon, { name: CANAL_IC[p2.canal] || 'send' })),
+            React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+              React.createElement('div', { style: { fontSize: 12.5, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p2.titulo),
+              React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)', marginTop: 2 } }, p2.canal + (p2.publicar_el ? ' · sale ' + fFecha(p2.publicar_el) : ''))),
+            estChip(p2.estado)))) : null);
     } else if (tab === 'adn') {
       const slots = (semana.slots || []).slice().sort((a, b) => (a.dow - b.dow));
       bodyInner = React.createElement(React.Fragment, null,

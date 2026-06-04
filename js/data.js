@@ -692,6 +692,23 @@ window.BA = (function () {
       if (!window.SB || !sess) return null;
       try { const { data, error } = await window.SB.rpc('pieza_colabs', { p_pieza_id: piezaId }); if (error) return null; return data; } catch (e) { return null; }
     },                                                            // figuras y lugares del destino como colab (E4)
+    async publicarBoard() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('publicar_board'); if (error) return null; return data; } catch (e) { return null; }
+    },                                                            // tablero de publicación (E5)
+    async newsletterSend(piezaId, mode, testTo) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const { data, error } = await window.SB.functions.invoke('newsletter-send', { body: { pieza_id: piezaId, mode: mode || 'test', test_to: testTo || null } });
+        if (error) {
+          let msg = error.message || 'error';
+          try { const ctx = await error.context.json(); if (ctx && ctx.error) msg = ctx.error; } catch (e2) {}
+          return { ok: false, error: msg };
+        }
+        return data || { ok: false };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // envía newsletter por Resend (E5)
     async assetsBoard() {
       const sess = await this.getSession();
       if (!window.SB || !sess) return null;
