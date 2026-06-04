@@ -570,7 +570,9 @@
                   p2.preheader ? React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 3, fontStyle: 'italic' } }, p2.preheader) : null,
                   React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 } },
                     estChip(p2.estado), p2.publicar_el ? chip('sale ' + fFecha(p2.publicar_el), 'f') : null,
-                    p2.estado === 'publicada' && pub.enviados ? chip('enviada a ' + pub.enviados, 'env', { borderColor: '#3D5A3E', color: '#3D5A3E' }) : null))),
+                    p2.estado === 'publicada' && pub.enviados ? chip('enviada a ' + pub.enviados, 'env', { borderColor: '#3D5A3E', color: '#3D5A3E' }) : null,
+                    p2.opened ? chip('abierto ' + p2.opened, 'op', { borderColor: '#3D5A3E', color: '#3D5A3E' }) : null,
+                    p2.clicked ? chip('clic ' + p2.clicked, 'cl', { borderColor: '#B8945A', color: '#B8945A' }) : null))),
               prueba ? React.createElement('div', { style: { fontSize: 11, color: 'var(--text-faint)', marginTop: 8 } }, 'Última prueba: ' + prueba.to) : null,
               React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 11 } },
                 React.createElement('button', { className: 'btn sm primary', disabled: pbBusy === p2.id + ':test', onClick: () => enviarPrueba(p2) }, React.createElement(Icon, { name: 'send' }), pbBusy === p2.id + ':test' ? 'Enviando…' : 'Enviar prueba'),
@@ -606,6 +608,7 @@
             const cap = p2.caption || [p2.hook, p2.cuerpo].filter(Boolean).join('\n\n') || p2.titulo || '';
             const camp = String(p2.serie || p2.destino || p2.id || '');
             const utm = 'https://blisniukamanov.com/contact.html?utm_source=' + encodeURIComponent(p2.canal || 'social') + '&utm_medium=organic_social&utm_campaign=' + encodeURIComponent(camp);
+            const wa = 'https://onnqcdjkvpvpvtsorpup.supabase.co/functions/v1/go?to=wa&c=' + encodeURIComponent(camp) + '&src=' + encodeURIComponent(p2.canal || 'social');
             const escenas = Array.isArray(p2.escenas) ? p2.escenas : [];
             const shot = escenas.map((ev, k) => (k + 1) + '. [' + (ev.dur_seg || '?') + 's] ' + (ev.texto_pantalla || '') + '\n   ' + (ev.visual || '')).join('\n\n');
             return React.createElement('div', { key: p2.id, style: { padding: i > 0 ? '10px 0 0' : 0, borderTop: i > 0 ? '1px solid var(--line)' : 'none' } },
@@ -636,7 +639,12 @@
                   React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 } },
                     React.createElement('span', { className: 'eyebrow', style: { margin: 0 } }, 'Link para bio / historia (con UTM)'),
                     React.createElement('button', { className: 'btn sm', onClick: () => copyText(utm) }, React.createElement(Icon, { name: 'copy' }), 'Copiar link')),
-                  React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-2)', wordBreak: 'break-all', fontFamily: 'var(--ff-mono)', background: 'var(--surface-2)', border: '1px solid var(--rule)', borderRadius: 8, padding: '8px 10px' } }, utm))) : null);
+                  React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-2)', wordBreak: 'break-all', fontFamily: 'var(--ff-mono)', background: 'var(--surface-2)', border: '1px solid var(--rule)', borderRadius: 8, padding: '8px 10px' } }, utm)),
+                React.createElement('div', null,
+                  React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 } },
+                    React.createElement('span', { className: 'eyebrow', style: { margin: 0 } }, 'WhatsApp (con tracking)'),
+                    React.createElement('button', { className: 'btn sm', onClick: () => copyText(wa) }, React.createElement(Icon, { name: 'copy' }), 'Copiar link')),
+                  React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-2)', wordBreak: 'break-all', fontFamily: 'var(--ff-mono)', background: 'var(--surface-2)', border: '1px solid var(--rule)', borderRadius: 8, padding: '8px 10px' } }, wa))) : null);
           })) : null);
     } else if (tab === 'subs') {
       const SB2 = subSt.data || {};
