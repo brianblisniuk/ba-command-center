@@ -5,7 +5,7 @@
   const BA = window.BA;
 
   // ============ CUPOS ============
-  function Cupos({ s, cur, toast }) {
+  function Cupos({ s, cur, toast, openLead }) {
     const { confirmados, pipeline } = BA.tripData(s.id).reservas;
     const reservadoPax = confirmados.reduce((a, c) => a + c.pax, 0);
     const pipePax = pipeline.length * 2;
@@ -35,17 +35,19 @@
           React.createElement(CardHead, { title: 'Reservados', count: confirmados.length }),
           confirmados.length === 0
             ? React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', padding: '6px 0' } }, 'Todavía sin reservas confirmadas.')
-            : confirmados.map((c, i) => React.createElement('div', { key: i, className: 'row' },
+            : confirmados.map((c, i) => React.createElement('div', { key: i, className: 'row click', style: { cursor: openLead ? 'pointer' : 'default' }, onClick: () => openLead && c.leadId && openLead(c.leadId) },
                 React.createElement('span', { className: 'av', style: { background: 'var(--laurel)' } }, c.nombre[0]),
                 React.createElement('div', { style: { flex: 1 } }, React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)' } }, c.nombre),
                   React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)' } }, c.pax + ' pax · ' + c.cuota)),
-                React.createElement('span', { className: 'badge ' + (c.pagado === 100 ? 'go' : 'risk'), style: { padding: '2px 7px' } }, c.pagado + '%')))
+                c.pagado == null
+                  ? React.createElement('span', { className: 'badge ghost', style: { padding: '2px 7px' } }, 'sin plan')
+                  : React.createElement('span', { className: 'badge ' + (c.pagado === 100 ? 'go' : 'risk'), style: { padding: '2px 7px' } }, c.pagado + '%')))
         ),
         React.createElement('div', { className: 'card pad' },
           React.createElement(CardHead, { title: 'En pipeline', count: pipeline.length, right: React.createElement('span', { className: 'eyebrow' }, '+' + pipePax + ' pax potenciales') }),
           pipeline.length === 0
             ? React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', padding: '6px 0' } }, 'Sin leads para esta salida.')
-            : pipeline.map((l, i) => React.createElement('div', { key: i, className: 'row' },
+            : pipeline.map((l, i) => React.createElement('div', { key: i, className: 'row click', style: { cursor: openLead ? 'pointer' : 'default' }, onClick: () => openLead && openLead(l.id) },
                 React.createElement(Avatar, { id: l.resp, size: 28 }),
                 React.createElement('div', { style: { flex: 1 } }, React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)' } }, l.nombre),
                   React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)' } }, l.etapa)),

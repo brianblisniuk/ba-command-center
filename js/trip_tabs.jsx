@@ -374,7 +374,7 @@
   }
 
   // ============ RESERVAS ============
-  function Reservas({ s, cur, toast }) {
+  function Reservas({ s, cur, toast, openLead }) {
     const { confirmados, pipeline } = BA.tripData(s.id).reservas;
     return React.createElement('div', null,
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 9, padding: '11px 15px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', marginBottom: 16, fontSize: 12.5, color: 'var(--text-2)', border: '1px solid var(--rule)' } },
@@ -386,13 +386,15 @@
           React.createElement('tbody', null, confirmados.map((c, i) => React.createElement('tr', { key: i },
             React.createElement('td', null, React.createElement('span', { className: 'nm' }, c.nombre)),
             React.createElement('td', { className: 'mono' }, c.pax),
-            React.createElement('td', null, React.createElement('span', { className: 'badge ' + (c.cuota === 'Pagado' ? 'go' : 'risk'), style: { padding: '2px 7px' } }, c.cuota)),
-            React.createElement('td', null, React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-              React.createElement('div', { className: 'bar', style: { width: 60 } }, React.createElement('span', { style: { width: c.pagado + '%', background: c.pagado === 100 ? 'var(--go)' : 'var(--brass)' } })),
-              React.createElement('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, c.pagado + '%'))),
+            React.createElement('td', null, React.createElement('span', { className: 'badge ' + (c.pagado === 100 ? 'go' : (c.pagado == null ? 'ghost' : 'risk')), style: { padding: '2px 7px' } }, c.cuota)),
+            React.createElement('td', null, c.pagado == null
+              ? React.createElement('span', { style: { fontSize: 12, color: 'var(--text-3)' } }, '—')
+              : React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                  React.createElement('div', { className: 'bar', style: { width: 60 } }, React.createElement('span', { style: { width: c.pagado + '%', background: c.pagado === 100 ? 'var(--go)' : 'var(--brass)' } })),
+                  React.createElement('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, c.pagado + '%'))),
             React.createElement('td', { style: { color: c.alergias !== '—' ? 'var(--bad)' : 'var(--text-3)' } }, c.alergias),
             React.createElement('td', null, c.movilidad),
-            React.createElement('td', { style: { textAlign: 'right' } }, React.createElement('button', { className: 'btn sm', onClick: () => toast('Ficha de ' + c.nombre) }, 'Perfil')))))
+            React.createElement('td', { style: { textAlign: 'right' } }, React.createElement('button', { className: 'btn sm', onClick: () => openLead && c.leadId && openLead(c.leadId) }, 'Perfil')))))
         )
       ),
       React.createElement('div', { className: 'card pad' },
@@ -404,7 +406,7 @@
               React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)' } }, l.nombre),
               React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)' } }, l.etapa + ' · ' + l.next)),
             React.createElement('span', { className: 'mono', style: { fontSize: 12, color: 'var(--accent)', fontWeight: 600 } }, 'US$ ' + l.potUSD + 'k'),
-            React.createElement('button', { className: 'btn sm primary', onClick: () => toast(l.nombre + ' → reserva') }, 'Convertir')))
+            React.createElement('button', { className: 'btn sm primary', onClick: () => openLead && openLead(l.id) }, 'Abrir lead')))
         ) : React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', padding: '6px 0' } }, 'Sin leads en pipeline para esta salida.')
       )
     );

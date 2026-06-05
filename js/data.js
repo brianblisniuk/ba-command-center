@@ -406,6 +406,7 @@ window.BA = (function () {
     return { id: r.id, label: r.name || 'Snapshot', when: relTime(r.created_at), by: by, auto: auto, created: r.created_at };
   }
   // Mapea una fila de leads_crm_pipeline al shape de lead que consumen Ventas y LeadDetail
+  const NEXT_BY_STAGE = { new: 'Primer contacto', contacted: 'Calificar', qualified: 'Enviar propuesta', proposal: 'Seguir propuesta', negotiating: 'Cerrar seña', booked: 'Cobrar cuota', lost: '—' };
   function mapLead(r) {
     const st = STAGES.find(s => s.key === r.stage);
     return {
@@ -413,7 +414,7 @@ window.BA = (function () {
       salida: r.trip_id || '', etapa: r.stage_label || (st ? st.label : r.stage), stageKey: r.stage,
       fuente: r.source || '', resp: OP_BY_UID[r.assigned_to] || 'brian',
       potUSD: Math.round((Number(r.potential_total_usd) || 0) / 1000),
-      pax: r.pax_count || 1, fit: 0, dias: r.days_stale || 0, next: '',
+      pax: r.pax_count || 1, fit: 0, dias: r.days_stale || 0, next: NEXT_BY_STAGE[r.stage] || '',
       email: r.email || '', phone: r.phone || '', campaign: r.source_campaign || '',
       assignedName: r.assigned_to_name || '', eventCount: Number(r.event_count) || 0
     };
@@ -515,7 +516,7 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); },
     async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
     async finanzas() {
       const sess = await this.getSession();
@@ -1027,6 +1028,29 @@ window.BA = (function () {
       const { data, error } = await window.SB.rpc('generate_payment_plan', { p_lead_id: leadId });
       return { data, error: error ? (error.message || 'No se pudo generar el plan.') : null };
     },                                                            // RPC generate_payment_plan
+    async leadPayments(tripId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return [];
+      try {
+        const { data, error } = await window.SB.rpc('lead_payment_summary', { p_trip_id: tripId || null });
+        if (error || !Array.isArray(data)) return [];
+        return data;
+      } catch (e) { return []; }
+    },
+    async hydratePayments() {
+      const rows = await this.leadPayments(null);
+      const byId = {}; (rows || []).forEach(r => { byId[r.lead_id] = r; });
+      leads.forEach(l => {
+        const r = byId[l.id];
+        if (r && Number(r.total) > 0) {
+          l.pagadoPct = Math.round((Number(r.paid) / Number(r.total)) * 100);
+          l.cuotaLabel = (r.n_paid || 0) + '/' + (r.n_total || 0) + (r.n_total === 1 ? ' cuota' : ' cuotas');
+          l.proxCuota = r.next_label || '';
+          l.paidUSD = Math.round(Number(r.paid)); l.totalUSD = Math.round(Number(r.total));
+        } else { l.pagadoPct = null; l.cuotaLabel = 'sin plan'; l.proxCuota = ''; }
+      });
+      return leads;
+    },
     async getTrip(id) {
       const sess = await this.getSession();
       if (!window.SB || !sess) return null;                        // demo → caller usa el mock

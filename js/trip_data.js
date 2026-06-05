@@ -250,7 +250,7 @@
     const presupuesto = { pax, ticket, lineas, items, costoTotal, ingreso, costoPax: pax ? Math.round(costoTotal / pax) : 0, margen };
 
     const pipeline = (BA.leads || []).filter(l => l.salida === id);
-    const confirmados = pipeline.filter(l => l.stageKey === 'booked').map(l => ({ nombre: l.nombre, pax: l.pax || 1, pagado: 0, cuota: '—', alergias: '—', movilidad: 'OK' }));
+    const confirmados = pipeline.filter(l => l.stageKey === 'booked').map(l => ({ nombre: l.nombre, pax: l.pax || 1, pagado: (l.pagadoPct != null ? l.pagadoPct : null), cuota: l.cuotaLabel || 'sin plan', prox: l.proxCuota || '', alergias: l.alergias || '—', movilidad: l.movilidad || '—', leadId: l.id }));
     const reservas = { confirmados, pipeline };
 
     const TT2 = { reservation: 'reserva', contact: 'contacto', research: 'research', purchase: 'compra', logistics: 'logística', logistic: 'logística' };
