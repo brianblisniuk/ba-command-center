@@ -392,6 +392,19 @@ window.BA = (function () {
     { key: 'lost', label: 'Perdidos', color: '#A39B8E' }
   ];
   const OP_BY_UID = { '9e11bed5-8e3a-4e7a-b3a0-dccd3b3ce188': 'brian', '1bf337b7-72d7-411b-98e8-c8f29f878778': 'fede' };
+  function relTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso), ms = Date.now() - d.getTime();
+    const mins = Math.round(ms / 60000), hrs = Math.round(ms / 3600000), days = Math.round(ms / 86400000);
+    if (mins < 1) return 'recién'; if (mins < 60) return 'hace ' + mins + ' min';
+    if (hrs < 24) return 'hace ' + hrs + ' h'; if (days < 30) return 'hace ' + days + ' d';
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+  }
+  function mapSnap(r) {
+    const auto = r.author === 'system' || r.is_auto === true;
+    const by = auto ? 'Automático' : (OP_BY_UID[r.author] || r.author || '—');
+    return { id: r.id, label: r.name || 'Snapshot', when: relTime(r.created_at), by: by, auto: auto, created: r.created_at };
+  }
   // Mapea una fila de leads_crm_pipeline al shape de lead que consumen Ventas y LeadDetail
   function mapLead(r) {
     const st = STAGES.find(s => s.key === r.stage);
@@ -814,6 +827,52 @@ window.BA = (function () {
         return { ok: true, code };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // genera/persiste el código de acceso del cliente
+    async tripSnapshots(tripId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return [];
+      try {
+        const { data, error } = await window.SB.rpc('trip_snapshots', { p_trip_id: tripId });
+        if (error || !Array.isArray(data)) return [];
+        return data.map(mapSnap);
+      } catch (e) { return []; }
+    },
+    async saveSnapshot(tripId, name) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.rpc('save_trip_snapshot', { p_trip_id: tripId, p_name: name || 'Snapshot manual' });
+        if (error) return { ok: false, error: error.message };
+        const row = Array.isArray(data) ? data[0] : data;
+        return Object.assign({ ok: true }, mapSnap(row || {}));
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },
+    async restoreSnapshot(snapId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.rpc('restore_trip_snapshot', { p_snapshot_id: snapId });
+        if (error) return { ok: false, error: error.message };
+        return { ok: true, data: data };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },
+    async exportTrip(tripId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try {
+        const { data, error } = await window.SB.from('trips').select('data').eq('id', tripId).single();
+        if (error || !data) return null;
+        return data.data || {};
+      } catch (e) { return null; }
+    },
+    async setTripData(tripId, payload) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.rpc('set_trip_data', { p_trip_id: tripId, p_data: payload });
+        if (error) return { ok: false, error: error.message };
+        return { ok: true, data: data };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },
     async createTrip(payload) {
       const sess = await this.getSession();
       if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };

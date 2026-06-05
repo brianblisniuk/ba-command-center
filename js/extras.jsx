@@ -1,13 +1,73 @@
 /* B&A · Extras: Backup/Snapshots (tab viaje) · Carga IA (modal) · Propuesta PDF (modal) → window */
 (function () {
   const { Icon, StatCard, CardHead } = window;
-  const { useState } = React;
+  const { useState, useEffect } = React;
   const BA = window.BA;
 
   // ============ BACKUP / AJUSTES (tab viaje) ============
   function Backup({ s, toast }) {
-    const [snaps, setSnaps] = useState(() => BA.snapshots.map(x => ({ ...x })));
-    function save() { setSnaps(L => [{ id: 'sn' + Date.now(), label: 'Snapshot manual', when: 'ahora', by: 'vos', size: '44 KB', auto: false }, ...L]); toast('Snapshot guardado ✓'); }
+    const [snaps, setSnaps] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState(false);
+    async function loadSnaps() { setLoading(true); const l = await BA.source.tripSnapshots(s.id); setSnaps(Array.isArray(l) ? l : []); setLoading(false); }
+    useEffect(() => { loadSnaps(); }, [s.id]);
+    const fname = (s.etiqueta || s.id || 'viaje').replace(/[^\w.-]+/g, '_');
+    function dl(content, filename, mime) {
+      try { const blob = new Blob([content], { type: mime }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); return true; } catch (e) { return false; }
+    }
+    async function exportJson() {
+      if (busy) return; setBusy(true); const data = await BA.source.exportTrip(s.id); setBusy(false);
+      if (!data) { toast('No se pudo exportar'); return; }
+      dl(JSON.stringify(data, null, 2), fname + '.json', 'application/json') ? toast('JSON descargado ✓') : toast('No se pudo descargar');
+    }
+    function importJson() {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
+      inp.onchange = async () => {
+        const f = inp.files && inp.files[0]; if (!f) return;
+        let obj; try { obj = JSON.parse(await f.text()); } catch (e) { toast('Archivo JSON inválido'); return; }
+        if (!obj || typeof obj !== 'object' || Array.isArray(obj)) { toast('Ese JSON no tiene formato de viaje'); return; }
+        if (!window.confirm('Importar reemplaza TODO el contenido del viaje con el archivo. Se guarda un snapshot antes. ¿Continuar?')) return;
+        await BA.source.saveSnapshot(s.id, 'Pre-importación');
+        const r = await BA.source.setTripData(s.id, obj);
+        if (r && r.ok) { toast('Viaje importado ✓'); setTimeout(() => location.reload(), 700); } else toast((r && r.error) || 'No se pudo importar');
+      };
+      inp.click();
+    }
+    function exportIcal() {
+      const t = BA.tripData(s.id); const days = (t.itinerario || []); const sd = t.startDate ? new Date(t.startDate + 'T00:00:00Z') : null;
+      if (!days.length) { toast('No hay itinerario para exportar'); return; }
+      if (!sd || isNaN(sd.getTime())) { toast('Cargá las fechas del viaje (Config) para exportar el calendario'); return; }
+      const p2 = n => String(n).padStart(2, '0');
+      const dD = d => d.getUTCFullYear() + p2(d.getUTCMonth() + 1) + p2(d.getUTCDate());
+      const dT = d => dD(d) + 'T' + p2(d.getUTCHours()) + p2(d.getUTCMinutes()) + '00Z';
+      const esc = x => String(x || '').replace(/[,;\\]/g, ' ').replace(/\n/g, ' ');
+      let L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Blisniuk & Amanov//Itinerario//ES', 'CALSCALE:GREGORIAN'];
+      days.forEach(day => {
+        const base = new Date(sd.getTime() + (Math.max(1, day.n) - 1) * 86400000);
+        const slots = (day.slots || []).filter(sl => sl.type !== 'lodging');
+        if (slots.length && slots.some(sl => sl.time)) {
+          slots.forEach((sl, i) => {
+            L.push('BEGIN:VEVENT', 'UID:' + s.id + '-' + day.n + '-' + i + '@bamanov');
+            if (sl.time) { const t1 = String(sl.time).split(':'); const a = new Date(base); a.setUTCHours(+t1[0] || 0, +t1[1] || 0, 0, 0); L.push('DTSTART:' + dT(a)); if (sl.end) { const t2 = String(sl.end).split(':'); const b = new Date(base); b.setUTCHours(+t2[0] || 0, +t2[1] || 0, 0, 0); L.push('DTEND:' + dT(b)); } }
+            else L.push('DTSTART;VALUE=DATE:' + dD(base));
+            L.push('SUMMARY:' + esc(sl.title || 'Actividad')); if (sl.provider) L.push('DESCRIPTION:' + esc(sl.provider)); L.push('END:VEVENT');
+          });
+        } else {
+          L.push('BEGIN:VEVENT', 'UID:' + s.id + '-' + day.n + '@bamanov', 'DTSTART;VALUE=DATE:' + dD(base), 'SUMMARY:' + esc('Día ' + day.n + ' · ' + (day.title || '')), 'END:VEVENT');
+        }
+      });
+      L.push('END:VCALENDAR');
+      dl(L.join('\r\n'), fname + '.ics', 'text/calendar') ? toast('iCal descargado ✓') : toast('No se pudo descargar');
+    }
+    async function save() { if (busy) return; setBusy(true); const r = await BA.source.saveSnapshot(s.id, 'Snapshot manual'); setBusy(false); if (r && r.ok) { toast('Snapshot guardado ✓'); loadSnaps(); } else toast((r && r.error) || 'No se pudo guardar'); }
+    async function restore(sn) { if (!window.confirm('Restaurar «' + sn.label + '» (' + sn.when + ')? Reemplaza el estado actual del viaje.')) return; const r = await BA.source.restoreSnapshot(sn.id); if (r && r.ok) { toast('Restaurado ✓'); setTimeout(() => location.reload(), 700); } else toast((r && r.error) || 'No se pudo restaurar'); }
+    async function reset() {
+      if (!window.confirm('RESET COMPLETO: borra itinerario, proveedores, presupuesto y tareas de este viaje. Se guarda un snapshot antes. ¿Continuar?')) return;
+      await BA.source.saveSnapshot(s.id, 'Pre-reset');
+      const cur = (await BA.source.exportTrip(s.id)) || {}; const meta = cur.meta || {};
+      const r = await BA.source.setTripData(s.id, { meta: meta, itinerary: [], providers: [], budget: [], actions: [] });
+      if (r && r.ok) { toast('Viaje reseteado ✓'); setTimeout(() => location.reload(), 700); } else toast((r && r.error) || 'No se pudo resetear');
+    }
     function Tool({ icon, t, d, onClick, danger }) {
       return React.createElement('button', { className: 'card pad', style: { textAlign: 'left', display: 'flex', gap: 13, alignItems: 'center', cursor: 'pointer', width: '100%' }, onClick },
         React.createElement('span', { className: 'stat-ic ' + (danger ? 'tint-bad' : 'tint'), style: { width: 40, height: 40 } }, React.createElement(Icon, { name: icon })),
@@ -18,27 +78,31 @@
     }
     return React.createElement('div', null,
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: '1fr 1fr', marginBottom: 'var(--gap)' } },
-        React.createElement(Tool, { icon: 'download', t: 'Exportar JSON', d: 'Descargá una copia completa del viaje', onClick: () => toast('Exportando ' + s.etiqueta + '.json…') }),
-        React.createElement(Tool, { icon: 'layers', t: 'Importar JSON', d: 'Restaurá desde un archivo exportado', onClick: () => toast('Seleccioná un archivo .json') }),
-        React.createElement(Tool, { icon: 'calendar', t: 'Exportar iCal (.ics)', d: 'Sincronizá el itinerario con tu calendario', onClick: () => toast('Generando ' + s.etiqueta + '.ics…') }),
+        React.createElement(Tool, { icon: 'download', t: 'Exportar JSON', d: 'Descargá una copia completa del viaje', onClick: exportJson }),
+        React.createElement(Tool, { icon: 'layers', t: 'Importar JSON', d: 'Reemplazá el contenido desde un archivo exportado', onClick: importJson }),
+        React.createElement(Tool, { icon: 'calendar', t: 'Exportar iCal (.ics)', d: 'El itinerario para tu calendario', onClick: exportIcal }),
         React.createElement(Tool, { icon: 'download', t: 'Imprimir itinerario', d: 'Versión PDF lista para el cliente', onClick: () => { toast('Abriendo impresión…'); setTimeout(() => window.print(), 250); } })),
       React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
-        React.createElement(CardHead, { title: 'Snapshots', count: snaps.length, right: React.createElement('button', { className: 'btn sm primary', onClick: save }, React.createElement(Icon, { name: 'plus' }), 'Guardar versión') }),
-        snaps.map(sn => React.createElement('div', { key: sn.id, className: 'snap' },
-          React.createElement('span', { className: 'ic' }, React.createElement(Icon, { name: sn.auto ? 'refresh' : 'layers' })),
-          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-            React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)' } }, sn.label),
-            React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)' } }, sn.when + ' · ' + (BA.operadores.find(o => o.id === sn.by) || { name: sn.by }).name + ' · ' + sn.size)),
-          sn.auto && React.createElement('span', { className: 'badge ghost', style: { padding: '2px 7px' } }, 'Auto'),
-          React.createElement('button', { className: 'btn sm', onClick: () => toast('Restaurando «' + sn.label + '»…') }, 'Restaurar'))) ),
+        React.createElement(CardHead, { title: 'Snapshots', count: snaps.length, right: React.createElement('button', { className: 'btn sm primary', disabled: busy, onClick: save }, React.createElement(Icon, { name: 'plus' }), 'Guardar versión') }),
+        React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginBottom: 8 } }, 'Backup automático diario · se conservan 30 días.'),
+        loading
+          ? React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', padding: '8px 0' } }, 'Cargando…')
+          : snaps.length === 0
+            ? React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', padding: '8px 0' } }, 'Sin snapshots todavía.')
+            : snaps.map(sn => React.createElement('div', { key: sn.id, className: 'snap' },
+                React.createElement('span', { className: 'ic' }, React.createElement(Icon, { name: sn.auto ? 'refresh' : 'layers' })),
+                React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                  React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)' } }, sn.label),
+                  React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)' } }, sn.when + ' · ' + sn.by)),
+                sn.auto && React.createElement('span', { className: 'badge ghost', style: { padding: '2px 7px' } }, 'Auto'),
+                React.createElement('button', { className: 'btn sm', onClick: () => restore(sn) }, 'Restaurar')))),
       React.createElement('div', { className: 'card pad', style: { borderColor: 'var(--bad-bg)' } },
         React.createElement(CardHead, { title: 'Zona de riesgo' }),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' } },
-          React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', maxWidth: 360 } }, 'Reset completo del viaje: borra slots, proveedores y reservas. Esta acción no se puede deshacer.'),
-          React.createElement('button', { className: 'btn', style: { color: 'var(--bad)', borderColor: 'var(--bad-bg)' }, onClick: () => toast('Confirmá el reset (acción destructiva)') }, React.createElement(Icon, { name: 'alert' }), 'Reset completo')))
+          React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', maxWidth: 380 } }, 'Reset completo del viaje: borra itinerario, proveedores, presupuesto y tareas. Se guarda un snapshot antes de borrar.'),
+          React.createElement('button', { className: 'btn', style: { color: 'var(--bad)', borderColor: 'var(--bad-bg)' }, onClick: reset }, React.createElement(Icon, { name: 'alert' }), 'Reset completo')))
     );
   }
-
   // ============ CARGA POR IA (modal) ============
   function AICapture({ onClose, toast, nav }) {
     const [tab, setTab] = useState('texto'); // texto | foto
