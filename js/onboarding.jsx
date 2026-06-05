@@ -98,8 +98,9 @@
 
   // ============ WIZARD de nuevo viaje (6 pasos) ============
   const PASOS = ['Categoría', 'Identidad', 'Fechas', 'Grupo', 'Acceso', 'Revisar'];
-  function NewTripWizard({ onClose, toast, op }) {
+  function NewTripWizard({ onClose, toast, op, openTrip }) {
     const [step, setStep] = useState(0);
+    const [creating, setCreating] = useState(false);
     const [d, setD] = useState({ cat: null, titulo: '', etiqueta: '', region: '', pais: '', inicio: '', noches: 6, pax: 6, min: 5, ticket: 9000, resp: op.id });
     const cat = BA.categorias.find(c => c.id === d.cat);
     const set = (k, v) => setD(s => ({ ...s, [k]: v }));
@@ -155,7 +156,21 @@
         [['Categoría', d.cat], ['Título', d.titulo || '—'], ['Etiqueta', d.etiqueta || '—'], ['Destino', (d.region || '—') + (d.pais ? ' · ' + d.pais : '')], ['Inicio', d.inicio || '—'], ['Noches', d.noches], ['Grupo', d.pax + ' pax · mín ' + d.min], ['Ticket', 'US$ ' + d.ticket + ' / pax'], ['Responsable', BA.operadores.find(o => o.id === d.resp).name]]
           .map((r, i) => React.createElement('div', { key: i, className: 'kv' }, React.createElement('span', { className: 'k' }, r[0]), React.createElement('span', { className: 'v' }, r[1])))));
 
-    function next() { if (step < PASOS.length - 1) setStep(step + 1); else { toast('Viaje «' + (d.titulo || d.cat) + '» creado ✓'); onClose(); } }
+    async function next() {
+      if (step < PASOS.length - 1) { setStep(step + 1); return; }
+      if (creating) return;
+      let end_date = null;
+      if (d.inicio && Number(d.noches)) { const dt = new Date(d.inicio + 'T00:00:00'); dt.setDate(dt.getDate() + Number(d.noches)); end_date = dt.toISOString().slice(0, 10); }
+      setCreating(true);
+      const r = await BA.source.createTrip({
+        title: d.titulo || (cat ? cat.id : 'Viaje'), region: d.region || d.pais || '', currency: 'USD',
+        pax: Number(d.pax) || 0, minPax: Number(d.min) || 0, ticketUSD: Number(d.ticket) || 0,
+        start_date: d.inicio || null, end_date: end_date, go_status: 'EN_EVALUACION', status: 'planning', sellable: false
+      });
+      setCreating(false);
+      if (r && r.ok) { toast('Viaje «' + (d.titulo || d.cat) + '» creado ✓'); onClose(); if (openTrip) openTrip(r.id); }
+      else { toast((r && r.error) || 'No se pudo crear el viaje'); }
+    }
 
     return React.createElement('div', { className: 'wz-overlay', onClick: onClose },
       React.createElement('div', { className: 'wz', onClick: e => e.stopPropagation() },
@@ -169,8 +184,8 @@
           React.createElement('span', { className: 'eyebrow' }, 'Paso ' + (step + 1) + ' de ' + PASOS.length + ' · ' + PASOS[step]),
           React.createElement('div', { style: { display: 'flex', gap: 9 } },
             step > 0 && React.createElement('button', { className: 'btn', onClick: () => setStep(step - 1) }, React.createElement(Icon, { name: 'cl' }), 'Atrás'),
-            React.createElement('button', { className: 'btn primary', disabled: !canNext, style: canNext ? null : { opacity: .5, pointerEvents: 'none' }, onClick: next },
-              step === PASOS.length - 1 ? 'Crear viaje' : 'Siguiente', React.createElement(Icon, { name: step === PASOS.length - 1 ? 'check' : 'cr' }))))
+            React.createElement('button', { className: 'btn primary', disabled: !canNext || creating, style: (!canNext || creating) ? { opacity: .5, pointerEvents: 'none' } : null, onClick: next },
+              step === PASOS.length - 1 ? (creating ? 'Creando…' : 'Crear viaje') : 'Siguiente', React.createElement(Icon, { name: step === PASOS.length - 1 ? 'check' : 'cr' }))))
       )
     );
   }

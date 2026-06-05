@@ -359,8 +359,15 @@
 
   // ============ PRESUPUESTO ============
   function Presupuesto({ s, cur, toast }) {
-    const b = BA.tripData(s.id).presupuesto;
+    const reload = () => BA.tripData(s.id).presupuesto;
+    const [b, setB] = useState(reload);
+    const [adding, setAdding] = useState(false);
+    const [f, setF] = useState({ cat: '', amount: '', currency: cur || 'USD' });
     const colors = ['var(--laurel)', 'var(--brass)', 'var(--laurel-soft)', 'var(--curso)', 'var(--stone)', 'var(--bad)'];
+    const toStore = (arr) => arr.map(x => { const o = { category: x.cat || 'Varios', amount: Number(x.amount) || 0, currency: x.currency || 'USD' }; if (x.dayRef) o.dayRef = x.dayRef; if (x.id && !String(x.id).startsWith('tmp')) o.id = x.id; return o; });
+    async function persist(items) { const r = await BA.source.tripDataApply(s.id, 'budget', 'set', { items: toStore(items) }); if (r && r.ok) setB(reload()); else toast((r && r.error) || 'No se pudo guardar'); }
+    function addLine() { const amt = Number(f.amount); if (!f.cat.trim() || !amt) { toast('Completá categoría y monto'); return; } setAdding(false); const items = (b.items || []).concat([{ id: 'tmp_' + Date.now(), cat: f.cat.trim(), amount: amt, currency: f.currency, dayRef: '' }]); setF({ cat: '', amount: '', currency: cur || 'USD' }); persist(items); }
+    function delLine(id) { persist((b.items || []).filter(x => x.id !== id)); }
     return React.createElement('div', null,
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 'var(--gap)' } },
         [['Costo total', M(b.costoTotal, cur)], ['Costo / pax', M(b.costoPax, cur)], ['Ingreso bruto', M(b.ingreso, cur)], ['Margen', b.margen + '%']].map((c, i) =>
@@ -371,7 +378,12 @@
       ),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', alignItems: 'start' } },
         React.createElement('div', { className: 'card pad' },
-          React.createElement(CardHead, { title: 'Líneas de costo', right: React.createElement('button', { className: 'btn sm', onClick: () => toast('Línea agregada') }, React.createElement(Icon, { name: 'plus' }), 'Agregar') }),
+          React.createElement(CardHead, { title: 'Líneas de costo', right: React.createElement('button', { className: 'btn sm', onClick: () => setAdding(a => !a) }, React.createElement(Icon, { name: 'plus' }), 'Agregar') }),
+          adding && React.createElement('div', { style: { display: 'flex', gap: 7, margin: '4px 0 12px', flexWrap: 'wrap' } },
+            React.createElement('input', { autoFocus: true, value: f.cat, placeholder: 'Categoría', onChange: e => setF(o => ({ ...o, cat: e.target.value })), style: { flex: '2 1 130px', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } }),
+            React.createElement('input', { type: 'number', value: f.amount, placeholder: 'Monto', onChange: e => setF(o => ({ ...o, amount: e.target.value })), onKeyDown: e => { if (e.key === 'Enter') addLine(); }, style: { flex: '1 1 90px', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } }),
+            React.createElement('select', { value: f.currency, onChange: e => setF(o => ({ ...o, currency: e.target.value })), style: { padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } }, ['USD', 'EUR', 'ARS'].map(c => React.createElement('option', { key: c, value: c }, c))),
+            React.createElement('button', { className: 'btn sm primary', onClick: addLine }, 'Guardar')),
           React.createElement('table', { className: 'tbl' },
             React.createElement('thead', null, React.createElement('tr', null, ['Categoría', 'Monto', '%'].map((h, i) => React.createElement('th', { key: i, style: i ? { textAlign: 'right' } : null }, h)))),
             React.createElement('tbody', null, b.lineas.map((l, i) => React.createElement('tr', { key: i },
@@ -394,7 +406,16 @@
                 React.createElement('span', { style: { flex: 1, color: 'var(--text-2)' } }, l.cat),
                 React.createElement('span', { className: 'mono', style: { color: 'var(--text-3)' } }, Math.round(l.pct * 100) + '%')))))
         )
-      )
+      ),
+      (b.items && b.items.length) ? React.createElement('div', { className: 'card pad', style: { marginTop: 'var(--gap)' } },
+        React.createElement(CardHead, { title: 'Detalle de líneas', count: b.items.length }),
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column' } },
+          b.items.map(it => React.createElement('div', { key: it.id, className: 'row', style: { gap: 10 } },
+            React.createElement('span', { className: 'nm', style: { flex: 1 } }, it.cat),
+            React.createElement('span', { className: 'mono', style: { color: 'var(--text-3)' } }, it.amount + ' ' + it.currency),
+            React.createElement('span', { className: 'mono', style: { width: 90, textAlign: 'right' } }, M(it.montoUSD, cur)),
+            React.createElement('button', { className: 'btn sm', onClick: () => delLine(it.id), title: 'Eliminar' }, '×')))))
+        : null
     );
   }
 
@@ -464,20 +485,25 @@
 
   // ============ APP CLIENTE ============
   function AppCliente({ s, toast }) {
-    const code = s.etiqueta.replace('·', '-');
+    const [code, setCode] = useState(() => (BA.tripData(s.id).accessCode || ''));
+    const [busy, setBusy] = useState(false);
     const { confirmados } = BA.tripData(s.id).reservas;
+    const link = code ? ('https://expedicionmundial.netlify.app/?code=' + code) : '';
+    const copy = (txt, msg) => { try { if (navigator.clipboard) navigator.clipboard.writeText(txt); toast(msg); } catch (e) { toast('No se pudo copiar'); } };
+    async function regen() { if (busy) return; setBusy(true); const r = await BA.source.setTripAccessCode(s.id); setBusy(false); if (r && r.ok) { setCode(r.code); toast(code ? 'Código regenerado — el anterior queda inválido' : 'Código generado'); } else toast((r && r.error) || 'No se pudo generar'); }
     return React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', alignItems: 'start' } },
       React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--gap)' } },
         React.createElement('div', { className: 'card pad' },
           React.createElement(CardHead, { title: 'Acceso del huésped' }),
           React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', marginBottom: 12 } },
             React.createElement('div', null, React.createElement('div', { className: 'eyebrow' }, 'Código de reserva'),
-              React.createElement('div', { className: 'mono', style: { fontSize: 20, color: 'var(--text-1)', marginTop: 4, letterSpacing: '0.12em' } }, code)),
-            React.createElement('button', { className: 'btn sm', onClick: () => toast('Código copiado') }, React.createElement(Icon, { name: 'copy' }), 'Copiar')),
+              React.createElement('div', { className: 'mono', style: { fontSize: 20, color: code ? 'var(--text-1)' : 'var(--text-3)', marginTop: 4, letterSpacing: '0.12em' } }, code || 'sin código')),
+            React.createElement('button', { className: 'btn sm', disabled: !code, onClick: () => copy(code, 'Código copiado') }, React.createElement(Icon, { name: 'copy' }), 'Copiar')),
+          code && React.createElement('div', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)', wordBreak: 'break-all', marginBottom: 12 } }, link),
           React.createElement('div', { style: { display: 'flex', gap: 9 } },
-            React.createElement('button', { className: 'btn', style: { flex: 1 }, onClick: () => toast('Link copiado') }, React.createElement(Icon, { name: 'copy' }), 'Copiar link'),
-            React.createElement('button', { className: 'btn', style: { flex: 1 }, onClick: () => toast('Código regenerado — el anterior queda inválido') }, React.createElement(Icon, { name: 'refresh' }), 'Regenerar')),
-          React.createElement('button', { className: 'btn primary', style: { width: '100%', marginTop: 9 }, onClick: () => toast('Invitación enviada') }, React.createElement(Icon, { name: 'send' }), 'Invitar huésped')
+            React.createElement('button', { className: 'btn', style: { flex: 1 }, disabled: !code, onClick: () => copy(link, 'Link copiado') }, React.createElement(Icon, { name: 'copy' }), 'Copiar link'),
+            React.createElement('button', { className: 'btn', style: { flex: 1 }, disabled: busy, onClick: regen }, React.createElement(Icon, { name: 'refresh' }), code ? 'Regenerar' : 'Generar código')),
+          React.createElement('button', { className: 'btn primary', style: { width: '100%', marginTop: 9 }, disabled: !code, onClick: () => copy(link, 'Link de invitación copiado — pegalo en tu mensaje al huésped') }, React.createElement(Icon, { name: 'send' }), 'Invitar huésped')
         ),
         React.createElement('div', { className: 'card pad' },
           React.createElement(CardHead, { title: 'Perfiles recibidos', count: confirmados.length }),

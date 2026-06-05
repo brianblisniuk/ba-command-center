@@ -98,10 +98,18 @@
   const VINC = ['Slot · día 3 · Cena Verduno', 'Proveedor · Castello di Verduno', 'Día 2 · Le Langhe', '—', 'Slot · día 1 · Llegada', '—'];
 
   function Tareas({ s, toast, openProvider, op }) {
-    const [items, setItems] = useState(() => BA.tripData(s.id).tareas.map((t, i) => ({ ...t, id: i, vinculo: VINC[i % VINC.length] })));
+    const TT2R = { reserva: 'reservation', contacto: 'contact', research: 'research', compra: 'purchase', 'logística': 'logistics', otro: 'other' };
+    const mount = () => BA.tripData(s.id).tareas.map((t, i) => ({ ...t, id: t.id || ('tmp' + i + '_' + Math.random().toString(36).slice(2, 5)), vinculo: '—' }));
+    const [items, setItems] = useState(mount);
     const [filtro, setFiltro] = useState('all');
     const [sel, setSel] = useState(null);
-    function toggle(id) { setItems(L => L.map(t => t.id === id ? { ...t, done: !t.done } : t)); }
+    const [adding, setAdding] = useState(false);
+    const [newT, setNewT] = useState('');
+    const toStore = (arr) => arr.map(t => { const o = { priority: t.p || 'P3', type: TT2R[t.tipo] || 'other', task: t.t || '', done: !!t.done, dueDate: t.due || '' }; if (t.id && !String(t.id).startsWith('tmp')) o.id = t.id; return o; });
+    async function persist(next) { setItems(next); const r = await BA.source.tripDataApply(s.id, 'actions', 'set', { items: toStore(next) }); if (r && r.ok) setItems(mount()); else toast((r && r.error) || 'No se pudo guardar'); }
+    function toggle(id) { persist(items.map(t => t.id === id ? { ...t, done: !t.done } : t)); }
+    function removeTask(id) { setSel(null); persist(items.filter(t => t.id !== id)); }
+    function addTask() { const v = newT.trim(); if (!v) { setAdding(false); return; } setAdding(false); setNewT(''); persist([...items, { id: 'tmp_new_' + Date.now(), p: 'P3', tipo: 'otro', t: v, done: false, due: '', vinculo: '—' }]); }
     const list = items.filter(t => filtro === 'all' ? true : filtro === 'pend' ? !t.done : t.p === filtro);
     const cur = items.find(t => t.id === sel);
     const counts = { P1: items.filter(t => t.p === 'P1' && !t.done).length, P2: items.filter(t => t.p === 'P2' && !t.done).length, P3: items.filter(t => t.p === 'P3' && !t.done).length };
@@ -116,7 +124,10 @@
         React.createElement('div', { style: { display: 'flex', gap: 7, flexWrap: 'wrap' } },
           [['all', 'Todas'], ['pend', 'Pendientes'], ['P1', 'P1'], ['P2', 'P2'], ['P3', 'P3']].map(([k, t]) =>
             React.createElement('button', { key: k, className: 'badge ' + (filtro === k ? 'go' : 'ghost'), style: { cursor: 'pointer', padding: '6px 11px' }, onClick: () => setFiltro(k) }, t))),
-        React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Tarea agregada') }, React.createElement(Icon, { name: 'plus' }), 'Agregar tarea')),
+        React.createElement('button', { className: 'btn sm primary', onClick: () => setAdding(a => !a) }, React.createElement(Icon, { name: 'plus' }), 'Agregar tarea')),
+      adding && React.createElement('div', { className: 'card pad', style: { marginBottom: 12, display: 'flex', gap: 8 } },
+        React.createElement('input', { autoFocus: true, value: newT, placeholder: 'Nueva tarea (P3 por defecto)…', onChange: e => setNewT(e.target.value), onKeyDown: e => { if (e.key === 'Enter') addTask(); if (e.key === 'Escape') { setAdding(false); setNewT(''); } }, style: { flex: 1, padding: '9px 11px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } }),
+        React.createElement('button', { className: 'btn sm primary', onClick: addTask }, 'Guardar')),
       React.createElement('div', { className: 'card pad' },
         React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 0 } },
           list.map(t => React.createElement('div', { key: t.id, className: 'row', style: { gap: 13, cursor: 'pointer' }, onClick: () => setSel(t.id) },
@@ -141,9 +152,9 @@
             React.createElement('button', { className: 'drawer-close', onClick: () => setSel(null) }, React.createElement(Icon, { name: 'x' }))),
           React.createElement('div', { className: 'drawer-body' },
             React.createElement('div', { style: { display: 'flex', gap: 9, marginBottom: 18 } },
-              React.createElement('button', { className: 'btn ' + (cur.done ? '' : 'primary'), style: { flex: 1 }, onClick: () => { toggle(cur.id); if (!cur.done) { window.confetti && window.confetti(); toast('¡Tarea hecha! 🎉'); } else toast('Reabierta'); } },
+              React.createElement('button', { className: 'btn ' + (cur.done ? '' : 'primary'), style: { flex: 1 }, onClick: () => { if (!cur.done) { window.confetti && window.confetti(); toast('¡Tarea hecha! 🎉'); } else toast('Reabierta'); toggle(cur.id); } },
                 React.createElement(Icon, { name: 'check' }), cur.done ? 'Reabrir' : 'Marcar hecha'),
-              React.createElement('button', { className: 'btn', onClick: () => toast('Editar tarea') }, React.createElement(Icon, { name: 'list' }), 'Editar')),
+              React.createElement('button', { className: 'btn', onClick: () => removeTask(cur.id) }, 'Eliminar')),
             React.createElement('div', { className: 'card pad', style: { boxShadow: 'none' } },
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Estado'), React.createElement('span', { className: 'v' }, cur.done ? 'Hecha' : 'Pendiente')),
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Prioridad'), React.createElement('span', { className: 'v' }, React.createElement('span', { className: 'badge ' + PCOL[cur.p], style: { padding: '2px 7px' } }, cur.p))),

@@ -246,14 +246,15 @@
     const costoTotal = lineas.reduce((a, l) => a + l.montoUSD, 0);
     lineas = lineas.map(l => ({ cat: l.cat, montoUSD: l.montoUSD, pct: costoTotal ? l.montoUSD / costoTotal : 0 }));
     const ingreso = ticket * pax; const margen = ingreso ? Math.round((1 - costoTotal / ingreso) * 100) : 0;
-    const presupuesto = { pax, ticket, lineas, costoTotal, ingreso, costoPax: pax ? Math.round(costoTotal / pax) : 0, margen };
+    const items = budget.map(b => ({ id: b.id || '', cat: b.category || 'Varios', amount: Number(b.amount) || 0, currency: b.currency || baseCur, montoUSD: toUSD(b.amount, b.currency), dayRef: b.dayRef || '' }));
+    const presupuesto = { pax, ticket, lineas, items, costoTotal, ingreso, costoPax: pax ? Math.round(costoTotal / pax) : 0, margen };
 
     const pipeline = (BA.leads || []).filter(l => l.salida === id);
     const confirmados = pipeline.filter(l => l.stageKey === 'booked').map(l => ({ nombre: l.nombre, pax: l.pax || 1, pagado: 0, cuota: '—', alergias: '—', movilidad: 'OK' }));
     const reservas = { confirmados, pipeline };
 
     const TT2 = { reservation: 'reserva', contact: 'contacto', research: 'research', purchase: 'compra', logistics: 'logística', logistic: 'logística' };
-    const tareas = (Array.isArray(data.actions) ? data.actions : []).map(a => ({ p: a.priority || 'P3', tipo: TT2[a.type] || 'otro', t: a.task || a.description || '—', done: !!a.done, due: a.dueDate || '' }));
+    const tareas = (Array.isArray(data.actions) ? data.actions : []).map(a => ({ id: a.id || '', p: a.priority || 'P3', tipo: TT2[a.type] || 'otro', t: a.task || a.description || '—', done: !!a.done, due: a.dueDate || '' }));
 
     return { itinerario, proveedores, presupuesto, reservas, tareas };
   };
