@@ -165,7 +165,7 @@
       const r = await BA.source.createTrip({
         title: d.titulo || (cat ? cat.id : 'Viaje'), region: d.region || d.pais || '', currency: 'USD',
         pax: Number(d.pax) || 0, minPax: Number(d.min) || 0, ticketUSD: Number(d.ticket) || 0,
-        start_date: d.inicio || null, end_date: end_date, go_status: 'EN_EVALUACION', status: 'planning', sellable: false
+        start_date: d.inicio || null, end_date: end_date, go_status: 'EN_EVALUACION', status: 'planning', sellable: true
       });
       setCreating(false);
       if (r && r.ok) { toast('Viaje «' + (d.titulo || d.cat) + '» creado ✓'); onClose(); if (openTrip) openTrip(r.id); }
