@@ -787,6 +787,57 @@ window.BA = (function () {
         return data || { ok: false };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // editor de itinerario: ops sobre trips.data->itinerary
+    async tripDataApply(tripId, section, op, payload) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.rpc('trip_data_apply', { p_trip_id: tripId, p_section: section, p_op: op, p_payload: payload || {} });
+        if (error) return { ok: false, error: error.message };
+        if (data && data.ok && data.data && window.BA && window.BA._mapTripData) {
+          const prev = window.BA._tripCache[tripId];
+          const mapped = window.BA._mapTripData(tripId, data.data);
+          if (prev && prev.accessCode) mapped.accessCode = prev.accessCode;
+          window.BA._tripCache[tripId] = mapped;
+          return { ok: true, data: data.data };
+        }
+        return data || { ok: false };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // CRUD de data.actions / data.budget (Tareas + Presupuesto)
+    async setTripAccessCode(tripId) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const { data, error } = await window.SB.rpc('set_trip_access_code', { p_trip_id: tripId });
+        if (error) return { ok: false, error: error.message };
+        const code = data || '';
+        if (window.BA._tripCache[tripId]) window.BA._tripCache[tripId].accessCode = code;
+        return { ok: true, code };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // genera/persiste el código de acceso del cliente
+    async createTrip(payload) {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };
+      try {
+        const p = payload || {};
+        const slug = (p.id || p.title || 'viaje').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'viaje';
+        let id = slug;
+        const exists = async (cid) => { const { data } = await window.SB.from('trips').select('id').eq('id', cid).maybeSingle(); return !!data; };
+        if (await exists(id)) id = slug + '-' + Math.random().toString(36).slice(2, 6);
+        const data = { meta: { region: p.region || '', baseCurrency: p.currency || 'USD', fx: { USD: 1 }, payingPax: p.pax || 0, ticketUSD: p.ticketUSD || 0 }, itinerary: [], providers: [], budget: [], actions: [] };
+        const row = { id, title: p.title || 'Viaje sin título', status: p.status || 'planning', data };
+        if (p.start_date) row.start_date = p.start_date;
+        if (p.end_date) row.end_date = p.end_date;
+        if (p.region) row.region_label = p.region;
+        if (p.pax) row.pax_count = p.pax;
+        if (p.minPax) row.min_pax = p.minPax;
+        if (p.go_status) row.go_status = p.go_status;
+        if (typeof p.sellable === 'boolean') row.sellable = p.sellable;
+        const { data: ins, error } = await window.SB.from('trips').insert(row).select('id').single();
+        if (error) return { ok: false, error: error.message };
+        await this.hydrateTrips();
+        return { ok: true, id: ins.id };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // alta de viaje (insert trips, RLS is_any_operator)
     async fileUpload(path, file) {
       if (!window.SB) return { ok: false, error: 'sin conexión' };
       try {
@@ -921,9 +972,11 @@ window.BA = (function () {
       const sess = await this.getSession();
       if (!window.SB || !sess) return null;                        // demo → caller usa el mock
       try {
-        const { data, error } = await window.SB.from('trips').select('id,title,status,data').eq('id', id).single();
+        const { data, error } = await window.SB.from('trips').select('id,title,status,data,access_code').eq('id', id).single();
         if (error || !data) return null;
-        return window.BA._mapTripData(id, data.data || {});
+        const mapped = window.BA._mapTripData(id, data.data || {});
+        mapped.accessCode = data.access_code || '';
+        return mapped;
       } catch (e) { return null; }
     },                                                            // SELECT trips.data (RLS operador)
     async hydrateTrip(id) {

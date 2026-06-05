@@ -213,7 +213,7 @@
       ),
       // ===== overlays =====
       cmdk && React.createElement(CommandK, { onClose: () => setCmdk(false), nav, openTrip, toast, openLead: (id) => { setCmdk(false); openLead(id); }, openWizard: () => { setCmdk(false); setWizard(true); }, openCapture: () => { setCmdk(false); setCapture(true); } }),
-      wizard && React.createElement(window.NewTripWizard, { onClose: () => setWizard(false), toast, op }),
+      wizard && React.createElement(window.NewTripWizard, { onClose: () => setWizard(false), toast, op, openTrip }),
       capture && React.createElement(window.AICapture, { onClose: () => setCapture(false), toast, nav }),
       proposal && React.createElement(window.Propuesta, { lead: proposal, onClose: () => setProposal(null), toast }),
       compose && React.createElement(window.Composer, { initial: compose, onClose: () => setCompose(null), toast }),
