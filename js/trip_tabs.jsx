@@ -480,7 +480,6 @@
     const huespedes = t.reservas.confirmados;
     const [code, setCode] = useState(t.accessCode || '');
     const [busy, setBusy] = useState(false);
-    const noches = (function () { const m = (s.fecha || '').match(/\d+/g) || []; const a = parseInt(m[0]); const b = parseInt(m[1]); return (a && b && b > a) ? (b - a) : ''; })();
     const link = code ? ('https://expedicionmundial.netlify.app/?code=' + code) : '';
     const copy = (txt, msg) => { try { if (navigator.clipboard) navigator.clipboard.writeText(txt); toast(msg); } catch (e) { toast('No se pudo copiar'); } };
     async function regen() { if (busy) return; setBusy(true); const r = await BA.source.setTripAccessCode(s.id); setBusy(false); if (r && r.ok) { setCode(r.code); toast(code ? 'Código regenerado — el anterior queda inválido' : 'Código generado'); } else toast((r && r.error) || 'No se pudo generar'); }
@@ -494,7 +493,7 @@
       ),
       React.createElement(CfgCard, { title: 'Fechas y grupo' },
         React.createElement(Field, { label: 'Período', value: s.fecha || '—', wide: true, mono: true }),
-        React.createElement(Field, { label: 'Noches', value: noches ? String(noches) : '—', mono: true }),
+        React.createElement(Field, { label: 'Noches', value: (t.noches != null) ? String(t.noches) : '—', mono: true }),
         React.createElement(Field, { label: 'Pax total', value: String(s.conf + s.opcion + s.libres), mono: true }),
         React.createElement(Field, { label: 'Mínimo (break-even)', value: String(s.min), mono: true }),
         React.createElement(Field, { label: 'Precio / pax (USD)', value: s.precioUSD ? String(s.precioUSD) : '—', mono: true })

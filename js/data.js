@@ -972,10 +972,13 @@ window.BA = (function () {
       const sess = await this.getSession();
       if (!window.SB || !sess) return null;                        // demo → caller usa el mock
       try {
-        const { data, error } = await window.SB.from('trips').select('id,title,status,data,access_code').eq('id', id).single();
+        const { data, error } = await window.SB.from('trips').select('id,title,status,data,access_code,start_date,end_date').eq('id', id).single();
         if (error || !data) return null;
         const mapped = window.BA._mapTripData(id, data.data || {});
         mapped.accessCode = data.access_code || '';
+        mapped.startDate = data.start_date || '';
+        mapped.endDate = data.end_date || '';
+        mapped.noches = (data.start_date && data.end_date) ? Math.max(0, Math.round((new Date(data.end_date) - new Date(data.start_date)) / 86400000)) : null;
         return mapped;
       } catch (e) { return null; }
     },                                                            // SELECT trips.data (RLS operador)
