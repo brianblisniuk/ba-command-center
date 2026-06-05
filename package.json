@@ -3,12 +3,20 @@
   "private": true,
   "version": "2.0.0",
   "type": "module",
-  "description": "Blisniuk & Amanov — Command Center (standalone canónico)",
+  "sideEffects": true,
+  "description": "Blisniuk & Amanov — Command Center (build Vite)",
   "scripts": {
     "dev": "vite",
-    "build": "rm -rf dist && mkdir -p dist && cp index.html tweaks-panel.jsx dist/ && cp -r css js dist/",
+    "build": "vite build",
     "preview": "vite preview"
   },
-  "dependencies": { "react": "^18.3.1", "react-dom": "^18.3.1" },
-  "devDependencies": { "vite": "^5.4.0", "typescript": "^5.5.0" }
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "typescript": "^5.5.0"
+  }
 }
