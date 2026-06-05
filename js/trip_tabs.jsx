@@ -475,60 +475,67 @@
       React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + (cols || 2) + ', 1fr)', gap: 14 } }, children));
   }
   function ConfigViaje({ s, toast }) {
-    const noches = parseInt((s.fecha.match(/\d+/g) || [1, 7])[1]) - parseInt((s.fecha.match(/\d+/g) || [1])[0]) || 6;
-    const code = s.etiqueta.replace('·', '-');
-    const huespedes = BA.tripData(s.id).reservas.confirmados;
+    const t = BA.tripData(s.id);
+    const cfg = t.cfg || { baseCurrency: 'USD', fxToUSD: 1, region: '' };
+    const huespedes = t.reservas.confirmados;
+    const [code, setCode] = useState(t.accessCode || '');
+    const [busy, setBusy] = useState(false);
+    const noches = (function () { const m = (s.fecha || '').match(/\d+/g) || []; const a = parseInt(m[0]); const b = parseInt(m[1]); return (a && b && b > a) ? (b - a) : ''; })();
+    const link = code ? ('https://expedicionmundial.netlify.app/?code=' + code) : '';
+    const copy = (txt, msg) => { try { if (navigator.clipboard) navigator.clipboard.writeText(txt); toast(msg); } catch (e) { toast('No se pudo copiar'); } };
+    async function regen() { if (busy) return; setBusy(true); const r = await BA.source.setTripAccessCode(s.id); setBusy(false); if (r && r.ok) { setCode(r.code); toast(code ? 'Código regenerado — el anterior queda inválido' : 'Código generado'); } else toast((r && r.error) || 'No se pudo generar'); }
     return React.createElement('div', { className: 'grid' },
       React.createElement(CfgCard, { title: 'Identidad' },
         React.createElement(Field, { label: 'Título', value: s.titulo, wide: true }),
-        React.createElement(Field, { label: 'Etiqueta corta', value: s.etiqueta, mono: true }),
-        React.createElement(Field, { label: 'Categoría', value: s.cat }),
-        React.createElement(Field, { label: 'Región', value: s.region }),
-        React.createElement(Field, { label: 'País', value: s.pais })
+        React.createElement(Field, { label: 'Etiqueta corta', value: s.etiqueta || '—', mono: true }),
+        React.createElement(Field, { label: 'Categoría', value: s.cat || '—' }),
+        React.createElement(Field, { label: 'Región', value: s.region || '—' }),
+        React.createElement(Field, { label: 'País', value: s.pais || '—' })
       ),
       React.createElement(CfgCard, { title: 'Fechas y grupo' },
-        React.createElement(Field, { label: 'Período', value: s.fecha, wide: true, mono: true }),
-        React.createElement(Field, { label: 'Noches', value: String(Math.abs(noches)), mono: true }),
+        React.createElement(Field, { label: 'Período', value: s.fecha || '—', wide: true, mono: true }),
+        React.createElement(Field, { label: 'Noches', value: noches ? String(noches) : '—', mono: true }),
         React.createElement(Field, { label: 'Pax total', value: String(s.conf + s.opcion + s.libres), mono: true }),
         React.createElement(Field, { label: 'Mínimo (break-even)', value: String(s.min), mono: true }),
-        React.createElement(Field, { label: 'Precio / pax (USD)', value: String(s.precioUSD), mono: true })
+        React.createElement(Field, { label: 'Precio / pax (USD)', value: s.precioUSD ? String(s.precioUSD) : '—', mono: true })
       ),
       React.createElement(CfgCard, { title: 'Basecamp y monedas' },
-        React.createElement(Field, { label: 'Basecamp', value: s.region + ' centro', wide: true }),
-        React.createElement(Field, { label: 'Moneda base', value: 'EUR', mono: true }),
-        React.createElement(Field, { label: 'Tipo de cambio EUR→USD', value: '1.08', mono: true })
+        React.createElement(Field, { label: 'Basecamp', value: cfg.region || '—', wide: true }),
+        React.createElement(Field, { label: 'Moneda base', value: cfg.baseCurrency, mono: true }),
+        React.createElement(Field, { label: 'Cambio ' + cfg.baseCurrency + '→USD', value: cfg.baseCurrency === 'USD' ? '1.00 (base)' : String(cfg.fxToUSD), mono: true })
       ),
       React.createElement('div', { className: 'card pad' },
         React.createElement(CardHead, { title: 'Acceso del cliente' }),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '13px 15px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', marginBottom: 12, flexWrap: 'wrap' } },
           React.createElement('div', null, React.createElement('div', { className: 'eyebrow' }, 'Código de acceso'),
-            React.createElement('div', { className: 'mono', style: { fontSize: 19, color: 'var(--text-1)', marginTop: 3, letterSpacing: '0.12em' } }, code)),
-          React.createElement('div', { style: { display: 'flex', gap: 8 } },
-            React.createElement('button', { className: 'btn sm', onClick: () => toast('Mensaje de invitación copiado') }, React.createElement(Icon, { name: 'copy' }), 'Copiar invitación'),
-            React.createElement('button', { className: 'btn sm', onClick: () => toast('Vista de cliente') }, React.createElement(Icon, { name: 'eye' }), 'Ver como cliente'),
-            React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Código regenerado — el anterior queda inválido') }, React.createElement(Icon, { name: 'refresh' }), 'Regenerar'))
+            React.createElement('div', { className: 'mono', style: { fontSize: 19, color: code ? 'var(--text-1)' : 'var(--text-3)', marginTop: 3, letterSpacing: '0.12em' } }, code || 'sin código')),
+          React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
+            React.createElement('button', { className: 'btn sm', disabled: !code, onClick: () => copy(link, 'Link de invitación copiado') }, React.createElement(Icon, { name: 'copy' }), 'Copiar invitación'),
+            React.createElement('button', { className: 'btn sm', disabled: !code, onClick: () => { try { window.open(link, '_blank', 'noopener'); } catch (e) {} } }, React.createElement(Icon, { name: 'eye' }), 'Ver como cliente'),
+            React.createElement('button', { className: 'btn sm primary', disabled: busy, onClick: regen }, React.createElement(Icon, { name: 'refresh' }), code ? 'Regenerar' : 'Generar código'))
         )
       ),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', alignItems: 'start' } },
         React.createElement('div', { className: 'card pad' },
-          React.createElement(CardHead, { title: 'Operadores', right: React.createElement('button', { className: 'btn sm', onClick: () => toast('Invitar operador') }, React.createElement(Icon, { name: 'plus' }), 'Agregar') }),
+          React.createElement(CardHead, { title: 'Operadores' }),
           BA.operadores.map((o, i) => React.createElement('div', { key: i, className: 'row' },
             React.createElement(Avatar, { id: o.id, size: 30 }),
             React.createElement('div', { style: { flex: 1 } }, React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)' } }, o.name),
-              React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)' } }, o.id === s.resp ? 'Responsable · última entrada hoy' : 'Operador')),
+              React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)' } }, o.id === s.resp ? 'Responsable' : 'Operador')),
             o.id === s.resp && React.createElement('span', { className: 'badge go' }, 'Responsable')))
         ),
         React.createElement('div', { className: 'card pad' },
-          React.createElement(CardHead, { title: 'Huéspedes', count: huespedes.length, right: React.createElement('button', { className: 'btn sm', onClick: () => toast('Invitar huésped') }, React.createElement(Icon, { name: 'plus' }), 'Invitar') }),
-          huespedes.map((h, i) => React.createElement('div', { key: i, className: 'row' },
-            React.createElement('span', { className: 'av', style: { background: 'var(--laurel)' } }, h.nombre[0]),
-            React.createElement('div', { style: { flex: 1 } }, React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)' } }, h.nombre),
-              React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)' } }, h.alergias !== '—' ? 'Restricción: ' + h.alergias : 'Sin restricciones')),
-            React.createElement('span', { className: 'badge ' + (h.alergias !== '—' ? 'risk' : 'ghost') }, h.pax + ' pax')))
+          React.createElement(CardHead, { title: 'Huéspedes', count: huespedes.length, right: React.createElement('button', { className: 'btn sm', disabled: !code, onClick: () => copy(link, 'Link para el huésped copiado') }, React.createElement(Icon, { name: 'copy' }), 'Copiar link') }),
+          huespedes.length === 0
+            ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', padding: '6px 0' } }, 'Sin huéspedes confirmados todavía.')
+            : huespedes.map((h, i) => React.createElement('div', { key: i, className: 'row' },
+                React.createElement('span', { className: 'av', style: { background: 'var(--laurel)' } }, h.nombre[0]),
+                React.createElement('div', { style: { flex: 1 } }, React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)' } }, h.nombre),
+                  React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)' } }, h.alergias !== '—' ? 'Restricción: ' + h.alergias : 'Sin restricciones')),
+                React.createElement('span', { className: 'badge ' + (h.alergias !== '—' ? 'risk' : 'ghost') }, h.pax + ' pax')))
         )
       )
     );
   }
-
   Object.assign(window, { Itinerario, Ruta, Presupuesto, Reservas, AppCliente, ConfigViaje });
 })();

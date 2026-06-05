@@ -256,6 +256,6 @@
     const TT2 = { reservation: 'reserva', contact: 'contacto', research: 'research', purchase: 'compra', logistics: 'logística', logistic: 'logística' };
     const tareas = (Array.isArray(data.actions) ? data.actions : []).map(a => ({ id: a.id || '', p: a.priority || 'P3', tipo: TT2[a.type] || 'otro', t: a.task || a.description || '—', done: !!a.done, due: a.dueDate || '' }));
 
-    return { itinerario, proveedores, presupuesto, reservas, tareas };
+    return { itinerario, proveedores, presupuesto, reservas, tareas, cfg: { baseCurrency: baseCur, fxToUSD: Math.round(((Number(fx.USD) || 1) / (Number(fx[baseCur]) || 1)) * 10000) / 10000, region: meta.region || '' } };
   };
 })();
