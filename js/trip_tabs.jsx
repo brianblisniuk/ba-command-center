@@ -246,39 +246,41 @@
     const data = BA.tripData(s.id).itinerario;
     const [dia, setDia] = useState(data[1] ? 2 : 1);
     const [modo, setModo] = useState('dia'); // dia | p2p
-    const [sheet, setSheet] = useState(null); // stop seleccionado
+    const [sheet, setSheet] = useState(null);
+    const [from, setFrom] = useState(0);
+    const [to, setTo] = useState(1);
     const day = data.find(d => d.n === dia) || data[0];
     if (!day) return React.createElement('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, 'Sin itinerario todavía. Cargalo en la pestaña Itinerario.');
     const stops = day.slots.filter(sl => sl.type !== 'lodging');
-    const legs = stops.slice(1).map((sl, i) => ({ from: stops[i].title, to: sl.title, mode: i % 2 ? 'auto' : 'a pie', mins: i % 2 ? 12 + i * 3 : 6 + i * 2 }));
-    const totalDrive = legs.filter(l => l.mode === 'auto').reduce((a, l) => a + l.mins, 0);
-    // punto a punto
-    const puntos = ['Basecamp · ' + s.region, ...stops.map(st => st.title)];
-    const [from, setFrom] = useState(0);
-    const [to, setTo] = useState(1);
-    const p2pMins = 8 + Math.abs(to - from) * 6;
+    const mapsSearch = (q) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+    const mapsDir = (pts) => 'https://www.google.com/maps/dir/' + pts.filter(Boolean).map(x => encodeURIComponent(x)).join('/');
+    const openMaps = (url) => { try { window.open(url, '_blank', 'noopener'); } catch (e) { toast('No se pudo abrir el mapa'); } };
+    const stopQ = (t) => t + (s.region ? ', ' + s.region : '');
+    const base = ('Basecamp' + (s.region ? ' ' + s.region : '')).trim();
+    const dayUrl = mapsDir([base, ...stops.map(st => stopQ(st.title))]);
+    const puntos = [base, ...stops.map(st => st.title)];
+    const p2pUrl = mapsDir([from === 0 ? base : stopQ(puntos[from]), to === 0 ? base : stopQ(puntos[to])]);
+    const selSt = { width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 };
     const xy = (i, n) => ({ x: 14 + (i * 72) / Math.max(1, n - 1), y: 22 + (i % 2 ? 26 : -4) + 18 });
 
     return React.createElement('div', null,
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' } },
         React.createElement('div', { className: 'seg-tabs', style: { maxWidth: 240 } },
           [['dia', 'Modo día'], ['p2p', 'Punto a punto']].map(([k, t]) => React.createElement('button', { key: k, className: modo === k ? 'on' : '', onClick: () => { setModo(k); setSheet(null); } }, t))),
-        modo === 'dia'
-          ? React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: 'route', style: { width: 13, height: 13 } }), 'Total en auto · ' + totalDrive + ' min')
-          : React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: 'route', style: { width: 13, height: 13 } }), 'Ruta frecuente · auto')
+        React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: 'route', style: { width: 13, height: 13 } }), stops.length + (stops.length === 1 ? ' parada' : ' paradas'))
       ),
       modo === 'dia' && React.createElement('div', { className: 'tb-seg', style: { marginBottom: 14, display: 'inline-flex' } },
         data.map(d => React.createElement('button', { key: d.n, className: dia === d.n ? 'on' : '', onClick: () => { setDia(d.n); setSheet(null); } }, 'Día ' + d.n))),
       modo === 'p2p' && React.createElement('div', { className: 'card pad', style: { marginBottom: 14 } },
         React.createElement('div', { style: { display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' } },
           React.createElement('div', { style: { flex: 1, minWidth: 160 } }, React.createElement('div', { className: 'eyebrow', style: { marginBottom: 6 } }, 'Desde'),
-            React.createElement('select', { value: from, onChange: e => setFrom(+e.target.value), style: { width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } }, puntos.map((p, i) => React.createElement('option', { key: i, value: i }, p)))),
+            React.createElement('select', { value: from, onChange: e => setFrom(+e.target.value), style: selSt }, puntos.map((p, i) => React.createElement('option', { key: i, value: i }, p)))),
           React.createElement(Icon, { name: 'arrowright', style: { width: 18, height: 18, color: 'var(--text-3)', marginBottom: 10 } }),
           React.createElement('div', { style: { flex: 1, minWidth: 160 } }, React.createElement('div', { className: 'eyebrow', style: { marginBottom: 6 } }, 'Hasta'),
-            React.createElement('select', { value: to, onChange: e => setTo(+e.target.value), style: { width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } }, puntos.map((p, i) => React.createElement('option', { key: i, value: i }, p)))),
-          React.createElement('div', { style: { textAlign: 'right' } }, React.createElement('div', { className: 'figure', style: { fontSize: 22, color: 'var(--text-1)' } }, p2pMins, React.createElement('span', { style: { fontSize: 12, color: 'var(--text-3)', marginLeft: 3 } }, 'min')), React.createElement('div', { className: 'eyebrow' }, 'en auto')))),
+            React.createElement('select', { value: to, onChange: e => setTo(+e.target.value), style: selSt }, puntos.map((p, i) => React.createElement('option', { key: i, value: i }, p)))),
+          React.createElement('button', { className: 'btn primary', style: { marginBottom: 2 }, onClick: () => openMaps(p2pUrl) }, React.createElement(Icon, { name: 'route' }), 'Ver ruta en Google Maps'))),
       React.createElement('div', { className: 'card pad' },
-        React.createElement(CardHead, { title: modo === 'dia' ? day.title : 'Ruta directa', right: React.createElement('button', { className: 'card-link', onClick: () => toast('Abrir en Google Maps') }, 'Google Maps', React.createElement(Icon, { name: 'cr' })) }),
+        React.createElement(CardHead, { title: modo === 'dia' ? day.title : 'Ruta directa', right: React.createElement('button', { className: 'card-link', onClick: () => openMaps(modo === 'dia' ? dayUrl : p2pUrl) }, 'Google Maps', React.createElement(Icon, { name: 'cr' })) }),
         React.createElement('div', { style: { position: 'relative', borderRadius: 'var(--radius-sm)', overflow: 'hidden', background: 'var(--surface-2)', aspectRatio: '16/10' } },
           React.createElement('svg', { viewBox: '0 0 100 75', preserveAspectRatio: 'none', style: { position: 'absolute', inset: 0, width: '100%', height: '100%' } },
             [15, 30, 45, 60].map(y => React.createElement('line', { key: 'h' + y, x1: 0, x2: 100, y1: y, y2: y, stroke: 'var(--rule-soft)', strokeWidth: 0.3 })),
@@ -290,74 +292,26 @@
             ? stops.map((sl, i) => { const p = xy(i, stops.length);
                 return React.createElement('div', { key: i, style: { position: 'absolute', left: p.x + '%', top: p.y + '%', transform: 'translate(-50%,-50%)', width: 26, height: 26, borderRadius: 9, background: sl.access ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 12, fontWeight: 700, boxShadow: 'var(--shadow-sm)', cursor: 'pointer' }, title: sl.title, onClick: () => setSheet(sl) }, i + 1); })
             : [['18%', '30%', 'A'], ['82%', '50%', 'B']].map((p, i) => React.createElement('div', { key: i, style: { position: 'absolute', left: p[0], top: p[1], transform: 'translate(-50%,-50%)', width: 28, height: 28, borderRadius: 9, background: i ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 12, fontWeight: 700, boxShadow: 'var(--shadow-sm)' } }, p[2])),
-          // bottom sheet
+          React.createElement('div', { style: { position: 'absolute', left: 8, bottom: 6, fontSize: 9.5, color: 'var(--text-3)', fontFamily: 'var(--ff-mono)', background: 'var(--surface)', padding: '2px 6px', borderRadius: 6, opacity: 0.85 } }, 'Esquema de secuencia · no a escala'),
           sheet && React.createElement('div', { className: 'sheet' },
             React.createElement('span', { className: 'sheet-grab' }),
             React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 4 } },
               React.createElement('span', { className: 'slot-glyph', style: { background: (BA.STYPE[sheet.type] || {}).c || 'var(--accent)' } }, (BA.STYPE[sheet.type] || {}).g || '●'),
               React.createElement('div', { style: { flex: 1, minWidth: 0 } },
                 React.createElement('div', { style: { fontSize: 14, fontWeight: 650, color: 'var(--text-1)' } }, sheet.title),
-                React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 2 } }, sheet.time + '–' + sheet.end + ' · ' + (sheet.provider || '—'))),
+                React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 2 } }, (sheet.time || '') + (sheet.end ? '–' + sheet.end : '') + ' · ' + (sheet.provider || '—'))),
               React.createElement('button', { className: 'drawer-close', style: { width: 28, height: 28 }, onClick: () => setSheet(null) }, React.createElement(Icon, { name: 'x' }))),
             React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 12 } },
-              React.createElement('button', { className: 'btn sm primary', style: { flex: 1 }, onClick: () => toast('Abrir slot') }, React.createElement(Icon, { name: 'list' }), 'Abrir slot'),
-              React.createElement('button', { className: 'btn sm', style: { flex: 1 }, onClick: () => toast('Abrir en Google Maps') }, React.createElement(Icon, { name: 'pin' }), 'Ver en mapa')))
+              React.createElement('button', { className: 'btn sm primary', style: { flex: 1 }, onClick: () => openMaps(mapsSearch(stopQ(sheet.title))) }, React.createElement(Icon, { name: 'pin' }), 'Ver en Google Maps')))
         ),
         modo === 'dia' && React.createElement('div', { style: { marginTop: 16 } },
-          stops.map((sl, i) => React.createElement('div', { key: i },
-            React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 11, padding: '8px 0', cursor: 'pointer' }, onClick: () => setSheet(sl) },
-              React.createElement('span', { style: { width: 24, height: 24, borderRadius: 8, flexShrink: 0, background: sl.access ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 11, fontWeight: 700 } }, i + 1),
-              React.createElement('span', { style: { flex: 1, fontSize: 13, color: 'var(--text-1)', fontWeight: 600 } }, sl.title)),
-            legs[i] && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0 2px 35px', fontSize: 11.5, color: 'var(--text-3)' } },
-              React.createElement(Icon, { name: legs[i].mode === 'auto' ? 'route' : 'pin', style: { width: 13, height: 13 } }), legs[i].mode + ' · ' + legs[i].mins + ' min'))))
+          stops.map((sl, i) => React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 11, padding: '8px 0', cursor: 'pointer' }, onClick: () => setSheet(sl) },
+            React.createElement('span', { style: { width: 24, height: 24, borderRadius: 8, flexShrink: 0, background: sl.access ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 11, fontWeight: 700 } }, i + 1),
+            React.createElement('span', { style: { flex: 1, fontSize: 13, color: 'var(--text-1)', fontWeight: 600 } }, sl.title),
+            React.createElement(Icon, { name: 'cr', style: { width: 14, height: 14, color: 'var(--text-3)' } }))))
       )
     );
   }
-
-  // ============ PROVEEDORES ============
-  const PT = { restaurant: 'Restaurante', winery: 'Bodega', wine: 'Bodega', meal: 'Restaurante', hotel: 'Hotel', transfer: 'Transfer', guide: 'Guía', activity: 'Actividad', lodging: 'Lodge', truffle: 'Trufa', service: 'Servicio', villa: 'Villa', expert: 'Acceso', culture: 'Cultura' };
-  const PEST = { confirmada: { c: 'go', t: 'Confirmada' }, conversando: { c: 'risk', t: 'Conversando' }, pendiente: { c: 'ghost', t: 'Pendiente' } };
-  function Proveedores({ s, cur, toast, openProvider }) {
-    const all = BA.tripData(s.id).proveedores;
-    const [tipo, setTipo] = useState('all');
-    const [estados, setEstados] = useState(() => all.map(p => p.estado));
-    const tipos = ['all', ...Array.from(new Set(all.map(p => p.tipo)))];
-    const conf = estados.filter(e => e === 'confirmada').length;
-    const conv = estados.filter(e => e === 'conversando').length;
-    const pend = estados.filter(e => e === 'pendiente').length;
-    function cycle(i) { const order = ['pendiente', 'conversando', 'confirmada']; setEstados(es => es.map((e, j) => j === i ? order[(order.indexOf(e) + 1) % 3] : e)); toast('Estado actualizado'); }
-    return React.createElement('div', null,
-      React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 'var(--gap)' } },
-        [['Confirmadas', conf, 'go'], ['Conversando', conv, 'risk'], ['Pendientes', pend, 'ghost']].map(([t, n, c], i) =>
-          React.createElement('div', { key: i, className: 'card pad', style: { display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px' } },
-            React.createElement('span', { className: 'badge ' + c, style: { width: 10, height: 10, padding: 0, borderRadius: 99 } }),
-            React.createElement('span', { className: 'figure', style: { fontSize: 26 } }, n),
-            React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-3)' } }, t)))
-      ),
-      React.createElement('div', { style: { display: 'flex', gap: 7, marginBottom: 14, flexWrap: 'wrap' } },
-        tipos.map(t => React.createElement('button', { key: t, className: 'badge ' + (tipo === t ? 'go' : 'ghost'), style: { cursor: 'pointer', padding: '6px 11px' }, onClick: () => setTipo(t) }, t === 'all' ? 'Todos' : PT[t]))),
-      React.createElement('div', { className: 'card pad' },
-        React.createElement('table', { className: 'tbl' },
-          React.createElement('thead', null, React.createElement('tr', null,
-            ['Proveedor', 'Tipo', 'Lugar', 'Precio', 'Cierra', 'Estado', ''].map((h, i) => React.createElement('th', { key: i, style: i === 3 ? { textAlign: 'right' } : null }, h)))),
-          React.createElement('tbody', null, all.map((p, i) => (tipo === 'all' || p.tipo === tipo) && React.createElement('tr', { key: i, className: 'click', onClick: () => openProvider && openProvider(p.id) },
-            React.createElement('td', null, React.createElement('span', { className: 'nm' }, p.nombre),
-              p.michelin > 0 && React.createElement('span', { style: { color: 'var(--brass)', marginLeft: 6 } }, '★'.repeat(p.michelin))),
-            React.createElement('td', null, PT[p.tipo]),
-            React.createElement('td', null, p.lugar),
-            React.createElement('td', { className: 'mono', style: { textAlign: 'right' } }, p.precioUSD ? M(p.precioUSD, cur) : '—'),
-            React.createElement('td', { className: 'mono' }, p.cierra),
-            React.createElement('td', null, React.createElement('button', { className: 'badge ' + PEST[estados[i]].c, style: { cursor: 'pointer' }, onClick: e => { e.stopPropagation(); cycle(i); } }, PEST[estados[i]].t)),
-            React.createElement('td', { style: { textAlign: 'right', whiteSpace: 'nowrap' } },
-              React.createElement('span', { style: { display: 'inline-flex', gap: 4 } },
-                ['phone', 'mail', 'pin'].map(ic => React.createElement('button', { key: ic, className: 'tag', style: { padding: '4px 6px' }, onClick: e => { e.stopPropagation(); toast('Abrir ' + ic); } }, React.createElement(Icon, { name: ic, style: { width: 13, height: 13 } })))))
-          )))
-        )
-      )
-    );
-  }
-
-  // ============ PRESUPUESTO ============
   function Presupuesto({ s, cur, toast }) {
     const reload = () => BA.tripData(s.id).presupuesto;
     const [b, setB] = useState(reload);
@@ -458,32 +412,6 @@
 
   // ============ TAREAS ============
   const TT = { reserva: 'Reserva', compra: 'Compra', contacto: 'Contacto', research: 'Research', logística: 'Logística', otro: 'Otro' };
-  function Tareas({ s, toast }) {
-    const [items, setItems] = useState(() => BA.tripData(s.id).tareas.map((t, i) => ({ ...t, id: i })));
-    const [filtro, setFiltro] = useState('all');
-    function toggle(id) { setItems(L => L.map(t => t.id === id ? { ...t, done: !t.done } : t)); }
-    const list = items.filter(t => filtro === 'all' ? true : filtro === 'pend' ? !t.done : t.p === filtro);
-    const PCOL = { P1: 'bad', P2: 'risk', P3: 'ghost' };
-    return React.createElement('div', null,
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14, flexWrap: 'wrap' } },
-        React.createElement('div', { style: { display: 'flex', gap: 7, flexWrap: 'wrap' } },
-          [['all', 'Todas'], ['pend', 'Pendientes'], ['P1', 'P1'], ['P2', 'P2'], ['P3', 'P3']].map(([k, t]) =>
-            React.createElement('button', { key: k, className: 'badge ' + (filtro === k ? 'go' : 'ghost'), style: { cursor: 'pointer', padding: '6px 11px' }, onClick: () => setFiltro(k) }, t))),
-        React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Tarea agregada') }, React.createElement(Icon, { name: 'plus' }), 'Agregar tarea')),
-      React.createElement('div', { className: 'card pad' },
-        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 0 } },
-          list.map(t => React.createElement('div', { key: t.id, className: 'row', style: { gap: 13 } },
-            React.createElement('button', { onClick: () => toggle(t.id), style: { width: 22, height: 22, borderRadius: 7, flexShrink: 0, border: '1.6px solid ' + (t.done ? 'var(--go)' : 'var(--rule-strong)'), background: t.done ? 'var(--go)' : 'transparent', display: 'grid', placeItems: 'center', color: '#fff' } },
-              t.done && React.createElement(Icon, { name: 'check', style: { width: 13, height: 13, strokeWidth: 3 } })),
-            React.createElement('span', { style: { flex: 1, fontSize: 13.5, color: t.done ? 'var(--text-faint)' : 'var(--text-1)', textDecoration: t.done ? 'line-through' : 'none' } }, t.t),
-            React.createElement('span', { className: 'tag', style: { padding: '2px 8px' } }, TT[t.tipo]),
-            React.createElement('span', { className: 'badge ' + PCOL[t.p], style: { padding: '2px 7px' } }, t.p)))
-        )
-      )
-    );
-  }
-
-  // ============ APP CLIENTE ============
   function AppCliente({ s, toast }) {
     const [code, setCode] = useState(() => (BA.tripData(s.id).accessCode || ''));
     const [busy, setBusy] = useState(false);
@@ -602,5 +530,5 @@
     );
   }
 
-  Object.assign(window, { Itinerario, Ruta, Proveedores, Presupuesto, Reservas, Tareas, AppCliente, ConfigViaje });
+  Object.assign(window, { Itinerario, Ruta, Presupuesto, Reservas, AppCliente, ConfigViaje });
 })();
