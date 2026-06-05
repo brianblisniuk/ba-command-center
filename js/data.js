@@ -832,10 +832,10 @@ window.BA = (function () {
         if (p.minPax) row.min_pax = p.minPax;
         if (p.go_status) row.go_status = p.go_status;
         if (typeof p.sellable === 'boolean') row.sellable = p.sellable;
-        const { data: ins, error } = await window.SB.from('trips').insert(row).select('id').single();
+        const { error } = await window.SB.from('trips').insert(row);
         if (error) return { ok: false, error: error.message };
         await this.hydrateTrips();
-        return { ok: true, id: ins.id };
+        return { ok: true, id };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // alta de viaje (insert trips, RLS is_any_operator)
     async fileUpload(path, file) {
