@@ -817,6 +817,11 @@ window.BA = (function () {
         return data || { ok: false };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // CRUD de data.actions / data.budget (Tareas + Presupuesto)
+    async getMapsKey() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return null;
+      try { const { data, error } = await window.SB.rpc('get_maps_key'); if (error) return null; return data || null; } catch (e) { return null; }
+    },
     async setTripAccessCode(tripId) {
       const sess = await this.getSession();
       if (!window.SB || !sess) return { ok: false, error: 'sin sesión' };

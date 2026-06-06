@@ -9,6 +9,26 @@
   const STAGES = ['pendiente', 'conversando', 'confirmada'];
   const RAW = { pendiente: 'pending', conversando: 'negotiating', confirmada: 'confirmed' };
   const TYPE_OPTS = [['restaurant', 'Restaurante'], ['winery', 'Bodega'], ['hotel', 'Hotel'], ['transfer', 'Transfer'], ['guide', 'Guía'], ['activity', 'Actividad'], ['lodging', 'Lodge'], ['service', 'Servicio'], ['villa', 'Villa'], ['expert', 'Acceso'], ['culture', 'Cultura'], ['truffle', 'Trufa']];
+  let _mapsPromise = null;
+  function loadMaps(key) {
+    if (window.google && window.google.maps && window.google.maps.importLibrary) return Promise.resolve();
+    if (_mapsPromise) return _mapsPromise;
+    _mapsPromise = new Promise((resolve, reject) => {
+      window.__bamaps_cb = () => resolve();
+      const sc = document.createElement('script');
+      sc.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&libraries=places&language=es&callback=__bamaps_cb';
+      sc.async = true; sc.onerror = () => { _mapsPromise = null; reject(new Error('No se pudo cargar Google Maps')); };
+      document.head.appendChild(sc);
+    });
+    return _mapsPromise;
+  }
+  async function getPlaceClass() {
+    const key = await BA.source.getMapsKey();
+    if (!key) throw new Error('Falta la API key de Google');
+    await loadMaps(key);
+    const lib = await window.google.maps.importLibrary('places');
+    return lib.Place;
+  }
   const ST_LBL = { pendiente: 'Pendiente', conversando: 'Conversando', confirmada: 'Confirmada' };
 
   function Proveedores({ s, cur, toast, openProvider }) {
@@ -37,7 +57,45 @@
       if (r && r.ok) { const fresh = (BA.tripData(s.id).proveedores || []).map(p => ({ ...p, geo: p.lat != null && p.lng != null })); setItems(fresh); setNuevo(null); toast('Proveedor agregado'); }
       else toast((r && r.error) || 'No se pudo agregar');
     }
-    function barrer() { toast('El barrido real de Google Places (geolocalizar lo que falte) se activa al configurar la API key. Lo armo a continuación.'); }
+    async function barrer() {
+      if (barriendo) return;
+      const faltan = items.filter(p => !p.geo);
+      if (!faltan.length) { toast('Todos los proveedores ya están geolocalizados'); return; }
+      setBarriendo(true);
+      try {
+        const Place = await getPlaceClass();
+        let ok = 0;
+        for (const pr of faltan) {
+          try {
+            const textQuery = [pr.nombre, pr.lugar || s.region].filter(Boolean).join(', ');
+            const { places } = await Place.searchByText({
+              textQuery,
+              fields: ['displayName', 'formattedAddress', 'location', 'internationalPhoneNumber', 'nationalPhoneNumber', 'websiteURI', 'googleMapsURI', 'id'],
+              language: 'es', maxResultCount: 1
+            });
+            const f = places && places[0];
+            if (f && f.location) {
+              const loc = f.location;
+              const lat = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
+              const lng = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
+              const patch = { latitude: lat, longitude: lng };
+              if (f.googleMapsURI) patch.mapUrl = f.googleMapsURI;
+              if (f.formattedAddress && !pr.address) patch.location = f.formattedAddress;
+              if (!pr.phone && (f.internationalPhoneNumber || f.nationalPhoneNumber)) patch.phone = f.internationalPhoneNumber || f.nationalPhoneNumber;
+              if (!pr.web && f.websiteURI) patch.web = f.websiteURI;
+              const rr = await BA.source.tripDataApply(s.id, 'providers', 'upd', { id: pr.id, patch });
+              if (rr && rr.ok) ok++;
+            }
+          } catch (e2) { /* sigue con el próximo */ }
+        }
+        const fresh = (BA.tripData(s.id).proveedores || []).map(x => ({ ...x, geo: x.lat != null && x.lng != null }));
+        setItems(fresh);
+        toast(ok > 0 ? (ok + ' de ' + faltan.length + ' geolocalizados ✓') : 'No se encontraron coincidencias en Google');
+      } catch (e) {
+        toast((e && e.message) || 'Error en el barrido');
+      }
+      setBarriendo(false);
+    }
     const list = items.filter(p => tipo === 'all' || p.tipo === tipo);
     const conf = items.filter(p => p.estado === 'confirmada').length;
 
