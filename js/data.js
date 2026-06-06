@@ -516,8 +516,18 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); await this.hydrateBiblioteca(); await this.hydrateClientes(); await this.hydrateHistorial(); },
-    async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
+    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); await this.hydrateBiblioteca(); await this.hydrateClientes(); await this.hydrateHistorial(); await this.hydrateFunnel(); },
+    async funnel() {
+      const L = (window.BA && window.BA.leads) || [];
+      if (!L.length) return funnel;
+      const defs = [ { key:'new', etapa:'Nuevos', color:'#8B8478' }, { key:'contacted', etapa:'Contactados', color:'#3F6B78' }, { key:'qualified', etapa:'Calificado', color:'#6B6258' }, { key:'proposal', etapa:'Propuesta', color:'#B8945A' }, { key:'negotiating', etapa:'Negociaci\u00f3n', color:'#4A6A4B' }, { key:'booked', etapa:'Reservado', color:'#3D5A3E' } ];
+      return defs.map(d => { const items = L.filter(l => l.stageKey === d.key); return { etapa: d.etapa, n: items.length, valUSD: items.reduce((sm, l) => sm + (l.potUSD || 0), 0), color: d.color }; });
+    },                                                            // derivado de leads reales (leads_crm_pipeline)
+    async hydrateFunnel() {
+      const list = await this.funnel();
+      if (window.BA && Array.isArray(window.BA.funnel)) { window.BA.funnel.length = 0; (list || []).forEach(x => window.BA.funnel.push(x)); }
+      return window.BA && window.BA.funnel;
+    },
     async providersLibrary() {
       const sess = await this.getSession();
       if (!window.SB || !sess) return (window.BA && window.BA.biblioteca) || [];
