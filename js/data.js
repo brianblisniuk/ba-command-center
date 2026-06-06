@@ -545,6 +545,16 @@ window.BA = (function () {
       if (r && r.reglas) { cadencias.reglas = r.reglas; cadencias.cola = r.cola || []; }
       return cadencias;
     },
+    async logCadenceStep({ leadId, channel }) {
+      if (!window.SB || !leadId) return { error: 'sin lead' };
+      try {
+        const { data, error } = await window.SB.rpc('cadence_log_step', { p_lead_id: leadId, p_channel: channel });
+        if (error) return { error: error.message };
+        await this.hydrateCadencias();
+        try { window.dispatchEvent(new Event('cadence:refresh')); } catch (e) {}
+        return data || { ok: true };
+      } catch (e) { return { error: String(e) }; }
+    },                                                            // registra el toque (lead_events) y refresca la cola
     async providersLibrary() {
       const sess = await this.getSession();
       if (!window.SB || !sess) return (window.BA && window.BA.biblioteca) || [];

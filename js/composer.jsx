@@ -19,7 +19,11 @@
       setSending(true); toast('Enviando…');
       const res = await BA.source.sendEmail({ account: cuenta, to: to, subject: asunto, text: cuerpo });
       setSending(false);
-      if (res && res.ok) { toast('Mail enviado a ' + to + ' ✓'); onClose(); }
+      if (res && res.ok) {
+        toast('Mail enviado a ' + to + ' ✓');
+        if (initial.cadenceLeadId && BA.source.logCadenceStep) { try { await BA.source.logCadenceStep({ leadId: initial.cadenceLeadId, channel: 'email' }); } catch (e) {} }
+        onClose();
+      }
       else { toast('No se pudo enviar: ' + (res ? res.error : 'error')); }
     }
 

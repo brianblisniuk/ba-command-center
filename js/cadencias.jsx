@@ -39,6 +39,8 @@
     const [selId, setSelId] = useState(reglas[0] ? reglas[0].id : null);
     const [, force] = useState(0);
     React.useEffect(() => {
+      const refresh = () => force(x => x + 1);
+      window.addEventListener('cadence:refresh', refresh);
       if (BA.source && BA.source.hydrateCadencias) {
         Promise.resolve(BA.source.hydrateCadencias()).then(() => {
           const first = ((BA.cadencias && BA.cadencias.reglas) || [])[0];
@@ -46,6 +48,7 @@
           force(x => x + 1);
         });
       }
+      return () => window.removeEventListener('cadence:refresh', refresh);
     }, []);
     const selRule = reglas.find(r => r.id === selId) || reglas[0] || null;
 
@@ -68,16 +71,19 @@
     function preparar(it, ev) {
       if (ev) ev.stopPropagation();
       const body = renderTpl(it.body, it.lead, it.tripId);
+      const nombre = it.lead.replace(/^Sample\s·\s/, '');
       if (it.channel === 'email') {
         const subject = renderTpl(it.subject, it.lead, it.tripId) || ('B&A · ' + viajeDe(it.tripId));
-        if (openCompose) { openCompose({ to: it.email || '', account: 'reservas', subject, text: body, name: it.lead }); toast('Borrador listo para ' + it.lead.replace(/^Sample\s·\s/, '')); }
+        if (openCompose) { openCompose({ to: it.email || '', account: 'reservas', subject, body, name: it.lead, cadenceLeadId: it.leadId }); toast('Borrador listo para ' + nombre); }
         else { navigator.clipboard && navigator.clipboard.writeText(body); toast('Copiado'); }
       } else if (it.channel === 'whatsapp') {
         const ph = (it.phone || '').replace(/\D/g, '');
         if (ph) { window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(body), '_blank'); }
-        else { navigator.clipboard && navigator.clipboard.writeText(body); toast('Mensaje copiado'); }
+        else { navigator.clipboard && navigator.clipboard.writeText(body); }
+        if (BA.source && BA.source.logCadenceStep) Promise.resolve(BA.source.logCadenceStep({ leadId: it.leadId, channel: 'whatsapp' })).then(() => toast('Toque registrado · ' + nombre));
       } else {
-        navigator.clipboard && navigator.clipboard.writeText(body); toast('Guion de llamada copiado');
+        navigator.clipboard && navigator.clipboard.writeText(body);
+        if (BA.source && BA.source.logCadenceStep) Promise.resolve(BA.source.logCadenceStep({ leadId: it.leadId, channel: 'call' })).then(() => toast('Guion copiado · toque registrado'));
       }
     }
     function prepararTodos() {
