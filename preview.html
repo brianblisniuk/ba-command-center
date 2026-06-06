@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light" data-accent="brass">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command Center Preview</title>
+  <!-- Enlace a la fuente moderna y al CSS que armamos -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/ds.css">
+</head>
+<body>
+
+  <div class="app">
+    <!-- BARRA LATERAL -->
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <div class="sb-logo">B</div>
+        <div class="sb-brand-txt">
+          <span class="sb-brand-name">Blisniuk & <em>Amanov</em></span>
+          <span class="sb-brand-sub">COMMAND CENTER</span>
+        </div>
+      </div>
+
+      <nav class="sb-nav">
+        <div class="sb-sec-label">SISTEMA</div>
+        
+        <button class="sb-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="sb-item-label">Dashboard</span>
+        </button>
+
+        <button class="sb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="sb-item-label">Operaciones</span>
+        </button>
+
+        <button class="sb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="sb-item-label">Ventas & Leads</span>
+          <span class="sb-badge">12</span>
+        </button>
+      </nav>
+
+      <div class="sb-foot">
+        <div class="sb-id">
+          <div class="sb-id-av">BB</div>
+          <div class="sb-id-txt">
+            <span class="sb-id-name">Brian Blisniuk</span>
+            <span class="sb-id-role">Dirección</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="main">
+      
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="tb-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" class="tb-search-txt" placeholder="Buscar reservas, expediciones, clientes..." style="border:none; outline:none; background:transparent; width:100%;">
+          <span class="tb-kbd">⌘K</span>
+        </div>
+        <div class="tb-spacer"></div>
+        <div class="tb-actions">
+          <div class="tb-sync">
+            <span class="d"></span> Sistema en línea
+          </div>
+          <button class="tb-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span class="dot"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENIDO -->
+      <div class="content">
+        <div class="content-inner rise">
+          
+          <div class="page-head">
+            <div>
+              <h1>Visión General</h1>
+              <p class="page-greet-sub">Resumen operativo para <b>Expedición Mundial</b>.</p>
+            </div>
+            <button class="btn brass">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Nueva Reserva
+            </button>
+          </div>
+
+          <!-- GRILDA DE ESTADÍSTICAS -->
+          <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+            <div class="stat">
+              <div class="stat-top">
+                <div class="stat-ic tint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="stat-label">EXPEDICIÓN USA 2026</span>
+              </div>
+              <div class="stat-fig">85<span class="u">%</span></div>
+              <div class="stat-foot">
+                <span class="stat-sub">Ocupación de plazas reservadas</span>
+                <span class="delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg> 12%</span>
+              </div>
+            </div>
+
+            <div class="stat">
+              <div class="stat-top">
+                <div class="stat-ic brass">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="stat-label">INGRESOS PROYECTADOS</span>
+              </div>
+              <div class="stat-fig"><span class="u">USD</span> 245K</div>
+              <div class="stat-foot">
+                <span class="stat-sub">Total facturado este mes</span>
+              </div>
+            </div>
+
+            <div class="stat">
+              <div class="stat-top">
+                <div class="stat-ic tint-curso">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <span class="stat-label">ISLANDIA 2027</span>
+              </div>
+              <div class="stat-fig">14</div>
+              <div class="stat-foot">
+                <span class="stat-sub">Leads de alto valor (Private Jet)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- GRID SECUNDARIO -->
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+            
+            <!-- TARJETA DE SALIDA PRÓXIMA -->
+            <div class="card pad">
+              <div class="card-head">
+                <h3>Próxima Expedición</h3>
+              </div>
+              <div class="salida">
+                <div class="salida-top">
+                  <div class="salida-glyph brass">USA</div>
+                  <div class="salida-tt">
+                    <h4>Caravana Motorhomes World Cup 2026</h4>
+                    <div class="meta">Texas — Kansas — Missouri</div>
+                  </div>
+                  <div class="badge go"><span class="bd"></span>CONFIRMADA</div>
+                </div>
+                <div class="salida-metrics">
+                  <div class="sm-cell">
+                    <div class="v">14</div>
+                    <div class="k">MOTORHOMES</div>
+                  </div>
+                  <div class="sm-cell">
+                    <div class="v">45</div>
+                    <div class="k">PASAJEROS</div>
+                  </div>
+                  <div class="sm-cell">
+                    <div class="v">Jun</div>
+                    <div class="k">MES SALIDA</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TARJETA DE ESTADO LOGÍSTICO (GO/NO-GO) -->
+            <div class="card pad">
+              <div class="card-head">
+                <h3>Estado Operativo</h3>
+              </div>
+              <div class="gonogo">
+                <div class="gng-ring">
+                  <svg width="64" height="64" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="var(--rule)" stroke-width="8" />
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="var(--go)" stroke-width="8" stroke-dasharray="175" stroke-dashoffset="35" stroke-linecap="round" transform="rotate(-90 32 32)" />
+                  </svg>
+                  <div class="lab">GO</div>
+                </div>
+                <div class="gng-reasons">
+                  <div class="gng-reason">
+                    <div class="chk ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+                    Disponibilidad de vehículos asegurada
+                  </div>
+                  <div class="gng-reason">
+                    <div class="chk ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+                    Break-even financiero superado
+                  </div>
+                  <div class="gng-reason">
+                    <div class="chk no"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></div>
+                    Confirmación de campings pendiente
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+</body>
+</html>
