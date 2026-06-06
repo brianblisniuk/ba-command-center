@@ -25,6 +25,8 @@
     const maxN = Math.max(1, ...fn.map(f => f.n));
     const totalPot = BA.leads.reduce((s, l) => s + (l.potUSD || 0), 0);
     const enfriando = BA.leads.filter(l => l.dias > 10 && l.stageKey !== 'booked' && l.stageKey !== 'lost').length;
+    const reservados = BA.leads.filter(l => l.stageKey === 'booked').length;
+    const convPct = BA.leads.length ? Math.round(reservados / BA.leads.length * 100) : 0;
     function onDrop(stageKey) {
       const id = drag; setDrag(null);
       if (!id) return;
@@ -42,9 +44,9 @@
         React.createElement('h1', null, React.createElement('span', { className: 'lt' }, 'Ventas')),
         React.createElement('div', { className: 'page-greet-sub' }, 'Pipeline completo · todas las salidas · una sola data, varias lentes'))),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 'var(--gap)' } },
-        React.createElement(StatCard, { icon: 'funnel', iconCls: '', label: 'Leads activos', value: BA.leads.length, sub: 'en pipeline', delta: 8 }),
+        React.createElement(StatCard, { icon: 'funnel', iconCls: '', label: 'Leads activos', value: BA.leads.length, sub: 'en pipeline' }),
         React.createElement(StatCard, { icon: 'coin', iconCls: 'tint', label: 'Potencial', value: k(totalPot, cur), sub: 'valor del pipeline' }),
-        React.createElement(StatCard, { icon: 'target', iconCls: 'tint-brass', label: 'Conversión', value: '26%', sub: 'lead → reserva', delta: 3 }),
+        React.createElement(StatCard, { icon: 'target', iconCls: 'tint-brass', label: 'Conversión', value: convPct + '%', sub: 'lead → reserva' }),
         React.createElement(StatCard, { icon: 'snow', iconCls: 'tint-bad', label: 'Enfriándose', value: enfriando, sub: '+10 días sin tocar' })
       ),
       // funnel

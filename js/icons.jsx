@@ -83,7 +83,8 @@
   // grouped/stacked bar chart (caja por mes / proyección)
   function BarChart({ data, keys, colors, h = 150, max }) {
     const W = 320, pad = 18, n = data.length;
-    const top = max || Math.max(...data.flatMap(d => keys.map(k => d[k])));
+    const vals = data.flatMap(d => keys.map(k => Number(d[k]) || 0));
+    const top = max || Math.max(1, ...vals);
     const slot = (W - pad * 2) / n;
     const bw = Math.min(26, slot * 0.5);
     return React.createElement('svg', { className: 'barchart', viewBox: `0 0 ${W} ${h}`, preserveAspectRatio: 'none' },
@@ -94,7 +95,7 @@
         let yAcc = h - 22;
         return React.createElement('g', { key: i },
           keys.map((k, ki) => {
-            const val = d[k]; const bh = (val / top) * (h - 26);
+            const val = Number(d[k]) || 0; const bh = (val / top) * (h - 26);
             yAcc -= bh;
             return React.createElement('rect', { key: ki, x: cx - bw / 2, y: yAcc, width: bw, height: Math.max(0, bh), rx: 3, fill: colors[ki] });
           }),
