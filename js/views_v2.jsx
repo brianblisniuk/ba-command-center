@@ -13,6 +13,7 @@
     provider: { ic: 'users',   c: 'var(--brass)',  t: 'Proveedor' },
     access:   { ic: 'key',     c: 'var(--brass)',  t: 'Acceso' },
     email:    { ic: 'mail',    c: 'var(--stone)',  t: 'Email' },
+    comment:  { ic: 'chat',    c: 'var(--curso)',  t: 'Comentario' },
   };
   function Historial({ toast, openTrip }) {
     const [filtro, setFiltro] = useState('all');
@@ -26,6 +27,7 @@
         tipos.map(tp => React.createElement('button', { key: tp, className: 'badge ' + (filtro === tp ? 'go' : 'ghost'), style: { cursor: 'pointer', padding: '6px 12px' }, onClick: () => setFiltro(tp) }, tp === 'all' ? 'Todo' : (EVT[tp] ? EVT[tp].t : tp)))),
       React.createElement('div', { className: 'card pad' },
         React.createElement('div', { className: 'tl' },
+          list.length === 0 ? React.createElement('div', { style: { padding: '32px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 } }, 'Sin actividad todav\u00eda. Cada cambio del negocio queda registrado ac\u00e1.') :
           list.map((c, i) => { const m = EVT[c.event_type] || EVT.trip; const s = c.trip ? BA.salidaById(c.trip) : null;
             return React.createElement('div', { key: i, className: 'tl-item' },
               React.createElement('div', { className: 'tl-dot', style: { borderColor: m.c, color: m.c, background: 'color-mix(in oklab,' + m.c + ' 14%, transparent)' } }, React.createElement(Icon, { name: m.ic })),
@@ -82,31 +84,33 @@
 
   // ============ CLIENTES (con estado vacío diseñado en mente) ============
   function Clientes({ cur, toast }) {
-    const cl = BA.clientes;
+    const cl = BA.clientes || [];
+    const valor = cl.reduce((s, c) => s + (c.ltvUSD || 0), 0);
     return React.createElement('div', { className: 'content-inner' },
       React.createElement('div', { className: 'page-head' }, React.createElement('div', null,
         React.createElement('h1', null, React.createElement('span', { className: 'lt' }, 'Clientes')),
-        React.createElement('div', { className: 'page-greet-sub' }, 'Los que ya viajaron · LTV · NPS · referidos'))),
+        React.createElement('div', { className: 'page-greet-sub' }, 'Tu cartera \u00b7 se construye sola cuando un lead pasa a reservado'))),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 'var(--gap)' } },
-        React.createElement(StatCard, { icon: 'users', iconCls: '', label: 'Clientes', value: cl.length, sub: 'histórico' }),
-        React.createElement(StatCard, { icon: 'coin', iconCls: 'tint', label: 'LTV total', value: k(cl.reduce((s, c) => s + c.ltvUSD, 0), cur), sub: 'pagado acumulado' }),
-        React.createElement(StatCard, { icon: 'star', iconCls: 'tint-brass', label: 'NPS', value: (cl.reduce((s, c) => s + c.nps, 0) / cl.length).toFixed(1), sub: 'promedio' }),
-        React.createElement(StatCard, { icon: 'spark', iconCls: 'tint', label: 'Referidos', value: cl.reduce((s, c) => s + c.trajo, 0), sub: 'traídos por clientes' })),
-      React.createElement('div', { className: 'card pad' },
-        React.createElement(CardHead, { title: 'Cartera', count: cl.length }),
-        React.createElement('div', { style: { overflowX: 'auto' } }, React.createElement('table', { className: 'tbl' },
-          React.createElement('thead', null, React.createElement('tr', null, ['Cliente', 'Viajes', 'LTV', 'NPS', 'Último viaje', 'Trajo', ''].map((h, i) => React.createElement('th', { key: i, style: i > 0 && i < 4 ? { textAlign: 'right' } : null }, h)))),
-          React.createElement('tbody', null, cl.map((c, i) => React.createElement('tr', { key: i, className: 'click', onClick: () => toast('Ficha · ' + c.nombre) },
-            React.createElement('td', null, React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 9 } }, React.createElement('span', { className: 'av', style: { width: 28, height: 28, background: 'var(--laurel)' } }, c.nombre[0]), React.createElement('span', { className: 'nm' }, c.nombre))),
-            React.createElement('td', { className: 'mono', style: { textAlign: 'right' } }, c.viajes),
-            React.createElement('td', { className: 'mono', style: { textAlign: 'right', color: 'var(--text-1)', fontWeight: 600 } }, k(c.ltvUSD, cur)),
-            React.createElement('td', { style: { textAlign: 'right' } }, React.createElement('span', { className: 'badge go' }, c.nps)),
-            React.createElement('td', null, c.ultimo),
-            React.createElement('td', { className: 'mono' }, c.trajo),
-            React.createElement('td', { style: { textAlign: 'right' } }, React.createElement('button', { className: 'btn sm', onClick: e => { e.stopPropagation(); toast('Invitación enviada a ' + c.nombre); } }, 'Invitar'))))))))
+        React.createElement(StatCard, { icon: 'users', iconCls: '', label: 'Clientes', value: cl.length, sub: 'en cartera' }),
+        React.createElement(StatCard, { icon: 'coin', iconCls: 'tint', label: 'Valor de cartera', value: k(valor, cur), sub: 'potencial reservado' }),
+        React.createElement(StatCard, { icon: 'compass', iconCls: 'tint-brass', label: 'Reservas', value: cl.length, sub: 'leads ganados' }),
+        React.createElement(StatCard, { icon: 'spark', iconCls: 'tint', label: 'Referidos', value: cl.reduce((s, c) => s + (c.trajo || 0), 0), sub: 'tra\u00eddos por clientes' })),
+      cl.length === 0
+        ? React.createElement('div', { className: 'card pad', style: { textAlign: 'center', padding: '48px 24px' } },
+            React.createElement('div', { style: { fontSize: 15, color: 'var(--text-1)', fontWeight: 600, marginBottom: 6 } }, 'Todav\u00eda no hay clientes en la cartera'),
+            React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', maxWidth: 440, margin: '0 auto', lineHeight: 1.5 } }, 'Cuando un lead pase a reservado en Ventas, va a aparecer ac\u00e1 autom\u00e1ticamente con su viaje y su valor. Nada que cargar a mano.'))
+        : React.createElement('div', { className: 'card pad' },
+            React.createElement(CardHead, { title: 'Cartera', count: cl.length }),
+            React.createElement('div', { style: { overflowX: 'auto' } }, React.createElement('table', { className: 'tbl' },
+              React.createElement('thead', null, React.createElement('tr', null, ['Cliente', 'Viaje', 'Valor', 'Estado', 'Contacto'].map((h, i) => React.createElement('th', { key: i, style: { textAlign: i === 2 ? 'right' : 'left' } }, h)))),
+              React.createElement('tbody', null, cl.map((c, i) => React.createElement('tr', { key: i },
+                React.createElement('td', null, React.createElement('span', { style: { fontWeight: 600, color: 'var(--text-1)' } }, c.nombre), (c.empresa && c.empresa !== '\u2014') ? React.createElement('span', { style: { color: 'var(--text-3)', fontSize: 12 } }, ' \u00b7 ' + c.empresa) : null),
+                React.createElement('td', null, c.ultimo),
+                React.createElement('td', { className: 'mono', style: { textAlign: 'right', color: 'var(--text-1)', fontWeight: 600 } }, k(c.ltvUSD, cur)),
+                React.createElement('td', null, React.createElement('span', { className: 'badge go' }, c.estado || 'reservado')),
+                React.createElement('td', { style: { fontSize: 12, color: 'var(--text-3)' } }, c.email || '\u2014')))))))
     );
   }
-
   window.Historial = Historial;
   window.Biblioteca = Biblioteca;
   window.Clientes = Clientes;

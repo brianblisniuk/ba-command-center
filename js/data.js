@@ -516,7 +516,7 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); await this.hydrateBiblioteca(); },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); await this.hydrateBiblioteca(); await this.hydrateClientes(); await this.hydrateHistorial(); },
     async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
     async providersLibrary() {
       const sess = await this.getSession();
@@ -553,6 +553,34 @@ window.BA = (function () {
         if (window.BA._provCache) { window.BA._provCache = {}; }
       }
       return window.BA && window.BA.biblioteca;
+    },
+    async clientes() {
+      const booked = ((window.BA && window.BA.leads) || []).filter(l => l.stageKey === 'booked');
+      return booked.map(l => {
+        const s = window.BA.salidaById ? window.BA.salidaById(l.salida) : null;
+        return { id: l.id, nombre: l.nombre || '\u2014', email: l.email || '', empresa: l.empresa || '', salida: l.salida,
+          ultimo: s ? (s.titulo || s.region) : (l.salida || '\u2014'), ltvUSD: l.potUSD || 0, viajes: 1, trajo: 0, nps: null, estado: 'reservado' };
+      });
+    },                                                            // cartera real = leads reservados (booked)
+    async hydrateClientes() {
+      const list = await this.clientes();
+      if (window.BA && Array.isArray(window.BA.clientes)) { window.BA.clientes.length = 0; (list || []).forEach(x => window.BA.clientes.push(x)); }
+      return window.BA && window.BA.clientes;
+    },
+    async historial() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return (window.BA && window.BA.changes) || [];
+      try {
+        const { data, error } = await window.SB.rpc('activity_feed', { p_limit: 40 });
+        if (error || !Array.isArray(data)) return (window.BA && window.BA.changes) || [];
+        const rw = (iso) => { if (!iso) return ''; const d = new Date(iso), n = new Date(); const sd = d.toDateString() === n.toDateString(); const yd = new Date(n); yd.setDate(n.getDate() - 1); const isy = d.toDateString() === yd.toDateString(); const hm = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }); if (sd) return 'hoy ' + hm; if (isy) return 'ayer ' + hm; return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) + ' ' + hm; };
+        return data.map(e => ({ author: e.author || 'Sistema', event_type: e.event_type || 'trip', summary: e.summary || '', trip: e.trip || null, when: rw(e.ts) }));
+      } catch (e) { return (window.BA && window.BA.changes) || []; }
+    },                                                            // RPC activity_feed (comentarios + leads + cobros reales)
+    async hydrateHistorial() {
+      const list = await this.historial();
+      if (window.BA && Array.isArray(window.BA.changes)) { window.BA.changes.length = 0; (list || []).forEach(x => window.BA.changes.push(x)); }
+      return window.BA && window.BA.changes;
     },
     async finanzas() {
       const sess = await this.getSession();
