@@ -170,7 +170,9 @@ input, textarea, select { font-family: inherit; }
 .app {
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: minmax(0, 1fr);
   height: 100vh;
+  height: 100dvh;
   position: relative; z-index: 1;
 }
 .app.rail { --sidebar-w: 76px; }
@@ -248,7 +250,7 @@ input, textarea, select { font-family: inherit; }
 .sb-id-role { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--on-sidebar-mute); }
 
 /* ===== main column ===== */
-.main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
 
 .topbar {
   height: var(--topbar-h); flex-shrink: 0;
