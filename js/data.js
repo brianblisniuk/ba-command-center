@@ -636,9 +636,10 @@ window.BA = (function () {
       const sess = await this.getSession();
       if (!window.SB || !sess) return bandeja;
       try {
-        const { data, error } = await window.SB.rpc('emails_list', { p_limit: 100 });
+        const { data, error } = await window.SB.rpc('inbox_list', { p_limit: 100 });
         if (error || !Array.isArray(data)) return bandeja;
         const rel = (iso) => { if (!iso) return ''; const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000); if (mins < 60) return 'hace ' + Math.max(1, mins) + ' min'; const h = Math.floor(mins / 60); if (h < 24) return 'hace ' + h + ' h'; return 'hace ' + Math.floor(h / 24) + ' d'; };
+        const ORIGEN = { meta_ads: 'Meta Ads', meta_lead: 'Meta Lead Ads', form: 'Formulario web', formulario: 'Formulario web', web: 'Formulario web', organic: 'Org\u00e1nico', referral: 'Referido' };
         return data.map(e => {
           const fromRaw = e.from_addr || '';
           const mm = fromRaw.match(/^\s*"?([^"<]+?)"?\s*</);
@@ -653,7 +654,8 @@ window.BA = (function () {
             resumen: e.ai_summary || e.snippet || e.body_text || '',
             extra, necesitaResp: e.direction === 'inbound' && e.status !== 'replied' && e.status !== 'archived',
             leido: !!e.is_read || e.status === 'read' || e.status === 'replied',
-            borrador: e.ai_suggested_reply || ''
+            borrador: e.ai_suggested_reply || '',
+            cruce: e.lead_id ? { leadId: e.lead_id, lead: e.lead_name || de, origen: ORIGEN[e.lead_source] || e.lead_source || '\u2014', campania: e.lead_campaign || '', adId: e.lead_ad_id || '', score: (e.lead_fit != null ? e.lead_fit : null), tier: e.lead_tier || '', etapa: e.lead_stage || '', telefono: e.lead_phone || '', nlOpens: Number(e.nl_opens) || 0, nlClicks: Number(e.nl_clicks) || 0, suscriptor: !!e.is_subscriber } : null
           };
         });
       } catch (e) { return bandeja; }

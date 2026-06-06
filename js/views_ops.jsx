@@ -45,7 +45,7 @@
   ];
   const SEVCAT = { Cliente: 'curso', Proveedor: 'risk', Pago: 'go', Reserva: 'go' };
 
-  function Bandeja({ toast, openCompose }) {
+  function Bandeja({ toast, openCompose, openLead }) {
     const [filter, setFilter] = useState('all');
     const [sel, setSel] = useState((BA.bandeja[0] || {}).id);
     const [sent, setSent] = useState({});
@@ -57,7 +57,7 @@
       : filter === 'wa' ? m.cuenta === 'wa' : true);
     const cur = BA.bandeja.find(m => m.id === sel) || list[0];
 
-    React.useEffect(() => { if (cur) setDraft(cur.borrador); }, [sel]);
+    React.useEffect(() => { if (cur) { setDraft(cur.borrador); if (!cur.leido && window.SB) { try { window.SB.from('emails').update({ is_read: true }).eq('id', cur.id).then(() => { cur.leido = true; }); } catch (e) {} } } }, [sel]);
 
     async function send() {
       if (!cur) return;
@@ -133,6 +133,7 @@
               Object.entries(cur.extra).map(([key, val]) => React.createElement('span', { key, className: 'tag' },
                 React.createElement('span', { style: { color: 'var(--text-faint)', textTransform: 'capitalize' } }, key + ':'), val)))
           ),
+          cur.cruce && React.createElement('div', { style: { background: 'var(--surface-2)', border: '1px solid var(--rule)', borderRadius: 'var(--radius-sm)', padding: 15, marginBottom: 14 } }, React.createElement('div', { className: 'eyebrow', style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 } }, React.createElement(Icon, { name: 'users', style: { width: 13, height: 13 } }), 'Contacto cruzado'), React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } }, React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } }, React.createElement('span', { style: { fontSize: 14, fontWeight: 650, color: 'var(--text-1)' } }, cur.cruce.lead), cur.cruce.etapa && React.createElement('span', { className: 'badge go', style: { textTransform: 'capitalize' } }, cur.cruce.etapa)), React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8 } }, React.createElement('span', { className: 'tag' }, React.createElement('span', { style: { color: 'var(--text-faint)' } }, 'Origen:'), ' ', cur.cruce.origen + (cur.cruce.campania ? ' \u00b7 ' + cur.cruce.campania : '')), (cur.cruce.score != null) && React.createElement('span', { className: 'tag' }, React.createElement('span', { style: { color: 'var(--text-faint)' } }, 'Score IA:'), ' ', String(cur.cruce.score)), React.createElement('span', { className: 'tag' }, React.createElement('span', { style: { color: 'var(--text-faint)' } }, 'Newsletter:'), ' ', cur.cruce.nlOpens + ' aperturas \u00b7 ' + cur.cruce.nlClicks + ' clics'), cur.cruce.suscriptor && React.createElement('span', { className: 'badge tint' }, 'Suscripto')), React.createElement('button', { className: 'btn sm', style: { alignSelf: 'flex-start' }, onClick: () => openLead && openLead(cur.cruce.leadId) }, React.createElement(Icon, { name: 'eye' }), 'Ver lead'))),
           // conciliar pago
           cur.conciliar && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 15px', background: 'var(--go-bg)', borderRadius: 'var(--radius-sm)', marginBottom: 14 } },
             React.createElement(Icon, { name: 'coin', style: { width: 20, height: 20, color: 'var(--go)' } }),
