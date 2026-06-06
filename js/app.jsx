@@ -36,7 +36,16 @@
     const [q, setQ] = useState('');
     const ref = useRef(null);
     useEffect(() => { ref.current && ref.current.focus(); }, []);
-    const items = BA.cmd.filter(c => !q || (c.t + ' ' + c.s).toLowerCase().includes(q.toLowerCase()));
+    const navItems = NAV.reduce((acc, g) => acc.concat(g.items.map(it => ({ t: it.t, s: 'Ir a sección', view: it.k, kind: 'nav', icon: it.icon }))), []);
+    const tripItems = ((BA.salidas) || []).map(sa => ({ t: sa.titulo || sa.region || sa.id, s: 'Salida' + (sa.region && sa.region !== (sa.titulo || '') ? ' · ' + sa.region : ''), kind: 'trip', tripId: sa.id }));
+    const leadItems = ((BA.leads) || []).map(l => ({ t: (l.nombre || '').replace(/^Sample\s·\s/, ''), s: 'Lead · ' + (l.etapa || '—'), kind: 'lead', leadId: l.id }));
+    const actionItems = [
+      { t: 'Cargar con IA · texto o foto', s: 'Acción · crear lead o proveedor', kind: 'action', icon: 'spark', act: 'capture' },
+      { t: 'Nueva salida', s: 'Acción · crear', kind: 'action', icon: 'plus', act: 'newtrip' },
+      { t: 'Ir a la bandeja', s: 'Acción · pendientes', kind: 'action', icon: 'mail', act: 'inbox' },
+    ];
+    const all = navItems.concat(tripItems, leadItems, actionItems);
+    const items = all.filter(c => !q || (c.t + ' ' + c.s).toLowerCase().includes(q.toLowerCase()));
     const groups = { nav: [], trip: [], lead: [], action: [] };
     items.forEach(c => (groups[c.kind] || groups.action).push(c));
     const order = [['nav', 'Ir a'], ['trip', 'Salidas'], ['lead', 'Personas'], ['action', 'Acciones']];
@@ -46,11 +55,9 @@
       else if (c.kind === 'trip') openTrip(c.tripId);
       else if (c.kind === 'lead' && c.leadId && openLead) openLead(c.leadId);
       else if (c.kind === 'action') {
-        if (c.act === 'pay') { toast('Familia Mehta · marcado pagado ✓'); nav('finanzas'); }
-        else if (c.act === 'remind') { toast('Recordatorios preparados (3) ✓'); nav('finanzas'); }
-        else if (c.act === 'reply') { toast('Borradores IA listos para revisar'); nav('bandeja'); }
-        else if (c.act === 'newtrip') { openWizard ? openWizard() : nav('viajes'); }
+        if (c.act === 'newtrip') { openWizard ? openWizard() : nav('viajes'); }
         else if (c.act === 'capture') { openCapture && openCapture(); }
+        else if (c.act === 'inbox') { nav('bandeja'); }
         else toast(c.t);
       }
       else toast(c.t);
