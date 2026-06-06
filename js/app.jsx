@@ -13,6 +13,11 @@
     "operator": "brian"
   }/*EDITMODE-END*/;
 
+  function loadPrefs() {
+    try { return Object.assign({}, TWEAK_DEFAULTS, JSON.parse(localStorage.getItem('ba_prefs') || '{}')); }
+    catch (e) { return TWEAK_DEFAULTS; }
+  }
+
   const NAV = [
     { sec: 'Inicio', items: [{ k: 'puente', t: 'Hoy · El Puente', icon: 'home' }, { k: 'ia', t: 'Inteligencia', icon: 'spark' }, { k: 'reporte', t: 'Reporte ejecutivo', icon: 'download' }] },
     { sec: 'Comercial', items: [{ k: 'ventas', t: 'Ventas', icon: 'funnel' }, { k: 'cadencias', t: 'Cadencias', icon: 'send' }, { k: 'marketing', t: 'Marketing', icon: 'megaphone' }, { k: 'editorial', t: 'Editorial', icon: 'layers' }] },
@@ -74,7 +79,7 @@
   }
 
   function App() {
-    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+    const [t, setTweak] = useTweaks(loadPrefs());
     const [view, setView] = useState('puente');
     const [tripId, setTripId] = useState(null);
     const [provReturnTrip, setProvReturnTrip] = useState(null);
@@ -116,6 +121,10 @@
     }, [t.dark, t.density, t.accent]);
 
     useEffect(() => {
+      try { localStorage.setItem('ba_prefs', JSON.stringify(t)); } catch (e) {}
+    }, [t]);
+
+    useEffect(() => {
       function onKey(e) {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmdk(v => !v); }
       }
@@ -144,7 +153,7 @@
     else if (view === 'provider') body = React.createElement(window.ProviderDetail, { providerId: provId, cur, toast, back: provReturnTrip ? () => openTrip(provReturnTrip) : back, openTrip, op, openCompose });
     else {
       const C = window[VIEWS[view]] || window.Puente;
-      body = React.createElement(C, { cur, op, toast, nav, openTrip, openLead, openProvider, openWizard: () => setWizard(true), openCapture: () => setCapture(true), openCompose, rev });
+      body = React.createElement(C, { cur, op, toast, nav, openTrip, openLead, openProvider, openWizard: () => setWizard(true), openCapture: () => setCapture(true), openCompose, rev, tweak: t, setTweak });
     }
 
     if (!authed) return React.createElement(window.Auth, { onEnter: async (id) => { setTweak('operator', id); try { await BA.source.hydrate(); } catch (e) {} setRev(r => r + 1); setAuthed(true); setLive(true); } });

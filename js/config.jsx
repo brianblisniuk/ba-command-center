@@ -8,20 +8,25 @@
       options.map(o => React.createElement('button', { key: o.v, className: value === o.v ? 'on' : '', onClick: () => onChange(o.v) }, o.t)));
   }
 
-  function Configuracion({ cur, op, toast }) {
-    const root = document.documentElement;
-    const dark = root.getAttribute('data-theme') === 'dark';
-    const density = root.getAttribute('data-density') || 'regular';
-    const accent = root.getAttribute('data-accent') || 'laurel';
-    const set = (k, v) => { root.setAttribute(k, v); toast('Preferencia guardada'); };
+  function Configuracion({ cur, op, toast, tweak, setTweak }) {
+    const tw = tweak || {};
+    const dark = !!tw.dark;
+    const density = tw.density || 'regular';
+    const accent = tw.accent || 'laurel';
+    const set = (which, v) => {
+      if (which === 'theme') setTweak('dark', v === 'dark');
+      else if (which === 'density') setTweak('density', v);
+      else if (which === 'accent') setTweak('accent', v);
+      toast('Preferencia guardada');
+    };
 
     const dataSources = [
       { t: 'Salidas · trips_board', ok: true, n: BA.salidas.length + ' viajes' },
       { t: 'Pipeline · leads_crm', ok: true, n: BA.leads.length + ' leads' },
       { t: 'Bandeja · emails + email-ai', ok: true, n: BA.bandeja.length + ' mensajes' },
-      { t: 'Biblioteca · providers', ok: true, n: BA.biblioteca.length + ' proveedores' },
-      { t: 'Cobranzas · payments_due', ok: false, n: 'datos de ejemplo' },
-      { t: 'Caja · cashflow_projection', ok: false, n: 'datos de ejemplo' },
+      { t: 'Biblioteca · providers', ok: false, n: 'datos de ejemplo' },
+      { t: 'Cobranzas · payments_due', ok: true, n: (BA.finanzas.cuotas ? BA.finanzas.cuotas.length : 0) + ' cuotas' },
+      { t: 'Caja · cashflow_projection', ok: true, n: 'conectado' },
     ];
 
     function Card({ title, sub, children }) {
@@ -42,9 +47,9 @@
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', alignItems: 'start' } },
         React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--gap)' } },
           React.createElement(Card, { title: 'Apariencia', sub: 'Estos controles también están en el panel de Tweaks.' },
-            React.createElement(Row, { label: 'Tema', control: React.createElement(Seg, { value: dark ? 'dark' : 'light', options: [{ v: 'light', t: 'Claro' }, { v: 'dark', t: 'Oscuro' }], onChange: v => set('data-theme', v) }) }),
-            React.createElement(Row, { label: 'Densidad', control: React.createElement(Seg, { value: density, options: [{ v: 'regular', t: 'Cómodo' }, { v: 'compact', t: 'Compacto' }], onChange: v => set('data-density', v) }) }),
-            React.createElement(Row, { label: 'Acento', control: React.createElement(Seg, { value: accent, options: [{ v: 'laurel', t: 'Laurel' }, { v: 'brass', t: 'Brass' }], onChange: v => set('data-accent', v) }) }),
+            React.createElement(Row, { label: 'Tema', control: React.createElement(Seg, { value: dark ? 'dark' : 'light', options: [{ v: 'light', t: 'Claro' }, { v: 'dark', t: 'Oscuro' }], onChange: v => set('theme', v) }) }),
+            React.createElement(Row, { label: 'Densidad', control: React.createElement(Seg, { value: density, options: [{ v: 'regular', t: 'Cómodo' }, { v: 'compact', t: 'Compacto' }], onChange: v => set('density', v) }) }),
+            React.createElement(Row, { label: 'Acento', control: React.createElement(Seg, { value: accent, options: [{ v: 'laurel', t: 'Laurel' }, { v: 'brass', t: 'Brass' }], onChange: v => set('accent', v) }) }),
             React.createElement(Row, { label: 'Moneda', control: React.createElement('span', { className: 'mono', style: { fontSize: 13, color: 'var(--text-2)' } }, cur + ' · cambiá en la barra') })),
           React.createElement(Card, { title: 'Identidad', sub: 'Operadores con acceso a la consola.' },
             BA.operadores.map((o, i) => React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < BA.operadores.length - 1 ? '1px solid var(--rule-soft)' : 'none' } },
@@ -70,7 +75,7 @@
               ['var(--laurel)', 'var(--brass)', 'var(--curso)', 'var(--bad)', 'var(--bone)'].map((c, i) => React.createElement('span', { key: i, style: { width: 34, height: 34, borderRadius: 9, background: c, border: '1px solid var(--rule)' } })))),
           React.createElement(Card, { title: 'Datos' },
             React.createElement('button', { className: 'btn', style: { width: '100%', marginBottom: 9 }, onClick: () => toast('Exportando backup…') }, React.createElement(Icon, { name: 'download' }), 'Exportar backup (JSON)'),
-            React.createElement('button', { className: 'btn', style: { width: '100%' }, onClick: () => toast('Sincronizando con Supabase…') }, React.createElement(Icon, { name: 'refresh' }), 'Sincronizar ahora'))
+            React.createElement('button', { className: 'btn', style: { width: '100%' }, onClick: async () => { toast('Sincronizando…'); try { await BA.source.hydrate(); toast('Datos actualizados \u2713'); } catch (e) { toast('No se pudo sincronizar'); } } }, React.createElement(Icon, { name: 'refresh' }), 'Sincronizar ahora'))
         )
       )
     );

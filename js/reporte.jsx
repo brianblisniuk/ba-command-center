@@ -33,8 +33,8 @@
           React.createElement('div', { className: 'rep-kpis' },
             [[activas + ' salidas', 'Activas', e.salidasActivas.go + ' GO · ' + e.salidasActivas.risk + ' en riesgo'],
              [e.butacas.vendidas + ' / ' + e.butacas.breakeven, 'Butacas vs break-even', 'capacidad ' + e.butacas.capacidad],
-             [k(e.forecast.val), 'Forecast', '+' + e.forecast.delta + '% vs mes anterior'],
-             [f.totales.margenReal + '%', 'Margen bruto', 'objetivo ' + f.totales.margenObj + '%']
+             [k(e.forecast.val), 'Forecast', 'sobre ' + activas + ' salidas activas'],
+             [String(e.leadsCalientes), 'Leads calientes', 'pipeline ' + k(e.leadsCalientesPipeUSD)]
             ].map((c, i) => React.createElement('div', { key: i, className: 'rep-kpi' },
               React.createElement('div', { className: 'v' }, c[0]),
               React.createElement('div', { className: 'l' }, c[1]),
