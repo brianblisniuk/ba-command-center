@@ -50,6 +50,9 @@
     const [sel, setSel] = useState((BA.bandeja[0] || {}).id);
     const [sent, setSent] = useState({});
     const [draft, setDraft] = useState('');
+    const [taskDone, setTaskDone] = useState({});
+    const [pickTrip, setPickTrip] = useState(false);
+    const [, force] = useState(0);
     const list = BA.bandeja.filter(m => filter === 'all' ? true
       : filter === 'unread' ? !m.leido
       : filter === 'resp' ? m.necesitaResp
@@ -57,7 +60,7 @@
       : filter === 'wa' ? m.canal === 'wa' : true);
     const cur = BA.bandeja.find(m => m.id === sel) || list[0];
 
-    React.useEffect(() => { if (cur) { setDraft(cur.borrador); if (!cur.leido && window.SB) { try { const tbl = cur.canal === 'wa' ? 'wa_messages' : 'emails'; window.SB.from(tbl).update({ is_read: true }).eq('id', cur.id).then(() => { cur.leido = true; }); } catch (e) {} } } }, [sel]);
+    React.useEffect(() => { setPickTrip(false); if (cur) { setDraft(cur.borrador); if (!cur.leido && window.SB) { try { const tbl = cur.canal === 'wa' ? 'wa_messages' : 'emails'; window.SB.from(tbl).update({ is_read: true }).eq('id', cur.id).then(() => { cur.leido = true; }); } catch (e) {} } } }, [sel]);
 
     async function send() {
       if (!cur) return;
@@ -80,6 +83,42 @@
       if (res.ok) { setSent(s => ({ ...s, [cur.id]: true })); toast('Mail enviado a ' + cur.de + ' ✓'); }
       else { toast('No se pudo enviar: ' + res.error); }
     }
+
+    async function createTask() {
+      if (!cur) return;
+      const title = cur.necesitaResp ? ('Responder a ' + cur.de) : ('Seguimiento · ' + (cur.asunto || cur.de));
+      const res = await BA.source.createTask({
+        title, detail: cur.resumen || '', priority: cur.prio === 'Alta' ? 'alta' : (cur.prio === 'Media' ? 'media' : 'baja'),
+        emailId: cur.canal === 'wa' ? null : cur.id, leadId: (cur.cruce && cur.cruce.leadId) || null, tripId: cur.salida || null
+      });
+      if (res.ok) { setTaskDone(t => ({ ...t, [cur.id]: true })); toast('Tarea creada ✓'); }
+      else { toast('No se pudo crear la tarea: ' + res.error); }
+    }
+
+    async function archive(m) {
+      const res = await BA.source.archiveInbox({ id: m.id, canal: m.canal });
+      if (res.ok) {
+        const i = BA.bandeja.findIndex(x => x.id === m.id);
+        if (i >= 0) BA.bandeja.splice(i, 1);
+        if (sel === m.id) setSel((BA.bandeja[0] || {}).id);
+        force(x => x + 1);
+        toast('Archivado ✓');
+      } else { toast('No se pudo archivar: ' + res.error); }
+    }
+
+    async function linkTrip(sal) {
+      if (!cur) return;
+      const res = await BA.source.linkTripInbox({ id: cur.id, canal: cur.canal, tripId: sal.id });
+      if (res.ok) { cur.salida = sal.id; setPickTrip(false); force(x => x + 1); toast('Vinculado a ' + (sal.region || sal.titulo) + ' ✓'); }
+      else { toast('No se pudo vincular: ' + res.error); }
+    }
+
+    const tripPicker = pickTrip && React.createElement('div', { style: { marginTop: 12, padding: 13, border: '1px solid var(--rule)', borderRadius: 'var(--radius-sm)', background: 'var(--surface-2)' } },
+      React.createElement('div', { className: 'eyebrow', style: { marginBottom: 9 } }, 'Elegí la salida'),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 7 } },
+        (BA.salidas || []).map(sal => React.createElement('button', { key: sal.id, className: 'badge ' + (cur && cur.salida === sal.id ? 'go' : 'ghost'),
+          style: { cursor: 'pointer', padding: '6px 11px' }, onClick: () => linkTrip(sal) },
+          (sal.etiqueta ? sal.etiqueta + ' · ' : '') + (sal.region || sal.titulo)))));
 
     return React.createElement('div', { className: 'content-inner' },
       React.createElement('div', { className: 'page-head' },
@@ -169,10 +208,21 @@
               sent[cur.id]
                 ? React.createElement('span', { className: 'tag', style: { padding: '7px 12px' } }, React.createElement(Icon, { name: 'check' }), cur.canal === 'wa' ? 'Respondido por WhatsApp' : 'Enviado')
                 : React.createElement('button', { className: 'btn primary', onClick: send }, React.createElement(Icon, { name: 'send' }), cur.canal === 'wa' ? 'Responder por WhatsApp' : 'Responder con este borrador'),
-              React.createElement('button', { className: 'btn', onClick: () => toast('Vinculado a ' + (BA.salidaById(cur.salida) ? BA.salidaById(cur.salida).region : 'salida')) }, React.createElement(Icon, { name: 'compass' }), 'Auto-vincular salida'),
-              React.createElement('button', { className: 'btn', onClick: () => toast('Tarea creada') }, React.createElement(Icon, { name: 'plus' }), 'Crear tarea'))
-          ) : React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', padding: '8px 0' } }, 'No requiere respuesta. ',
-              React.createElement('button', { className: 'btn sm', style: { marginLeft: 8 }, onClick: () => toast('Archivado') }, 'Archivar'))
+              React.createElement('button', { className: 'btn', onClick: () => setPickTrip(p => !p) }, React.createElement(Icon, { name: 'compass' }), cur.salida && BA.salidaById(cur.salida) ? ('Salida: ' + (BA.salidaById(cur.salida).etiqueta || BA.salidaById(cur.salida).region)) : 'Vincular salida'),
+              taskDone[cur.id]
+                ? React.createElement('span', { className: 'tag', style: { padding: '7px 12px' } }, React.createElement(Icon, { name: 'check' }), 'Tarea creada')
+                : React.createElement('button', { className: 'btn', onClick: createTask }, React.createElement(Icon, { name: 'plus' }), 'Crear tarea'),
+              React.createElement('button', { className: 'btn', onClick: () => archive(cur) }, React.createElement(Icon, { name: 'download' }), 'Archivar')),
+            tripPicker
+          ) : React.createElement('div', null,
+              React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', marginBottom: 12 } }, 'No requiere respuesta.'),
+              React.createElement('div', { style: { display: 'flex', gap: 9, flexWrap: 'wrap' } },
+                React.createElement('button', { className: 'btn', onClick: () => setPickTrip(p => !p) }, React.createElement(Icon, { name: 'compass' }), cur.salida && BA.salidaById(cur.salida) ? ('Salida: ' + (BA.salidaById(cur.salida).etiqueta || BA.salidaById(cur.salida).region)) : 'Vincular salida'),
+                taskDone[cur.id]
+                  ? React.createElement('span', { className: 'tag', style: { padding: '7px 12px' } }, React.createElement(Icon, { name: 'check' }), 'Tarea creada')
+                  : React.createElement('button', { className: 'btn', onClick: createTask }, React.createElement(Icon, { name: 'plus' }), 'Crear tarea'),
+                React.createElement('button', { className: 'btn', onClick: () => archive(cur) }, React.createElement(Icon, { name: 'download' }), 'Archivar')),
+              tripPicker)
         )
       )
     );

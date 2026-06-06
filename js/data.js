@@ -1057,6 +1057,34 @@ window.BA = (function () {
         return { ok: false, error: (data && (data.detail || data.error)) || 'error desconocido' };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // edge fn wa-send (WhatsApp Cloud API)
+    async createTask({ title, detail, priority, emailId, leadId, tripId }) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const row = { title, detail: detail || null, status: 'pendiente', priority: priority || null, source: 'bandeja',
+          email_id: emailId || null, lead_id: leadId || null, trip_id: tripId || null };
+        const { data, error } = await window.SB.from('tasks').insert(row).select('id').single();
+        if (error) return { ok: false, error: error.message };
+        return { ok: true, id: data && data.id };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // inserta en tasks (real)
+    async archiveInbox({ id, canal }) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const tbl = canal === 'wa' ? 'wa_messages' : 'emails';
+        const { error } = await window.SB.from(tbl).update({ status: 'archived' }).eq('id', id);
+        if (error) return { ok: false, error: error.message };
+        return { ok: true };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // status='archived' (real)
+    async linkTripInbox({ id, canal, tripId }) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const tbl = canal === 'wa' ? 'wa_messages' : 'emails';
+        const { error } = await window.SB.from(tbl).update({ trip_id: tripId }).eq('id', id);
+        if (error) return { ok: false, error: error.message };
+        return { ok: true };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // escribe trip_id (real)
     async marketing()  { return marketing; },                     // meta_lead_webhook + gasto cargado
     async leadQuality() {
       const sess = await this.getSession();
