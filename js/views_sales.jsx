@@ -102,8 +102,8 @@
 
     function load() {
       setSt(s => ({ ...s, loading: true }));
-      Promise.all([BA.source.leadQuality(), BA.source.marketingBoard(), BA.source.marketingContentBoard()])
-        .then(([quality, board, content]) => setSt({ loading: false, quality, board, content }))
+      Promise.all([BA.source.leadQuality(), BA.source.marketingBoard(), BA.source.marketingContentBoard(), BA.source.marketing()])
+        .then(([quality, board, content, attr]) => setSt({ loading: false, quality, board, content, attr }))
         .catch(() => setSt(s => ({ ...s, loading: false })));
     }
     React.useEffect(() => { load(); }, []);
@@ -211,6 +211,7 @@
       if (!B || !B.meta) bodyInner = React.createElement('div', { className: 'card pad' }, 'Sin datos de adquisición.');
       else {
         const meta = B.meta, tot = B.totales || {};
+        const A = st.attr || {}; const fuentes = A.atribucion || []; const camps2 = A['campañas'] || [];
         const conectado = meta.status === 'conectado';
         bodyInner = React.createElement(React.Fragment, null,
           !conectado && React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', borderLeft: '3px solid var(--brass)' } },
@@ -231,7 +232,33 @@
             React.createElement(CardHead, { title: 'Campañas', count: (B.campanias || []).length }),
             (B.campanias && B.campanias.length)
               ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-2)' } }, B.campanias.length + ' campañas activas')
-              : React.createElement('div', { className: 'sub', style: { padding: '6px 0' } }, 'Sin campañas activas todavía.')));
+              : React.createElement('div', { className: 'sub', style: { padding: '6px 0' } }, 'Sin campañas activas todavía.')),
+          React.createElement('div', { className: 'card pad', style: { marginTop: 'var(--gap)' } },
+            React.createElement(CardHead, { title: 'Atribución por fuente', right: React.createElement('span', { className: 'eyebrow' }, 'de tus leads reales') }),
+            fuentes.length
+              ? React.createElement('table', { className: 'tbl' },
+                  React.createElement('thead', null, React.createElement('tr', null, ['Fuente', 'Leads', 'Reservas', 'Conversión', 'Pipeline'].map(function (h, i) { return React.createElement('th', { key: i }, h); }))),
+                  React.createElement('tbody', null, fuentes.map(function (a, i) {
+                    return React.createElement('tr', { key: i },
+                      React.createElement('td', null, React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } }, React.createElement('i', { style: { width: 8, height: 8, borderRadius: 2, background: a.color, flexShrink: 0 } }), a.fuente)),
+                      React.createElement('td', null, a.leads),
+                      React.createElement('td', null, a.reservas),
+                      React.createElement('td', null, a.conv + '%'),
+                      React.createElement('td', { className: 'mono' }, 'US$ ' + a.revUSD + 'k'));
+                  })))
+              : React.createElement('div', { className: 'sub', style: { padding: '6px 0' } }, 'Todavía no hay leads cargados.')),
+          (camps2.length > 0) && React.createElement('div', { className: 'card pad', style: { marginTop: 'var(--gap)' } },
+            React.createElement(CardHead, { title: 'Campañas que traen leads', right: React.createElement('span', { className: 'eyebrow' }, 'por origen · gasto al conectar Meta') }),
+            React.createElement('table', { className: 'tbl' },
+              React.createElement('thead', null, React.createElement('tr', null, ['Campaña', 'Fuente', 'Leads', 'Conversión', 'Pipeline'].map(function (h, i) { return React.createElement('th', { key: i }, h); }))),
+              React.createElement('tbody', null, camps2.map(function (c, i) {
+                return React.createElement('tr', { key: i },
+                  React.createElement('td', null, c.name),
+                  React.createElement('td', null, c.source || '—'),
+                  React.createElement('td', null, c.leads),
+                  React.createElement('td', null, c.conv + '%'),
+                  React.createElement('td', { className: 'mono' }, 'US$ ' + c.revUSD + 'k'));
+              })))));
       }
     } else if (tab === 'contenido') {
       const C = st.content;
