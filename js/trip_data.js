@@ -178,7 +178,7 @@
   // ---- Cache + selector real/mock (Plano Viaje en vivo) ----
   BA._tripCache = BA._tripCache || {};
   BA._provCache = BA._provCache || {};
-  BA.tripData = function (id) { return (BA._tripCache && BA._tripCache[id]) || BA._tripDataMock(id); };
+  BA.tripData = function (id) { if (BA._tripCache && BA._tripCache[id]) return BA._tripCache[id]; return BA.salidaById(id) ? BA._mapTripData(id, {}) : null; };
 
   // ---- Mapper: trips.data (real) → shape de tripData ----
   const TMAP = { restaurant: 'meal', winery: 'wine', wine: 'wine', truffle: 'truffle', activity: 'activity', experience: 'activity', transfer: 'transfer', service: 'service', villa: 'lodging', lodging: 'lodging', hotel: 'lodging', expert: 'access', access: 'access', culture: 'culture', meal: 'meal' };

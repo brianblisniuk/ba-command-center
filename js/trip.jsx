@@ -114,7 +114,6 @@
         React.createElement('div', { style: { flex: 1, minWidth: 200 } },
           React.createElement('div', { className: 'figure', style: { fontSize: 28 } }, closed, ' / ', list.length, ' accesos cerrados'),
           React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', marginTop: 4 } }, 'Sin dos encuentros, el viaje no sale. ', React.createElement('b', { style: { color: closed >= 2 ? 'var(--go)' : 'var(--bad)' } }, closed >= 2 ? 'Regla cumplida.' : 'Falta cerrar ' + (2 - closed) + '.'))),
-        React.createElement('button', { className: 'btn', onClick: () => toast('Traer acceso desde Biblioteca') }, React.createElement(Icon, { name: 'book' }), 'Traer de Biblioteca')
       ),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' } },
         list.map(a => {
