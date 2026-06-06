@@ -636,19 +636,20 @@ window.BA = (function () {
       const sess = await this.getSession();
       if (!window.SB || !sess) return bandeja;
       try {
-        const { data, error } = await window.SB.rpc('inbox_list', { p_limit: 100 });
+        const { data, error } = await window.SB.rpc('unified_inbox_list', { p_limit: 100 });
         if (error || !Array.isArray(data)) return bandeja;
         const rel = (iso) => { if (!iso) return ''; const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000); if (mins < 60) return 'hace ' + Math.max(1, mins) + ' min'; const h = Math.floor(mins / 60); if (h < 24) return 'hace ' + h + ' h'; return 'hace ' + Math.floor(h / 24) + ' d'; };
         const ORIGEN = { meta_ads: 'Meta Ads', meta_lead: 'Meta Lead Ads', form: 'Formulario web', formulario: 'Formulario web', web: 'Formulario web', organic: 'Org\u00e1nico', referral: 'Referido' };
         return data.map(e => {
+          const isWa = e.channel === 'wa';
           const fromRaw = e.from_addr || '';
           const mm = fromRaw.match(/^\s*"?([^"<]+?)"?\s*</);
-          const de = (mm ? mm[1].trim() : fromRaw) || '—';
+          const de = isWa ? ((e.contact_name || e.wa_from || '—')) : (((mm ? mm[1].trim() : fromRaw)) || '—');
           const prio = e.ai_priority || 'Normal';
           const sev = prio === 'Alta' ? 'bad' : prio === 'Media' ? 'risk' : 'info';
           const extra = (e.ai_extracted && typeof e.ai_extracted === 'object' && !Array.isArray(e.ai_extracted)) ? e.ai_extracted : {};
           return {
-            id: e.id, fromAddr: fromRaw, de, cuenta: (e.account || 'info') + '@', asunto: e.subject || '(sin asunto)',
+            id: e.id, fromAddr: fromRaw, de, canal: e.channel || 'email', waFrom: e.wa_from || null, cuenta: isWa ? 'WhatsApp' : ((e.account || 'info') + '@'), asunto: isWa ? (e.contact_name || e.wa_from || 'WhatsApp') : (e.subject || '(sin asunto)'),
             cat: e.ai_category || 'Sin clasificar', sev, prio, idioma: e.ai_language || 'ES',
             hace: rel(e.ts), salida: e.trip_id || null,
             resumen: e.ai_summary || e.snippet || e.body_text || '',
@@ -1043,6 +1044,19 @@ window.BA = (function () {
         return { ok: false, error: (data && data.error) || 'error desconocido' };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // edge fn email-send (Resend)
+    async sendWa({ to, text }) {
+      if (!window.SB) return { ok: false, error: 'sin conexión' };
+      try {
+        const { data, error } = await window.SB.functions.invoke('wa-send', { body: { to, text } });
+        if (error) {
+          let msg = error.message || 'error al enviar';
+          try { const ctx = await error.context.json(); if (ctx && (ctx.detail || ctx.error)) msg = ctx.detail || ctx.error; } catch (e2) {}
+          return { ok: false, error: msg };
+        }
+        if (data && data.ok) return { ok: true, wamid: data.wamid, id: data.id };
+        return { ok: false, error: (data && (data.detail || data.error)) || 'error desconocido' };
+      } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+    },                                                            // edge fn wa-send (WhatsApp Cloud API)
     async marketing()  { return marketing; },                     // meta_lead_webhook + gasto cargado
     async leadQuality() {
       const sess = await this.getSession();

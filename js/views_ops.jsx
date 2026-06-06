@@ -54,20 +54,28 @@
       : filter === 'unread' ? !m.leido
       : filter === 'resp' ? m.necesitaResp
       : filter === 'pay' ? m.cat === 'Pago'
-      : filter === 'wa' ? m.cuenta === 'wa' : true);
+      : filter === 'wa' ? m.canal === 'wa' : true);
     const cur = BA.bandeja.find(m => m.id === sel) || list[0];
 
-    React.useEffect(() => { if (cur) { setDraft(cur.borrador); if (!cur.leido && window.SB) { try { window.SB.from('emails').update({ is_read: true }).eq('id', cur.id).then(() => { cur.leido = true; }); } catch (e) {} } } }, [sel]);
+    React.useEffect(() => { if (cur) { setDraft(cur.borrador); if (!cur.leido && window.SB) { try { const tbl = cur.canal === 'wa' ? 'wa_messages' : 'emails'; window.SB.from(tbl).update({ is_read: true }).eq('id', cur.id).then(() => { cur.leido = true; }); } catch (e) {} } } }, [sel]);
 
     async function send() {
       if (!cur) return;
+      toast('Enviando…');
+      if (cur.canal === 'wa') {
+        const toNum = (cur.waFrom || cur.fromAddr || '').replace(/\D/g, '');
+        if (!toNum) { toast('No hay número de WhatsApp válido'); return; }
+        const res = await BA.source.sendWa({ to: toNum, text: draft });
+        if (res.ok) { setSent(s => ({ ...s, [cur.id]: true })); toast('WhatsApp enviado a ' + cur.de + ' ✓'); }
+        else { toast('WhatsApp: ' + res.error); }
+        return;
+      }
       const fromRaw = cur.fromAddr || '';
       const mm = fromRaw.match(/<([^>]+)>/);
       const to = (mm ? mm[1] : fromRaw).trim();
       if (!to || to.indexOf('@') < 0) { toast('No hay dirección de respuesta válida'); return; }
       const account = (cur.cuenta || 'reservas@').replace('@', '');
       const subject = /^re:/i.test(cur.asunto) ? cur.asunto : ('Re: ' + cur.asunto);
-      toast('Enviando…');
       const res = await BA.source.sendEmail({ account, to, subject, text: draft, replyToId: cur.id });
       if (res.ok) { setSent(s => ({ ...s, [cur.id]: true })); toast('Mail enviado a ' + cur.de + ' ✓'); }
       else { toast('No se pudo enviar: ' + res.error); }
@@ -79,7 +87,7 @@
           React.createElement('h1', null, React.createElement('span', { className: 'lt' }, 'Bandeja')),
           React.createElement('div', { className: 'page-greet-sub' }, 'Email + WhatsApp unificados · triage por ', React.createElement('b', null, 'IA (Claude Haiku)'))),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
-          React.createElement('div', { className: 'tag' }, React.createElement(Icon, { name: 'spark' }), 'email-ai · activo'),
+          React.createElement('div', { className: 'tag' }, React.createElement(Icon, { name: 'spark' }), 'triage IA · activo'),
           React.createElement('button', { className: 'btn primary', onClick: () => openCompose ? openCompose({ account: 'reservas' }) : toast('Redactar') }, React.createElement(Icon, { name: 'mail' }), 'Nuevo correo'))
       ),
       React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' } },
@@ -97,14 +105,14 @@
             style: { display: 'flex', gap: 11, padding: '14px 16px', cursor: 'pointer', borderBottom: '1px solid var(--rule-soft)',
               background: sel === m.id ? 'var(--surface-2)' : 'transparent', borderLeft: '3px solid ' + (sel === m.id ? 'var(--accent)' : 'transparent') } },
             React.createElement('div', { className: 'q-ic ' + m.sev, style: { width: 34, height: 34, borderRadius: 10, flexShrink: 0 } },
-              React.createElement(Icon, { name: m.cuenta === 'wa' ? 'chat' : (m.cat === 'Pago' ? 'coin' : 'mail') })),
+              React.createElement(Icon, { name: m.canal === 'wa' ? 'chat' : (m.cat === 'Pago' ? 'coin' : 'mail') })),
             React.createElement('div', { style: { flex: 1, minWidth: 0 } },
               React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 8 } },
                 React.createElement('span', { style: { fontSize: 13, fontWeight: m.leido ? 500 : 700, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, m.de),
                 React.createElement('span', { style: { fontSize: 10, color: 'var(--text-faint)', whiteSpace: 'nowrap', fontFamily: 'var(--ff-mono)' } }, m.hace)),
               React.createElement('div', { style: { fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: '2px 0 5px' } }, m.asunto),
               React.createElement('div', { style: { display: 'flex', gap: 6, alignItems: 'center' } },
-                m.cuenta === 'wa' && React.createElement('span', { className: 'ch-pill wa', style: { padding: '2px 6px' } }, React.createElement(Icon, { name: 'chat' }), 'WA'),
+                m.canal === 'wa' && React.createElement('span', { className: 'ch-pill wa', style: { padding: '2px 6px' } }, React.createElement(Icon, { name: 'chat' }), 'WA'),
                 React.createElement('span', { className: 'badge ' + (SEVCAT[m.cat] || 'ghost'), style: { padding: '2px 6px' } }, m.cat),
                 m.prio === 'Alta' && React.createElement('span', { className: 'badge bad', style: { padding: '2px 6px' } }, 'Alta'),
                 sent[m.id] && React.createElement('span', { className: 'tag', style: { padding: '2px 7px' } }, React.createElement(Icon, { name: 'check' }), 'Resp.'))
@@ -115,9 +123,9 @@
         cur && React.createElement('div', { className: 'card pad' },
           React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 } },
             React.createElement('div', { style: { flex: 1 } },
-              React.createElement('h3', { style: { fontSize: 19, marginBottom: 5 } }, cur.cuenta === 'wa' ? cur.de : cur.asunto),
+              React.createElement('h3', { style: { fontSize: 19, marginBottom: 5 } }, cur.canal === 'wa' ? cur.de : cur.asunto),
               React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
-                React.createElement('span', { className: 'ch-pill ' + (cur.cuenta === 'wa' ? 'wa' : 'email') }, React.createElement(Icon, { name: cur.cuenta === 'wa' ? 'chat' : 'mail' }), cur.cuenta === 'wa' ? 'WhatsApp' : cur.cuenta),
+                React.createElement('span', { className: 'ch-pill ' + (cur.canal === 'wa' ? 'wa' : 'email') }, React.createElement(Icon, { name: cur.canal === 'wa' ? 'chat' : 'mail' }), cur.canal === 'wa' ? 'WhatsApp' : cur.cuenta),
                 React.createElement('span', { style: { fontSize: 12, color: 'var(--text-3)' } }, cur.hace))),
             React.createElement('div', { style: { display: 'flex', gap: 6 } },
               React.createElement('span', { className: 'badge ' + (SEVCAT[cur.cat] || 'ghost') }, cur.cat),
@@ -159,8 +167,8 @@
               style: { width: '100%', minHeight: cur.hilo ? 70 : 110, padding: 13, borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface)', color: 'var(--text-1)', fontSize: 13.5, lineHeight: 1.6, resize: 'vertical' } }),
             React.createElement('div', { style: { display: 'flex', gap: 9, marginTop: 12, flexWrap: 'wrap' } },
               sent[cur.id]
-                ? React.createElement('span', { className: 'tag', style: { padding: '7px 12px' } }, React.createElement(Icon, { name: 'check' }), cur.cuenta === 'wa' ? 'Respondido por WhatsApp' : 'Enviado')
-                : React.createElement('button', { className: 'btn primary', onClick: send }, React.createElement(Icon, { name: 'send' }), cur.cuenta === 'wa' ? 'Responder por WhatsApp' : 'Responder con este borrador'),
+                ? React.createElement('span', { className: 'tag', style: { padding: '7px 12px' } }, React.createElement(Icon, { name: 'check' }), cur.canal === 'wa' ? 'Respondido por WhatsApp' : 'Enviado')
+                : React.createElement('button', { className: 'btn primary', onClick: send }, React.createElement(Icon, { name: 'send' }), cur.canal === 'wa' ? 'Responder por WhatsApp' : 'Responder con este borrador'),
               React.createElement('button', { className: 'btn', onClick: () => toast('Vinculado a ' + (BA.salidaById(cur.salida) ? BA.salidaById(cur.salida).region : 'salida')) }, React.createElement(Icon, { name: 'compass' }), 'Auto-vincular salida'),
               React.createElement('button', { className: 'btn', onClick: () => toast('Tarea creada') }, React.createElement(Icon, { name: 'plus' }), 'Crear tarea'))
           ) : React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', padding: '8px 0' } }, 'No requiere respuesta. ',
