@@ -516,8 +516,44 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); await this.hydrateBiblioteca(); },
     async funnel()     { return funnel; },                        // RPC leads_crm_pipeline
+    async providersLibrary() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return (window.BA && window.BA.biblioteca) || [];
+      try {
+        const { data, error } = await window.SB.rpc('providers_library');
+        if (error || !Array.isArray(data)) return (window.BA && window.BA.biblioteca) || [];
+        const TMAP = { restaurant:'meal', meal:'meal', winery:'wine', wine:'wine', hotel:'lodging', lodging:'lodging', villa:'villa', transfer:'transfer', guide:'experience', activity:'experience', expert:'experience', experience:'experience', culture:'experience', truffle:'experience', nature:'experience', service:'service' };
+        const SMAP = { confirmada:'confirmada', confirmed:'confirmada', conversando:'conversando', negotiating:'conversando', pendiente:'pendiente', pending:'pendiente', identificado:'pendiente', '':'pendiente' };
+        const slug = n => (n || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'prov';
+        return data.map(pr => ({
+          id: 'lib-' + slug(pr.name),
+          name: pr.name || 'Proveedor',
+          type: TMAP[(pr.type || '').toLowerCase()] || 'service',
+          michelin: Number(pr.michelin) || 0,
+          priceRange: pr.priceRange || '',
+          location: pr.location || '',
+          salidas: Array.isArray(pr.salidas) ? pr.salidas : [],
+          reservationStatus: SMAP[(pr.reservationStatus || '').toLowerCase()] || 'pendiente',
+          closingDays: '\u2014',
+          web: pr.web || '\u2014',
+          email: pr.email || '\u2014',
+          phone: pr.phone || '\u2014',
+          notes: pr.notes || '',
+          comms: [],
+          attachments: []
+        }));
+      } catch (e) { return (window.BA && window.BA.biblioteca) || []; }
+    },                                                            // RPC providers_library (agrega proveedores reales de todos los viajes)
+    async hydrateBiblioteca() {
+      const list = await this.providersLibrary();
+      if (Array.isArray(list) && list.length && window.BA && Array.isArray(window.BA.biblioteca)) {
+        window.BA.biblioteca.length = 0; list.forEach(x => window.BA.biblioteca.push(x));
+        if (window.BA._provCache) { window.BA._provCache = {}; }
+      }
+      return window.BA && window.BA.biblioteca;
+    },
     async finanzas() {
       const sess = await this.getSession();
       if (!window.SB || !sess) return finanzas;
