@@ -125,6 +125,12 @@
     }, [t]);
 
     useEffect(() => {
+      const onNotif = () => setRev(r => r + 1);
+      window.addEventListener('notifschange', onNotif);
+      return () => window.removeEventListener('notifschange', onNotif);
+    }, []);
+
+    useEffect(() => {
       function onKey(e) {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmdk(v => !v); }
       }
@@ -156,7 +162,7 @@
       body = React.createElement(C, { cur, op, toast, nav, openTrip, openLead, openProvider, openWizard: () => setWizard(true), openCapture: () => setCapture(true), openCompose, rev, tweak: t, setTweak });
     }
 
-    if (!authed) return React.createElement(window.Auth, { onEnter: async (id) => { setTweak('operator', id); try { await BA.source.hydrate(); } catch (e) {} setRev(r => r + 1); setAuthed(true); setLive(true); } });
+    if (!authed) return React.createElement(window.Auth, { onEnter: async (id) => { setTweak('operator', id); try { await BA.source.hydrate(); } catch (e) {} try { if (BA.loadNotifs) await BA.loadNotifs((BA._uidByShort || {})[id]); } catch (e) {} setRev(r => r + 1); setAuthed(true); setLive(true); } });
 
     return React.createElement('div', { className: 'app' + (railOpen ? '' : '') },
       // ===== sidebar =====

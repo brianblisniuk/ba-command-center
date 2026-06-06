@@ -164,7 +164,7 @@
             React.createElement('div', { style: { marginTop: 16 } },
               React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Notas'),
               React.createElement('textarea', { key: 'note_' + cur.id, defaultValue: cur.note || '', placeholder: 'Agregar una nota…', onBlur: e => { const v = e.target.value; if (v !== (cur.note || '')) persist(items.map(x => x.id === cur.id ? { ...x, note: v } : x)); }, style: { width: '100%', minHeight: 70, padding: 11, borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13, resize: 'vertical' } })),
-            op && window.CommentsSection && React.createElement(window.CommentsSection, { ckey: 'task:' + cur.id, op, toast })
+            op && window.CommentsSection && React.createElement(window.CommentsSection, { ckey: 'action:' + cur.id, op, toast })
           )
         )
       )
