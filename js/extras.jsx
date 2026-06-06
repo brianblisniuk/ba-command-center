@@ -107,13 +107,55 @@
   function AICapture({ onClose, toast, nav }) {
     const [tab, setTab] = useState('texto'); // texto | foto
     const [text, setText] = useState('');
+    const [file, setFile] = useState(null); // { name, media_type, data }
     const [stage, setStage] = useState('input'); // input | analizando | result
     const [kind, setKind] = useState('proveedor');
-    const sample = {
-      proveedor: [['Nombre', 'Castello di Verduno', 98], ['Tipo', 'Restaurante', 95], ['Lugar', 'Verduno, Piemonte', 99], ['Teléfono', '+39 0172 470125', 92], ['Email', 'eventi@castelloverduno.it', 90]],
-      lead: [['Nombre', 'Marco Pirelli', 97], ['Email', 'marco@pirelli.it', 95], ['Salida', 'Piemonte · Le Langhe', 88], ['Potencial', 'US$ 18k', 70], ['Fuente', 'Referido', 82]],
-    };
-    function analizar() { setStage('analizando'); setTimeout(() => setStage('result'), 1300); }
+    const [fields, setFields] = useState(null);
+    const [conf, setConf] = useState({});
+    const [tripSel, setTripSel] = useState(() => ((BA.salidas && BA.salidas[0]) || {}).id || '');
+    const [busy, setBusy] = useState(false);
+    const LBL = kind === 'lead'
+      ? [['full_name', 'Nombre'], ['email', 'Email'], ['phone', 'Tel\u00e9fono'], ['pax_count', 'Pax'], ['budget_per_pax_usd', 'USD / pax'], ['interest', 'Inter\u00e9s'], ['source', 'Fuente'], ['notes', 'Notas']]
+      : [['name', 'Nombre'], ['type', 'Tipo'], ['location', 'Lugar'], ['phone', 'Tel\u00e9fono'], ['web', 'Web'], ['email', 'Email'], ['priceRange', 'Precio'], ['notes', 'Notas']];
+    function pickFile(e) {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      if (f.size > 4 * 1024 * 1024) { toast('M\u00e1ximo 4 MB'); return; }
+      const rd = new FileReader();
+      rd.onload = () => { const data = String(rd.result).split(',')[1]; setFile({ name: f.name, media_type: f.type || 'image/png', data }); };
+      rd.readAsDataURL(f);
+    }
+    async function analizar() {
+      setStage('analizando');
+      try {
+        const payload = { kind, text };
+        if (tab === 'foto' && file) payload.image = { media_type: file.media_type, data: file.data };
+        const { data, error } = await window.SB.functions.invoke('ai_capture', { body: payload });
+        if (error || !data || !data.ok) { toast((data && data.error) || (error && error.message) || 'No se pudo analizar'); setStage('input'); return; }
+        const f = data.fields || {};
+        setConf(f.confidence || {});
+        const ff = Object.assign({}, f); delete ff.confidence;
+        setFields(ff); setStage('result');
+      } catch (e) { toast('Error: ' + ((e && e.message) || e)); setStage('input'); }
+    }
+    async function crear() {
+      if (busy || !fields) return; setBusy(true);
+      try {
+        if (kind === 'proveedor') {
+          if (!tripSel) { toast('Eleg\u00ed un viaje'); setBusy(false); return; }
+          const TYPES = ['restaurant', 'winery', 'hotel', 'transfer', 'guide', 'activity', 'lodging', 'service', 'villa', 'expert', 'culture', 'truffle'];
+          const item = { type: TYPES.includes(fields.type) ? fields.type : 'service', name: (fields.name || '').trim() || 'Proveedor', location: fields.location || '', phone: fields.phone || '', web: fields.web || '', email: fields.email || '', priceRange: fields.priceRange || '', notes: fields.notes || '', reservationStatus: 'pending' };
+          const r = await BA.source.tripDataApply(tripSel, 'providers', 'add', { item });
+          if (r && r.ok) { toast('Proveedor creado en el viaje \u2713'); onClose(); } else toast((r && r.error) || 'No se pudo crear');
+        } else {
+          const row = { full_name: (fields.full_name || '').trim() || 'Lead', email: fields.email || null, phone: fields.phone || null, pax_count: Number(fields.pax_count) || null, estimated_budget_per_pax_usd: Number(fields.budget_per_pax_usd) || null, interest_text: fields.interest || null, source: fields.source || 'captura-ia', notes: fields.notes || null, stage: 'new' };
+          const { error } = await window.SB.from('leads').insert(row);
+          if (!error) { toast('Lead creado \u2713'); if (BA.source.hydrateLeads) await BA.source.hydrateLeads(); onClose(); nav && nav('ventas'); }
+          else toast(error.message || 'No se pudo crear');
+        }
+      } catch (e) { toast('Error: ' + ((e && e.message) || e)); }
+      setBusy(false);
+    }
+    const canAnalyze = tab === 'texto' ? !!text.trim() : !!file;
     return React.createElement('div', { className: 'modal-overlay', onClick: onClose },
       React.createElement('div', { className: 'modal', onClick: e => e.stopPropagation() },
         React.createElement('div', { className: 'modal-head' },
@@ -125,30 +167,35 @@
             React.createElement('div', { className: 'seg-tabs', style: { marginBottom: 16, maxWidth: 260 } },
               [['texto', 'Pegar texto'], ['foto', 'Foto / PDF']].map(([k, t]) => React.createElement('button', { key: k, className: tab === k ? 'on' : '', onClick: () => setTab(k) }, t))),
             tab === 'texto'
-              ? React.createElement('textarea', { value: text, onChange: e => setText(e.target.value), placeholder: 'Pegá un email, un mensaje o los datos de una tarjeta…\n\nEj: «Castello di Verduno, Verduno. Tel +39 0172 470125. Cena privada, piden seña.»', style: { width: '100%', minHeight: 150, padding: 13, borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13, lineHeight: 1.5, resize: 'vertical' } })
-              : React.createElement('div', { className: 'dropzone', onClick: () => { setText('(imagen cargada)'); toast('Imagen lista para analizar'); } },
-                  React.createElement('div', { className: 'ic' }, React.createElement(Icon, { name: 'download' })),
-                  React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600, color: 'var(--text-1)' } }, 'Arrastrá una foto o PDF'),
-                  React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 4 } }, 'Tarjeta, factura, captura de email — la IA extrae los datos')),
+              ? React.createElement('textarea', { value: text, onChange: e => setText(e.target.value), placeholder: 'Peg\u00e1 un email, un mensaje o los datos de una tarjeta\u2026\\n\\nEj: \u00abTrattoria Antica Torre, Barbaresco. Tel +39 0173 635218. Men\u00fa 85\u20ac, piden se\u00f1a.\u00bb', style: { width: '100%', minHeight: 150, padding: 13, borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13, lineHeight: 1.5, resize: 'vertical' } })
+              : React.createElement('label', { className: 'dropzone', style: { cursor: 'pointer', display: 'block' } },
+                  React.createElement('input', { type: 'file', accept: 'image/*,application/pdf', style: { display: 'none' }, onChange: pickFile }),
+                  React.createElement('div', { className: 'ic' }, React.createElement(Icon, { name: file ? 'check' : 'download' })),
+                  React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600, color: 'var(--text-1)' } }, file ? file.name : 'Eleg\u00ed una foto o PDF'),
+                  React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 4 } }, file ? 'Lista para analizar \u2014 toc\u00e1 para cambiar' : 'Tarjeta, factura, captura de email \u2014 Claude extrae los datos')),
             React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
               React.createElement('span', { style: { fontSize: 12, color: 'var(--text-3)', alignSelf: 'center', marginRight: 4 } }, 'Crear:'),
               [['proveedor', 'Proveedor'], ['lead', 'Lead']].map(([k, t]) => React.createElement('button', { key: k, className: 'badge ' + (kind === k ? 'go' : 'ghost'), style: { cursor: 'pointer', padding: '6px 12px' }, onClick: () => setKind(k) }, t)))),
           stage === 'analizando' && React.createElement('div', { style: { textAlign: 'center', padding: '40px 20px' } },
             React.createElement('div', { className: 'stat-ic', style: { width: 52, height: 52, margin: '0 auto 16px', animation: 'bp 1.2s ease-in-out infinite' } }, React.createElement(Icon, { name: 'spark' })),
-            React.createElement('div', { style: { fontSize: 14, color: 'var(--text-1)', fontWeight: 600 } }, 'Analizando con Claude…'),
+            React.createElement('div', { style: { fontSize: 14, color: 'var(--text-1)', fontWeight: 600 } }, 'Analizando con Claude\u2026'),
             React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', marginTop: 4 } }, 'Extrayendo campos y normalizando datos')),
-          stage === 'result' && React.createElement('div', null,
+          stage === 'result' && fields && React.createElement('div', null,
             React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12.5, color: 'var(--go)' } },
-              React.createElement(Icon, { name: 'check', style: { width: 16, height: 16 } }), 'Datos extraídos · revisá y confirmá'),
-            sample[kind].map((r, i) => React.createElement('div', { key: i, className: 'xrow' },
-              React.createElement('span', { className: 'k' }, r[0]),
-              React.createElement('input', { defaultValue: r[1] }),
-              React.createElement('span', { className: 'conf' }, r[2] + '%'))))
+              React.createElement(Icon, { name: 'check', style: { width: 16, height: 16 } }), 'Datos extra\u00eddos \u00b7 revis\u00e1 y confirm\u00e1'),
+            LBL.map(([k, lbl]) => React.createElement('div', { key: k, className: 'xrow' },
+              React.createElement('span', { className: 'k' }, lbl),
+              React.createElement('input', { value: fields[k] == null ? '' : String(fields[k]), onChange: e => setFields(o => Object.assign({}, o, { [k]: e.target.value })) }),
+              conf[k] != null && Number(conf[k]) > 0 ? React.createElement('span', { className: 'conf' }, conf[k] + '%') : React.createElement('span', { className: 'conf', style: { opacity: .4 } }, '\u2014'))),
+            kind === 'proveedor' && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 } },
+              React.createElement('span', { style: { fontSize: 12, color: 'var(--text-3)' } }, 'Crear en:'),
+              React.createElement('select', { value: tripSel, onChange: e => setTripSel(e.target.value), style: { flex: 1, padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } },
+                (BA.salidas || []).map(sa => React.createElement('option', { key: sa.id, value: sa.id }, sa.titulo || sa.title || sa.id)))))
         ),
         React.createElement('div', { className: 'modal-foot' },
           React.createElement('button', { className: 'btn', onClick: onClose }, 'Cancelar'),
-          stage === 'input' && React.createElement('button', { className: 'btn primary', disabled: !text.trim(), style: text.trim() ? null : { opacity: .5, pointerEvents: 'none' }, onClick: analizar }, React.createElement(Icon, { name: 'spark' }), 'Analizar'),
-          stage === 'result' && React.createElement('button', { className: 'btn primary', onClick: () => { toast(kind === 'lead' ? 'Lead creado ✓' : 'Proveedor creado ✓'); onClose(); nav && nav(kind === 'lead' ? 'ventas' : 'biblioteca'); } }, React.createElement(Icon, { name: 'check' }), 'Crear ' + kind))
+          stage === 'input' && React.createElement('button', { className: 'btn primary', disabled: !canAnalyze, style: canAnalyze ? null : { opacity: .5, pointerEvents: 'none' }, onClick: analizar }, React.createElement(Icon, { name: 'spark' }), 'Analizar'),
+          stage === 'result' && React.createElement('button', { className: 'btn primary', disabled: busy, onClick: crear }, React.createElement(Icon, { name: 'check' }), busy ? 'Creando\u2026' : 'Crear ' + kind))
       )
     );
   }
