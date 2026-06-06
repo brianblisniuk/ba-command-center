@@ -196,7 +196,7 @@
           React.createElement('div', { className: 'card pad' },
             React.createElement(CardHead, { title: 'Notas' }),
             React.createElement('div', { style: { fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.6 } }, p.notes),
-            op && window.CommentsSection && React.createElement(window.CommentsSection, { ckey: 'prov:' + p.id, op, toast }))
+            op && window.CommentsSection && React.createElement(window.CommentsSection, { ckey: 'provider:' + p.id, op, toast }))
         ),
         // right: contacto + adjuntos + salidas
         React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--gap)' } },
