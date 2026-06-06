@@ -154,6 +154,7 @@ window.BA = (function () {
       { stage:'Negociación', step:1, offset:1, channel:'whatsapp', subject:'Confirmar seña' },
       { stage:'Negociación', step:2, offset:3, channel:'mail',     subject:'Reenviar datos + urgencia por cupos' },
     ],
+    cola: [],
   };
 
   // ---- Bandeja · triage IA (campos espejan email-ai del backend) ----
@@ -516,7 +517,7 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); await this.hydrateBiblioteca(); await this.hydrateClientes(); await this.hydrateHistorial(); await this.hydrateFunnel(); },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); await this.hydrateBiblioteca(); await this.hydrateClientes(); await this.hydrateHistorial(); await this.hydrateFunnel(); await this.hydrateCadencias(); },
     async funnel() {
       const L = (window.BA && window.BA.leads) || [];
       if (!L.length) return funnel;
@@ -527,6 +528,22 @@ window.BA = (function () {
       const list = await this.funnel();
       if (window.BA && Array.isArray(window.BA.funnel)) { window.BA.funnel.length = 0; (list || []).forEach(x => window.BA.funnel.push(x)); }
       return window.BA && window.BA.funnel;
+    },
+    async cadencias() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return cadencias;
+      try {
+        const { data, error } = await window.SB.rpc('cadence_board');
+        if (error || !data) return cadencias;
+        const reglas = (data.reglas || []).map(r => ({ id: r.id, stage: r.stage, stageLabel: r.stage_label || r.stage, step: r.step, offset: r.offset, channel: r.channel, name: r.name, subject: r.subject || '', body: r.body || '' }));
+        const cola = (data.cola || []).map(q => ({ leadId: q.lead_id, lead: q.lead, stage: q.stage, stageLabel: q.stage_label || q.stage, email: q.email || '', phone: q.phone || '', tripId: q.trip_id || null, step: q.step, channel: q.channel, name: q.name, subject: q.subject || '', body: q.body || '', offset: q.offset, dueAt: q.due_at, diasEnEtapa: Number(q.days_in_stage) || 0 }));
+        return { reglas: reglas.length ? reglas : cadencias.reglas, cola };
+      } catch (e) { return cadencias; }
+    },                                                            // RPC cadence_board (reglas + cola reales)
+    async hydrateCadencias() {
+      const r = await this.cadencias();
+      if (r && r.reglas) { cadencias.reglas = r.reglas; cadencias.cola = r.cola || []; }
+      return cadencias;
     },
     async providersLibrary() {
       const sess = await this.getSession();
