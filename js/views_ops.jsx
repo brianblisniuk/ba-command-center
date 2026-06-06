@@ -184,8 +184,8 @@
           // conciliar pago
           cur.conciliar && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 15px', background: 'var(--go-bg)', borderRadius: 'var(--radius-sm)', marginBottom: 14 } },
             React.createElement(Icon, { name: 'coin', style: { width: 20, height: 20, color: 'var(--go)' } }),
-            React.createElement('div', { style: { flex: 1, fontSize: 13 } }, 'Pago detectado — coincide con ', React.createElement('b', null, cur.extra.match)),
-            React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Cuota marcada como pagada ✓') }, 'Conciliar')),
+            React.createElement('div', { style: { flex: 1, fontSize: 13 } }, 'Pago detectado — conciliar con ', React.createElement('b', null, cur.conciliar.label), ' · ', (cur.conciliar.moneda === 'USD' ? 'US$ ' : (cur.conciliar.moneda + ' ')) + (cur.conciliar.monto || 0).toLocaleString('es-AR')),
+            React.createElement('button', { className: 'btn sm primary', onClick: async () => { const r = await BA.source.markPaid(cur.conciliar.cuotaId); if (r && r.error) { toast('No se pudo conciliar: ' + r.error); } else { toast(cur.conciliar.label + ' · cobrada ✓'); cur.conciliar = null; force(x => x + 1); } } }, 'Conciliar')),
           // hilo (WhatsApp / unificado por contraparte)
           cur.hilo && React.createElement('div', null,
             React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Conversación · ' + cur.de),

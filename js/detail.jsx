@@ -179,8 +179,7 @@
               p.michelin > 0 && React.createElement('span', { style: { color: 'var(--brass)', fontSize: 13 } }, '★'.repeat(p.michelin))))),
         React.createElement('div', { style: { display: 'flex', gap: 9 } },
           React.createElement('button', { className: 'btn', onClick: () => window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(((p.name||'') + ' ' + (p.location||'')).trim()), '_blank') }, React.createElement(Icon, { name: 'pin' }), 'Ver en Google Maps'),
-          React.createElement('button', { className: 'btn', onClick: () => openCompose ? openCompose({ to: (p.email && p.email.indexOf('@') >= 0) ? p.email : '', account: 'reservas', subject: 'B&A · ' + p.name, name: p.name }) : toast('Contactar proveedor') }, React.createElement(Icon, { name: 'mail' }), 'Contactar'),
-          React.createElement('button', { className: 'btn primary', onClick: () => toast('Estado de reserva actualizado') }, React.createElement(Icon, { name: 'check' }), 'Marcar confirmada'))
+          React.createElement('button', { className: 'btn primary', onClick: () => openCompose ? openCompose({ to: (p.email && p.email.indexOf('@') >= 0) ? p.email : '', account: 'reservas', subject: 'B&A · ' + p.name, name: p.name }) : toast('Contactar proveedor') }, React.createElement(Icon, { name: 'mail' }), 'Contactar'))
       ),
       React.createElement('div', { className: 'detail-grid' },
         // left: comms + notes + attachments

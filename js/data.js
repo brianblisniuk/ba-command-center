@@ -656,6 +656,7 @@ window.BA = (function () {
             extra, necesitaResp: e.direction === 'inbound' && e.status !== 'replied' && e.status !== 'archived',
             leido: !!e.is_read || e.status === 'read' || e.status === 'replied',
             borrador: e.ai_suggested_reply || '',
+            conciliar: (e.pay_due && typeof e.pay_due === 'object') ? { cuotaId: e.pay_due.id, label: e.pay_due.label || ('Cuota ' + (e.pay_due.n_cuota || '')), monto: Number(e.pay_due.amount) || 0, moneda: e.pay_due.currency || 'USD' } : null,
             cruce: e.lead_id ? { leadId: e.lead_id, lead: e.lead_name || de, origen: ORIGEN[e.lead_source] || e.lead_source || '\u2014', campania: e.lead_campaign || '', adId: e.lead_ad_id || '', score: (e.lead_fit != null ? e.lead_fit : null), tier: e.lead_tier || '', etapa: e.lead_stage || '', telefono: e.lead_phone || '', nlOpens: Number(e.nl_opens) || 0, nlClicks: Number(e.nl_clicks) || 0, suscriptor: !!e.is_subscriber } : null
           };
         });
