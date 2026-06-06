@@ -377,7 +377,7 @@ window.BA = (function () {
       forecastUSD: Math.round((r.revenue_forecast || 0) / 1000),
       resp: 'brian', lat: Number(r.lat) || 0, lng: Number(r.lng) || 0, glyph,
       capacity: r.capacity, pipe: r.pipe, leadsActivos: r.leads_activos, decisionDate: r.decision_date,
-      daysToDeparture: r.days_to_departure, revenueCommitted: r.revenue_committed, goStatus: r.go_status
+      daysToDeparture: r.days_to_departure, revenueCommitted: r.revenue_committed, goStatus: r.go_status, startISO: r.start_date || null
     };
   }
 
@@ -424,7 +424,7 @@ window.BA = (function () {
   function ymToM(ym) { const mm = parseInt(String(ym || '').slice(5, 7), 10); return MES_ABBR[mm - 1] || ym; }
   function dueEstado(r) { if (r.status === 'paid') return 'pagado'; if (r.status === 'overdue' || r.dias < 0) return 'vencido'; if (r.dias <= 7) return 'proximo'; return 'alcorriente'; }
   function mapDue(r) {
-    return { id: r.id, cliente: r.full_name || '—', salida: r.trip_id || '', monto: Number(r.amount) || 0, estado: dueEstado(r), dias: r.dias, cuota: r.label || '', region: r.region_label || '', currency: r.currency || 'USD' };
+    return { id: r.id, cliente: r.full_name || '—', salida: r.trip_id || '', monto: Number(r.amount) || 0, estado: dueEstado(r), dias: r.dias, cuota: r.label || '', region: r.region_label || '', currency: r.currency || 'USD', vence: r.due_date || null };
   }
 
   // Compone "El Puente" (cola del día) desde finanzas + leads + salidas ya hidratados
