@@ -8,7 +8,6 @@
   function Cupos({ s, cur, toast, openLead }) {
     const { confirmados, pipeline } = BA.tripData(s.id).reservas;
     const reservadoPax = confirmados.reduce((a, c) => a + c.pax, 0);
-    const pipePax = pipeline.length * 2;
     const cap = Math.max(s.min + 2, s.conf + s.opcion + s.libres);
     const libres = Math.max(0, cap - s.conf - s.opcion);
     const beReached = s.conf >= s.breakeven;
@@ -44,7 +43,7 @@
                   : React.createElement('span', { className: 'badge ' + (c.pagado === 100 ? 'go' : 'risk'), style: { padding: '2px 7px' } }, c.pagado + '%')))
         ),
         React.createElement('div', { className: 'card pad' },
-          React.createElement(CardHead, { title: 'En pipeline', count: pipeline.length, right: React.createElement('span', { className: 'eyebrow' }, '+' + pipePax + ' pax potenciales') }),
+          React.createElement(CardHead, { title: 'En pipeline', count: pipeline.length }),
           pipeline.length === 0
             ? React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', padding: '6px 0' } }, 'Sin leads para esta salida.')
             : pipeline.map((l, i) => React.createElement('div', { key: i, className: 'row click', style: { cursor: openLead ? 'pointer' : 'default' }, onClick: () => openLead && openLead(l.id) },
@@ -97,8 +96,6 @@
   const TT = { reserva: 'Reserva', compra: 'Compra', contacto: 'Contacto', research: 'Research', logística: 'Logística', otro: 'Otro' };
   const TICON = { reserva: 'funnel', compra: 'coin', contacto: 'phone', research: 'eye', logística: 'route', otro: 'list' };
   const PCOL = { P1: 'bad', P2: 'risk', P3: 'ghost' };
-  const VINC = ['Slot · día 3 · Cena Verduno', 'Proveedor · Castello di Verduno', 'Día 2 · Le Langhe', '—', 'Slot · día 1 · Llegada', '—'];
-
   function Tareas({ s, toast, openProvider, op }) {
     const TT2R = { reserva: 'reservation', contacto: 'contact', research: 'research', compra: 'purchase', 'logística': 'logistics', otro: 'other' };
     const mount = () => BA.tripData(s.id).tareas.map((t, i) => ({ ...t, id: t.id || ('tmp' + i + '_' + Math.random().toString(36).slice(2, 5)), vinculo: '—' }));
@@ -161,15 +158,12 @@
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Estado'), React.createElement('span', { className: 'v' }, cur.done ? 'Hecha' : 'Pendiente')),
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Prioridad'), React.createElement('span', { className: 'v' }, React.createElement('span', { className: 'badge ' + PCOL[cur.p], style: { padding: '2px 7px' } }, cur.p))),
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Tipo'), React.createElement('span', { className: 'v' }, TT[cur.tipo])),
-              React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Deadline'), React.createElement('span', { className: 'v' }, 'en 3 días')),
+              React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Deadline'), React.createElement('span', { className: 'v' }, cur.due || '—')),
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Responsable'), React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } }, React.createElement(Avatar, { id: s.resp, size: 22 }), React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-1)' } }, BA.operadores.find(o => o.id === s.resp).short)))),
             cur.vinculo !== '—' && React.createElement('div', { style: { marginTop: 16 } },
               React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Vinculado a'),
               React.createElement('button', { className: 'att', style: { width: '100%', justifyContent: 'flex-start' }, onClick: () => { setSel(null); cur.vinculo.includes('Proveedor') && openProvider ? openProvider('p1') : toast('Abrir ' + cur.vinculo); } },
                 React.createElement(Icon, { name: cur.vinculo.includes('Proveedor') ? 'users' : 'route' }), cur.vinculo)),
-            React.createElement('div', { style: { marginTop: 16 } },
-              React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Notas'),
-              React.createElement('textarea', { placeholder: 'Agregar una nota…', style: { width: '100%', minHeight: 70, padding: 11, borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13, resize: 'vertical' } })),
             op && window.CommentsSection && React.createElement(window.CommentsSection, { ckey: 'task:' + cur.id, op, toast })
           )
         )

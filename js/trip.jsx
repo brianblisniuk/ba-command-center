@@ -15,11 +15,14 @@
         unit && React.createElement('span', { style: { fontSize: 13, color: 'var(--text-3)', marginLeft: 4, fontFamily: 'var(--ff-body)', fontWeight: 600 } }, unit)));
   }
 
-  function Resumen({ s, cur, toast }) {
+  function Resumen({ s, cur, toast, setTab }) {
     const beOk = s.conf >= s.breakeven, accOk = s.accesosOk >= 2;
     const ready = beOk && accOk;
     const verdict = s.estado === 'curso' ? { t: 'En viaje', c: 'var(--curso)' } : ready ? { t: 'Sugerencia: GO', c: 'var(--go)' } : { t: s.dias <= 7 ? 'Riesgo: evaluar NO-GO' : 'Sostener — falta cerrar', c: s.dias <= 7 ? 'var(--bad)' : 'var(--brass)' };
     const col = verdict.c;
+    const td = BA.tripData(s.id); const pres = td.presupuesto || {}; const provCount = (td.proveedores || []).length; const p1pend = (td.tareas || []).filter(t => t.p === 'P1' && !t.done).length;
+    const code = td.accessCode || ''; const clientLink = code ? ('https://expedicionmundial.netlify.app/?code=' + code) : '';
+    const copy = (txt, msg) => { try { navigator.clipboard.writeText(txt); toast(msg); } catch (e) { toast('No se pudo copiar'); } };
     return React.createElement('div', null,
       // GO/NO-GO
       React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
@@ -43,10 +46,10 @@
       // KPIs
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(5,1fr)', marginBottom: 'var(--gap)' } },
         React.createElement(Mini, { label: 'Ocupación', value: s.conf, unit: '/ ' + s.min }),
-        React.createElement(Mini, { label: 'Margen', value: '62%', tone: 'var(--go)' }),
-        React.createElement(Mini, { label: 'Costo / pax', value: BA.money(s.precioUSD * 0.38, cur).replace(/\.\d+/, '') }),
-        React.createElement(Mini, { label: 'Proveedores', value: s.accesosOk + 4, unit: 'conf' }),
-        React.createElement(Mini, { label: 'P1 pendientes', value: 3, tone: 'var(--bad)' })
+        React.createElement(Mini, { label: 'Margen', value: pres.ingreso > 0 ? pres.margen + '%' : '—', tone: (pres.ingreso > 0 && pres.margen >= 50) ? 'var(--go)' : null }),
+        React.createElement(Mini, { label: 'Costo / pax', value: pres.costoPax > 0 ? BA.money(pres.costoPax, cur).replace(/\.\d+/, '') : '—' }),
+        React.createElement(Mini, { label: 'Proveedores', value: provCount, unit: 'cargados' }),
+        React.createElement(Mini, { label: 'P1 pendientes', value: p1pend, tone: p1pend > 0 ? 'var(--bad)' : null })
       ),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', alignItems: 'start' } },
         React.createElement('div', { className: 'card pad' },
@@ -56,24 +59,24 @@
             React.createElement('div', { className: 'q-body' },
               React.createElement('div', { className: 'q-title' }, 'Cerrar el ' + (s.accesosTot - s.accesosOk) + '.º acceso'),
               React.createElement('div', { className: 'q-meta' }, 'Define si el viaje existe')),
-            React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Abriendo accesos…') }, 'Ver')),
+            React.createElement('button', { className: 'btn sm primary', onClick: () => setTab && setTab('Accesos') }, 'Ver')),
           React.createElement('div', { className: 'qitem' },
             React.createElement('div', { className: 'q-ic info' }, React.createElement(Icon, { name: 'users' })),
             React.createElement('div', { className: 'q-body' },
               React.createElement('div', { className: 'q-title' }, 'Cerrar ' + Math.max(0, s.breakeven - s.conf) + ' reservas para break-even'),
               React.createElement('div', { className: 'q-meta' }, s.opcion + ' en opción · ' + s.libres + ' libres')),
-            React.createElement('button', { className: 'btn sm', onClick: () => toast('Abriendo reservas…') }, 'Reservas'))
+            React.createElement('button', { className: 'btn sm', onClick: () => setTab && setTab('Reservas') }, 'Reservas'))
         ),
         React.createElement('div', { className: 'card pad' },
           React.createElement(CardHead, { title: 'Acceso del cliente' }),
           React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
             React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)' } },
               React.createElement('div', null, React.createElement('div', { className: 'eyebrow' }, 'Código de acceso'),
-                React.createElement('div', { className: 'mono', style: { fontSize: 18, color: 'var(--text-1)', marginTop: 3, letterSpacing: '0.1em' } }, s.etiqueta.replace('·', '-'))),
-              React.createElement('button', { className: 'btn sm', onClick: () => toast('Código copiado') }, React.createElement(Icon, { name: 'copy' }), 'Copiar')),
+                React.createElement('div', { className: 'mono', style: { fontSize: 18, color: 'var(--text-1)', marginTop: 3, letterSpacing: '0.1em' } }, code || '— sin código —')),
+              React.createElement('button', { className: 'btn sm', onClick: () => code ? copy(code, 'Código copiado ✓') : toast('Sin código aún') }, React.createElement(Icon, { name: 'copy' }), 'Copiar')),
             React.createElement('div', { style: { display: 'flex', gap: 9 } },
-              React.createElement('button', { className: 'btn', style: { flex: 1 }, onClick: () => toast('Abriendo vista de cliente') }, React.createElement(Icon, { name: 'eye' }), 'Ver como cliente'),
-              React.createElement('button', { className: 'btn', style: { flex: 1 }, onClick: () => toast('Link copiado') }, React.createElement(Icon, { name: 'copy' }), 'Copiar link')))
+              React.createElement('button', { className: 'btn', style: { flex: 1 }, onClick: () => setTab && setTab('App cliente') }, React.createElement(Icon, { name: 'eye' }), 'Ver como cliente'),
+              React.createElement('button', { className: 'btn', style: { flex: 1 }, onClick: () => clientLink ? copy(clientLink, 'Link copiado ✓') : toast('Sin código aún') }, React.createElement(Icon, { name: 'copy' }), 'Copiar link')))
         )
       )
     );
@@ -177,7 +180,7 @@
         TABS.map(t => React.createElement('button', { key: t, className: tab === t ? 'on' : '', onClick: () => setTab(t) },
           t, t === 'Accesos' && React.createElement('span', { className: 'b' }, s.accesosOk + '/' + accCount)))),
       (needsData && !ready) ? loadingCard
-        : tab === 'Resumen' ? React.createElement(Resumen, { s, cur, toast })
+        : tab === 'Resumen' ? React.createElement(Resumen, { s, cur, toast, setTab })
         : tab === 'Accesos' ? React.createElement(Accesos, { s, toast })
         : tab === 'Itinerario' ? React.createElement(window.Itinerario, { s, cur, toast, openProvider, op })
         : tab === 'Ruta' ? React.createElement(window.Ruta, { s, cur, toast })
