@@ -1138,7 +1138,6 @@ window.BA = (function () {
         return data || { ok: false, error: 'sin respuesta' };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // edge fn mkt-actions → lead-score
-    async cadencias()  { return cadencias; },                     // RPC cadence_render
     async calendario() { return { mes: calMes, eventos: calEventos }; },
     async leadChangeStage(id, stage) {
       const sess = await this.getSession();
