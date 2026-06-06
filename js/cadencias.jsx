@@ -37,6 +37,16 @@
     const reglas = (BA.cadencias && BA.cadencias.reglas) || [];
     const cola = (BA.cadencias && BA.cadencias.cola) || [];
     const [selId, setSelId] = useState(reglas[0] ? reglas[0].id : null);
+    const [, force] = useState(0);
+    React.useEffect(() => {
+      if (BA.source && BA.source.hydrateCadencias) {
+        Promise.resolve(BA.source.hydrateCadencias()).then(() => {
+          const first = ((BA.cadencias && BA.cadencias.reglas) || [])[0];
+          if (first) setSelId(first.id);
+          force(x => x + 1);
+        });
+      }
+    }, []);
     const selRule = reglas.find(r => r.id === selId) || reglas[0] || null;
 
     // lead de ejemplo para la vista previa: alguno de la cola que comparta etapa, o el primero de la cola
