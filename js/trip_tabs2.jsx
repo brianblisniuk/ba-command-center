@@ -8,6 +8,7 @@
   function Cupos({ s, cur, toast, openLead }) {
     const { confirmados, pipeline } = BA.tripData(s.id).reservas;
     const reservadoPax = confirmados.reduce((a, c) => a + c.pax, 0);
+    const potencialesPax = pipeline.filter(l => (l.stageKey || '') !== 'booked').reduce((a, l) => a + (Number(l.pax) || 1), 0);
     const cap = Math.max(s.min + 2, s.conf + s.opcion + s.libres);
     const libres = Math.max(0, cap - s.conf - s.opcion);
     const beReached = s.conf >= s.breakeven;
@@ -43,7 +44,7 @@
                   : React.createElement('span', { className: 'badge ' + (c.pagado === 100 ? 'go' : 'risk'), style: { padding: '2px 7px' } }, c.pagado + '%')))
         ),
         React.createElement('div', { className: 'card pad' },
-          React.createElement(CardHead, { title: 'En pipeline', count: pipeline.length }),
+          React.createElement(CardHead, { title: 'En pipeline', count: pipeline.length, right: potencialesPax > 0 ? React.createElement('span', { className: 'eyebrow' }, potencialesPax + ' pax en gestión') : null }),
           pipeline.length === 0
             ? React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', padding: '6px 0' } }, 'Sin leads para esta salida.')
             : pipeline.map((l, i) => React.createElement('div', { key: i, className: 'row click', style: { cursor: openLead ? 'pointer' : 'default' }, onClick: () => openLead && openLead(l.id) },
@@ -104,7 +105,7 @@
     const [sel, setSel] = useState(null);
     const [adding, setAdding] = useState(false);
     const [newT, setNewT] = useState('');
-    const toStore = (arr) => arr.map(t => { const o = { priority: t.p || 'P3', type: TT2R[t.tipo] || 'other', task: t.t || '', done: !!t.done, dueDate: t.due || '' }; if (t.id && !String(t.id).startsWith('tmp')) o.id = t.id; return o; });
+    const toStore = (arr) => arr.map(t => { const o = { priority: t.p || 'P3', type: TT2R[t.tipo] || 'other', task: t.t || '', done: !!t.done, dueDate: t.due || '', note: t.note || '' }; if (t.id && !String(t.id).startsWith('tmp')) o.id = t.id; return o; });
     async function persist(next) { setItems(next); const r = await BA.source.tripDataApply(s.id, 'actions', 'set', { items: toStore(next) }); if (r && r.ok) setItems(mount()); else toast((r && r.error) || 'No se pudo guardar'); }
     function toggle(id) { persist(items.map(t => t.id === id ? { ...t, done: !t.done } : t)); }
     function removeTask(id) { setSel(null); persist(items.filter(t => t.id !== id)); }
@@ -160,6 +161,9 @@
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Tipo'), React.createElement('span', { className: 'v' }, TT[cur.tipo])),
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Deadline'), React.createElement('span', { className: 'v' }, cur.due || '—')),
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Responsable'), React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } }, React.createElement(Avatar, { id: s.resp, size: 22 }), React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-1)' } }, BA.operadores.find(o => o.id === s.resp).short)))),
+            React.createElement('div', { style: { marginTop: 16 } },
+              React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Notas'),
+              React.createElement('textarea', { key: 'note_' + cur.id, defaultValue: cur.note || '', placeholder: 'Agregar una nota…', onBlur: e => { const v = e.target.value; if (v !== (cur.note || '')) persist(items.map(x => x.id === cur.id ? { ...x, note: v } : x)); }, style: { width: '100%', minHeight: 70, padding: 11, borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13, resize: 'vertical' } })),
             op && window.CommentsSection && React.createElement(window.CommentsSection, { ckey: 'task:' + cur.id, op, toast })
           )
         )

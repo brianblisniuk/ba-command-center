@@ -84,6 +84,8 @@
 
   function Accesos({ s, toast }) {
     const [list, setList] = useState(BA.accesos.filter(a => a.salida === s.id).map(a => ({ ...a })));
+    const [adding, setAdding] = useState(false);
+    const [nf, setNf] = useState({ nombre: '', figura: '' });
     function recountSalida() {
       const mine = (BA.accesos || []).filter(a => a.salida === s.id);
       s.accesosTot = mine.length;
@@ -107,6 +109,16 @@
         }
       });
     }
+    async function addAcceso() {
+      const n = nf.nombre.trim(); if (!n) { setAdding(false); return; }
+      const r = await BA.source.tripDataApply(s.id, 'providers', 'add', { item: { type: 'expert', name: n, location: nf.figura.trim(), reservationStatus: 'identified' } });
+      if (r && r.ok) {
+        await BA.source.hydrateAccesos();
+        setList((BA.accesos || []).filter(x => x.salida === s.id).map(x => ({ ...x })));
+        recountSalida(); setAdding(false); setNf({ nombre: '', figura: '' });
+        toast('Acceso agregado ✓');
+      } else toast((r && r.error) || 'No se pudo agregar');
+    }
     const closed = list.filter(a => a.etapa === 'confirmado').length;
     return React.createElement('div', null,
       React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' } },
@@ -114,7 +126,12 @@
         React.createElement('div', { style: { flex: 1, minWidth: 200 } },
           React.createElement('div', { className: 'figure', style: { fontSize: 28 } }, closed, ' / ', list.length, ' accesos cerrados'),
           React.createElement('div', { style: { fontSize: 13, color: 'var(--text-3)', marginTop: 4 } }, 'Sin dos encuentros, el viaje no sale. ', React.createElement('b', { style: { color: closed >= 2 ? 'var(--go)' : 'var(--bad)' } }, closed >= 2 ? 'Regla cumplida.' : 'Falta cerrar ' + (2 - closed) + '.'))),
+        React.createElement('button', { className: 'btn', onClick: () => setAdding(v => !v) }, React.createElement(Icon, { name: 'plus' }), 'Agregar acceso')
       ),
+      adding && React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' } },
+        React.createElement('input', { autoFocus: true, value: nf.nombre, placeholder: 'Nombre del acceso (ej. Cena privada · Castello)', onChange: e => setNf(o => ({ ...o, nombre: e.target.value })), onKeyDown: e => { if (e.key === 'Enter') addAcceso(); if (e.key === 'Escape') setAdding(false); }, style: { flex: '2 1 240px', padding: '9px 11px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } }),
+        React.createElement('input', { value: nf.figura, placeholder: 'Figura / quién (opcional)', onChange: e => setNf(o => ({ ...o, figura: e.target.value })), onKeyDown: e => { if (e.key === 'Enter') addAcceso(); }, style: { flex: '1 1 160px', padding: '9px 11px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } }),
+        React.createElement('button', { className: 'btn sm primary', onClick: addAcceso }, 'Agregar')),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' } },
         list.map(a => {
           const idx = STAGES.indexOf(a.etapa);
