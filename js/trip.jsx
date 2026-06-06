@@ -47,7 +47,7 @@
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(5,1fr)', marginBottom: 'var(--gap)' } },
         React.createElement(Mini, { label: 'Ocupación', value: s.conf, unit: '/ ' + s.min }),
         React.createElement(Mini, { label: 'Margen', value: pres.ingreso > 0 ? pres.margen + '%' : '—', tone: (pres.ingreso > 0 && pres.margen >= 50) ? 'var(--go)' : null }),
-        React.createElement(Mini, { label: 'Costo / pax', value: pres.costoPax > 0 ? BA.money(pres.costoPax, cur).replace(/\.\d+/, '') : '—' }),
+        React.createElement(Mini, { label: 'Costo / pax', value: pres.costoPax > 0 ? BA.money(pres.costoPax, cur) : '—' }),
         React.createElement(Mini, { label: 'Proveedores', value: provCount, unit: 'cargados' }),
         React.createElement(Mini, { label: 'P1 pendientes', value: p1pend, tone: p1pend > 0 ? 'var(--bad)' : null })
       ),

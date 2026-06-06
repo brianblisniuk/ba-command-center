@@ -160,10 +160,6 @@
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Tipo'), React.createElement('span', { className: 'v' }, TT[cur.tipo])),
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Deadline'), React.createElement('span', { className: 'v' }, cur.due || '—')),
               React.createElement('div', { className: 'kv' }, React.createElement('span', { className: 'k' }, 'Responsable'), React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 7 } }, React.createElement(Avatar, { id: s.resp, size: 22 }), React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-1)' } }, BA.operadores.find(o => o.id === s.resp).short)))),
-            cur.vinculo !== '—' && React.createElement('div', { style: { marginTop: 16 } },
-              React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Vinculado a'),
-              React.createElement('button', { className: 'att', style: { width: '100%', justifyContent: 'flex-start' }, onClick: () => { setSel(null); cur.vinculo.includes('Proveedor') && openProvider ? openProvider('p1') : toast('Abrir ' + cur.vinculo); } },
-                React.createElement(Icon, { name: cur.vinculo.includes('Proveedor') ? 'users' : 'route' }), cur.vinculo)),
             op && window.CommentsSection && React.createElement(window.CommentsSection, { ckey: 'task:' + cur.id, op, toast })
           )
         )
