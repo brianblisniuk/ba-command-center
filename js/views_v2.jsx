@@ -54,7 +54,7 @@
           React.createElement('div', { className: 'page-greet-sub' }, 'Proveedores y figuras de acceso reutilizables entre viajes')),
         React.createElement('div', { style: { display: 'flex', gap: 8 } },
           React.createElement('button', { className: 'btn', onClick: () => openCapture && openCapture() }, React.createElement(Icon, { name: 'spark' }), 'Importar con IA'),
-          React.createElement('button', { className: 'btn primary', onClick: () => toast('Nuevo proveedor') }, React.createElement(Icon, { name: 'plus' }), 'Nuevo proveedor'))),
+          React.createElement('button', { className: 'btn primary', onClick: () => openCapture && openCapture() }, React.createElement(Icon, { name: 'plus' }), 'Nuevo proveedor'))),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 'var(--gap)' } },
         React.createElement(StatCard, { icon: 'book', iconCls: '', label: 'Proveedores', value: BA.biblioteca.length, sub: 'en biblioteca' }),
         React.createElement(StatCard, { icon: 'check', iconCls: 'tint', label: 'Confirmados', value: BA.biblioteca.filter(p => p.reservationStatus === 'confirmada').length, sub: 'reserva cerrada' }),
