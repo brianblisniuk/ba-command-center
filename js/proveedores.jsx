@@ -11,17 +11,14 @@
 
   function Proveedores({ s, cur, toast, openProvider }) {
     const base = BA.tripData(s.id).proveedores;
-    const [items, setItems] = useState(() => base.map((p, i) => ({ ...p, geo: i % 3 !== 0 })));
+    const [items, setItems] = useState(() => base.map(p => ({ ...p, geo: p.lat != null && p.lng != null })));
     const [vista, setVista] = useState('cards'); // cards | table | pipeline
     const [tipo, setTipo] = useState('all');
     const [barriendo, setBarriendo] = useState(false);
     const tipos = ['all', ...Array.from(new Set(items.map(p => p.tipo)))];
     const sinGeo = items.filter(p => !p.geo).length;
-    function cycle(id) { setItems(L => L.map(p => p.id === id ? { ...p, estado: STAGES[(STAGES.indexOf(p.estado) + 1) % 3] } : p)); toast('Estado actualizado'); }
-    function barrer() {
-      setBarriendo(true); toast('Barriendo Google Places…');
-      setTimeout(() => { setItems(L => L.map(p => ({ ...p, geo: true }))); setBarriendo(false); toast(sinGeo + ' proveedores geolocalizados ✓'); }, 1400);
-    }
+    function cycle(id) { toast('La edición de estado del proveedor llega en el próximo paso (se guardará en el viaje).'); }
+    function barrer() { toast('El barrido real de Google Places (geolocalizar lo que falte) se activa al configurar la API key. Lo armo a continuación.'); }
     const list = items.filter(p => tipo === 'all' || p.tipo === tipo);
     const conf = items.filter(p => p.estado === 'confirmada').length;
 
@@ -31,7 +28,7 @@
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
         React.createElement('button', { className: 'btn sm', disabled: barriendo || sinGeo === 0, style: (barriendo || sinGeo === 0) ? { opacity: .5 } : null, onClick: barrer },
           React.createElement(Icon, { name: barriendo ? 'refresh' : 'pin' }), barriendo ? 'Barriendo…' : 'Barrer ahora' + (sinGeo ? ' (' + sinGeo + ')' : '')),
-        React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Agregar proveedor') }, React.createElement(Icon, { name: 'plus' }), 'Agregar')));
+        React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Alta de proveedor: llega en el próximo paso.') }, React.createElement(Icon, { name: 'plus' }), 'Agregar')));
 
     let viewEl;
     if (vista === 'cards') {
@@ -50,7 +47,9 @@
                   React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 } }, p.lugar)),
                 !p.geo && React.createElement('span', { title: 'Sin coordenadas', style: { color: 'var(--brass)' } }, React.createElement(Icon, { name: 'pin', style: { width: 15, height: 15 } }))),
               React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } },
-                React.createElement('span', { className: 'mono', style: { fontSize: 12, color: 'var(--text-2)' } }, p.precioUSD ? M(p.precioUSD, cur) : '—'),
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+                  React.createElement('span', { className: 'mono', style: { fontSize: 12, color: 'var(--text-2)' } }, p.precioUSD ? M(p.precioUSD, cur) : '—'),
+                  p.mapUrl && React.createElement('a', { href: p.mapUrl, target: '_blank', rel: 'noopener', onClick: e => e.stopPropagation(), style: { fontSize: 11, color: 'var(--laurel)', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none' } }, React.createElement(Icon, { name: 'pin', style: { width: 12, height: 12 } }), 'Mapa')),
                 React.createElement('button', { className: 'badge ' + st.c, style: { cursor: 'pointer' }, onClick: e => { e.stopPropagation(); cycle(p.id); } }, st.t)));
           }))));
     } else if (vista === 'table') {

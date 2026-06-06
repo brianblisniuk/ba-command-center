@@ -244,6 +244,7 @@
   // ============ RUTA ============
   function Ruta({ s, cur, toast }) {
     const data = BA.tripData(s.id).itinerario;
+    const tc = BA.tripData(s.id).travelCache || {};
     const [dia, setDia] = useState(data[1] ? 2 : 1);
     const [modo, setModo] = useState('dia'); // dia | p2p
     const [sheet, setSheet] = useState(null);
@@ -252,33 +253,51 @@
     const day = data.find(d => d.n === dia) || data[0];
     if (!day) return React.createElement('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, 'Sin itinerario todavía. Cargalo en la pestaña Itinerario.');
     const stops = day.slots.filter(sl => sl.type !== 'lodging');
+    const legBetween = (a, b) => {
+      if (!a || !b || a.lat == null || b.lat == null || a.lng == null || b.lng == null) return null;
+      const ka = a.lat.toFixed(4) + ',' + a.lng.toFixed(4), kb = b.lat.toFixed(4) + ',' + b.lng.toFixed(4);
+      return tc[ka + '->' + kb] || tc[kb + '->' + ka] || null;
+    };
+    const fmtKm = (km) => (Math.round((Number(km) || 0) * 10) / 10);
+    let totKm = 0, totMin = 0, legsKnown = 0;
+    for (let i = 0; i < stops.length - 1; i++) { const lg = legBetween(stops[i], stops[i + 1]); if (lg) { totKm += Number(lg.distance_km) || 0; totMin += Number(lg.duration_min) || 0; legsKnown++; } }
+    const totLabel = legsKnown > 0 ? (fmtKm(totKm) + ' km \u00b7 ' + totMin + ' min') : null;
+    const p2pLeg = (from > 0 && to > 0 && from !== to) ? legBetween(stops[from - 1], stops[to - 1]) : null;
     const mapsSearch = (q) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
     const mapsDir = (pts) => 'https://www.google.com/maps/dir/' + pts.filter(Boolean).map(x => encodeURIComponent(x)).join('/');
     const openMaps = (url) => { try { window.open(url, '_blank', 'noopener'); } catch (e) { toast('No se pudo abrir el mapa'); } };
-    const stopQ = (t) => t + (s.region ? ', ' + s.region : '');
+    const stopQ = (st) => (st && st.address) ? st.address : ((st && st.title ? st.title : '') + (s.region ? ', ' + s.region : ''));
     const base = ('Basecamp' + (s.region ? ' ' + s.region : '')).trim();
-    const dayUrl = mapsDir([base, ...stops.map(st => stopQ(st.title))]);
+    const dayUrl = mapsDir([base, ...stops.map(st => stopQ(st))]);
     const puntos = [base, ...stops.map(st => st.title)];
-    const p2pUrl = mapsDir([from === 0 ? base : stopQ(puntos[from]), to === 0 ? base : stopQ(puntos[to])]);
+    const p2pUrl = mapsDir([from === 0 ? base : stopQ(stops[from - 1]), to === 0 ? base : stopQ(stops[to - 1])]);
     const selSt = { width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 };
     const xy = (i, n) => ({ x: 14 + (i * 72) / Math.max(1, n - 1), y: 22 + (i % 2 ? 26 : -4) + 18 });
 
     return React.createElement('div', null,
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' } },
         React.createElement('div', { className: 'seg-tabs', style: { maxWidth: 240 } },
-          [['dia', 'Modo día'], ['p2p', 'Punto a punto']].map(([k, t]) => React.createElement('button', { key: k, className: modo === k ? 'on' : '', onClick: () => { setModo(k); setSheet(null); } }, t))),
-        React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: 'route', style: { width: 13, height: 13 } }), stops.length + (stops.length === 1 ? ' parada' : ' paradas'))
+          [['dia', 'Modo d\u00eda'], ['p2p', 'Punto a punto']].map(([k, t]) => React.createElement('button', { key: k, className: modo === k ? 'on' : '', onClick: () => { setModo(k); setSheet(null); } }, t))),
+        React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' } },
+          totLabel && React.createElement('span', { className: 'tag', style: { background: 'var(--laurel-soft)', color: 'var(--laurel)', borderColor: 'transparent' } }, React.createElement(Icon, { name: 'route', style: { width: 13, height: 13 } }), totLabel),
+          React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: 'route', style: { width: 13, height: 13 } }), stops.length + (stops.length === 1 ? ' parada' : ' paradas')))
       ),
       modo === 'dia' && React.createElement('div', { className: 'tb-seg', style: { marginBottom: 14, display: 'inline-flex' } },
-        data.map(d => React.createElement('button', { key: d.n, className: dia === d.n ? 'on' : '', onClick: () => { setDia(d.n); setSheet(null); } }, 'Día ' + d.n))),
+        data.map(d => React.createElement('button', { key: d.n, className: dia === d.n ? 'on' : '', onClick: () => { setDia(d.n); setSheet(null); } }, 'D\u00eda ' + d.n))),
       modo === 'p2p' && React.createElement('div', { className: 'card pad', style: { marginBottom: 14 } },
         React.createElement('div', { style: { display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' } },
           React.createElement('div', { style: { flex: 1, minWidth: 160 } }, React.createElement('div', { className: 'eyebrow', style: { marginBottom: 6 } }, 'Desde'),
-            React.createElement('select', { value: from, onChange: e => setFrom(+e.target.value), style: selSt }, puntos.map((p, i) => React.createElement('option', { key: i, value: i }, p)))),
+            React.createElement('select', { value: from, onChange: e => setFrom(+e.target.value), style: selSt }, puntos.map((pt, i) => React.createElement('option', { key: i, value: i }, pt)))),
           React.createElement(Icon, { name: 'arrowright', style: { width: 18, height: 18, color: 'var(--text-3)', marginBottom: 10 } }),
           React.createElement('div', { style: { flex: 1, minWidth: 160 } }, React.createElement('div', { className: 'eyebrow', style: { marginBottom: 6 } }, 'Hasta'),
-            React.createElement('select', { value: to, onChange: e => setTo(+e.target.value), style: selSt }, puntos.map((p, i) => React.createElement('option', { key: i, value: i }, p)))),
-          React.createElement('button', { className: 'btn primary', style: { marginBottom: 2 }, onClick: () => openMaps(p2pUrl) }, React.createElement(Icon, { name: 'route' }), 'Ver ruta en Google Maps'))),
+            React.createElement('select', { value: to, onChange: e => setTo(+e.target.value), style: selSt }, puntos.map((pt, i) => React.createElement('option', { key: i, value: i }, pt)))),
+          React.createElement('button', { className: 'btn primary', style: { marginBottom: 2 }, onClick: () => openMaps(p2pUrl) }, React.createElement(Icon, { name: 'route' }), 'Ver ruta en Google Maps')),
+        p2pLeg
+          ? React.createElement('div', { style: { marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--rule-soft)', display: 'flex', alignItems: 'center', gap: 8 } },
+              React.createElement(Icon, { name: 'route', style: { width: 15, height: 15, color: 'var(--laurel)' } }),
+              React.createElement('span', { className: 'mono', style: { fontSize: 13.5, color: 'var(--text-1)', fontWeight: 700 } }, fmtKm(p2pLeg.distance_km) + ' km \u00b7 ' + p2pLeg.duration_min + ' min'),
+              React.createElement('span', { style: { fontSize: 11.5, color: 'var(--text-3)' } }, 'en auto \u00b7 distancia real'))
+          : ((from > 0 && to > 0 && from !== to) ? React.createElement('div', { style: { marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--rule-soft)', fontSize: 11.5, color: 'var(--text-3)' } }, 'Distancia no cacheada para este tramo \u2014 abr\u00edla en Google Maps.') : null)),
       React.createElement('div', { className: 'card pad' },
         React.createElement(CardHead, { title: modo === 'dia' ? day.title : 'Ruta directa', right: React.createElement('button', { className: 'card-link', onClick: () => openMaps(modo === 'dia' ? dayUrl : p2pUrl) }, 'Google Maps', React.createElement(Icon, { name: 'cr' })) }),
         React.createElement('div', { style: { position: 'relative', borderRadius: 'var(--radius-sm)', overflow: 'hidden', background: 'var(--surface-2)', aspectRatio: '16/10' } },
@@ -286,32 +305,43 @@
             [15, 30, 45, 60].map(y => React.createElement('line', { key: 'h' + y, x1: 0, x2: 100, y1: y, y2: y, stroke: 'var(--rule-soft)', strokeWidth: 0.3 })),
             [20, 40, 60, 80].map(x => React.createElement('line', { key: 'v' + x, x1: x, x2: x, y1: 0, y2: 75, stroke: 'var(--rule-soft)', strokeWidth: 0.3 })),
             modo === 'dia'
-              ? React.createElement('path', { d: stops.map((sl, i) => { const p = xy(i, stops.length); return (i ? 'L' : 'M') + p.x + ' ' + p.y; }).join(' '), fill: 'none', stroke: 'var(--brass)', strokeWidth: 0.7, strokeDasharray: '1.5 1.5' })
+              ? React.createElement('path', { d: stops.map((sl, i) => { const pp = xy(i, stops.length); return (i ? 'L' : 'M') + pp.x + ' ' + pp.y; }).join(' '), fill: 'none', stroke: 'var(--brass)', strokeWidth: 0.7, strokeDasharray: '1.5 1.5' })
               : React.createElement('path', { d: 'M 18 30 Q 50 20 82 50', fill: 'none', stroke: 'var(--brass)', strokeWidth: 0.8, strokeDasharray: '1.5 1.5' })),
           modo === 'dia'
-            ? stops.map((sl, i) => { const p = xy(i, stops.length);
-                return React.createElement('div', { key: i, style: { position: 'absolute', left: p.x + '%', top: p.y + '%', transform: 'translate(-50%,-50%)', width: 26, height: 26, borderRadius: 9, background: sl.access ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 12, fontWeight: 700, boxShadow: 'var(--shadow-sm)', cursor: 'pointer' }, title: sl.title, onClick: () => setSheet(sl) }, i + 1); })
-            : [['18%', '30%', 'A'], ['82%', '50%', 'B']].map((p, i) => React.createElement('div', { key: i, style: { position: 'absolute', left: p[0], top: p[1], transform: 'translate(-50%,-50%)', width: 28, height: 28, borderRadius: 9, background: i ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 12, fontWeight: 700, boxShadow: 'var(--shadow-sm)' } }, p[2])),
-          React.createElement('div', { style: { position: 'absolute', left: 8, bottom: 6, fontSize: 9.5, color: 'var(--text-3)', fontFamily: 'var(--ff-mono)', background: 'var(--surface)', padding: '2px 6px', borderRadius: 6, opacity: 0.85 } }, 'Esquema de secuencia · no a escala'),
+            ? stops.map((sl, i) => { const pp = xy(i, stops.length);
+                return React.createElement('div', { key: i, style: { position: 'absolute', left: pp.x + '%', top: pp.y + '%', transform: 'translate(-50%,-50%)', width: 26, height: 26, borderRadius: 9, background: sl.access ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 12, fontWeight: 700, boxShadow: 'var(--shadow-sm)', cursor: 'pointer' }, title: sl.title, onClick: () => setSheet(sl) }, i + 1); })
+            : [['18%', '30%', 'A'], ['82%', '50%', 'B']].map((pp, i) => React.createElement('div', { key: i, style: { position: 'absolute', left: pp[0], top: pp[1], transform: 'translate(-50%,-50%)', width: 28, height: 28, borderRadius: 9, background: i ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 12, fontWeight: 700, boxShadow: 'var(--shadow-sm)' } }, pp[2])),
+          React.createElement('div', { style: { position: 'absolute', left: 8, bottom: 6, fontSize: 9.5, color: 'var(--text-3)', fontFamily: 'var(--ff-mono)', background: 'var(--surface)', padding: '2px 6px', borderRadius: 6, opacity: 0.85 } }, 'Esquema de secuencia \u00b7 no a escala'),
           sheet && React.createElement('div', { className: 'sheet' },
             React.createElement('span', { className: 'sheet-grab' }),
             React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 4 } },
-              React.createElement('span', { className: 'slot-glyph', style: { background: (BA.STYPE[sheet.type] || {}).c || 'var(--accent)' } }, (BA.STYPE[sheet.type] || {}).g || '●'),
+              React.createElement('span', { className: 'slot-glyph', style: { background: (BA.STYPE[sheet.type] || {}).c || 'var(--accent)' } }, (BA.STYPE[sheet.type] || {}).g || '\u25cf'),
               React.createElement('div', { style: { flex: 1, minWidth: 0 } },
                 React.createElement('div', { style: { fontSize: 14, fontWeight: 650, color: 'var(--text-1)' } }, sheet.title),
-                React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 2 } }, (sheet.time || '') + (sheet.end ? '–' + sheet.end : '') + ' · ' + (sheet.provider || '—'))),
+                React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 2 } }, (sheet.time || '') + (sheet.end ? '\u2013' + sheet.end : '') + ' \u00b7 ' + (sheet.provider || '\u2014'))),
               React.createElement('button', { className: 'drawer-close', style: { width: 28, height: 28 }, onClick: () => setSheet(null) }, React.createElement(Icon, { name: 'x' }))),
             React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 12 } },
-              React.createElement('button', { className: 'btn sm primary', style: { flex: 1 }, onClick: () => openMaps(mapsSearch(stopQ(sheet.title))) }, React.createElement(Icon, { name: 'pin' }), 'Ver en Google Maps')))
+              React.createElement('button', { className: 'btn sm primary', style: { flex: 1 }, onClick: () => openMaps(sheet.mapUrl || mapsSearch(stopQ(sheet))) }, React.createElement(Icon, { name: 'pin' }), 'Ver en Google Maps')))
         ),
         modo === 'dia' && React.createElement('div', { style: { marginTop: 16 } },
-          stops.map((sl, i) => React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 11, padding: '8px 0', cursor: 'pointer' }, onClick: () => setSheet(sl) },
-            React.createElement('span', { style: { width: 24, height: 24, borderRadius: 8, flexShrink: 0, background: sl.access ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 11, fontWeight: 700 } }, i + 1),
-            React.createElement('span', { style: { flex: 1, fontSize: 13, color: 'var(--text-1)', fontWeight: 600 } }, sl.title),
-            React.createElement(Icon, { name: 'cr', style: { width: 14, height: 14, color: 'var(--text-3)' } }))))
+          stops.map((sl, i) => {
+            const lg = (i < stops.length - 1) ? legBetween(sl, stops[i + 1]) : null;
+            return React.createElement(React.Fragment, { key: i },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 11, padding: '8px 0', cursor: 'pointer' }, onClick: () => setSheet(sl) },
+                React.createElement('span', { style: { width: 24, height: 24, borderRadius: 8, flexShrink: 0, background: sl.access ? 'var(--brass)' : 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff-mono)', fontSize: 11, fontWeight: 700 } }, i + 1),
+                React.createElement('span', { style: { flex: 1, fontSize: 13, color: 'var(--text-1)', fontWeight: 600 } }, sl.title),
+                (sl.lat != null) && React.createElement(Icon, { name: 'pin', style: { width: 13, height: 13, color: 'var(--text-3)' } }),
+                React.createElement(Icon, { name: 'cr', style: { width: 14, height: 14, color: 'var(--text-3)' } })),
+              (i < stops.length - 1) && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 4px 0' } },
+                React.createElement('span', { style: { width: 2, height: 16, background: 'var(--rule)', marginLeft: 11, flexShrink: 0 } }),
+                lg
+                  ? React.createElement('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)', marginLeft: 4 } }, fmtKm(lg.distance_km) + ' km \u00b7 ' + lg.duration_min + ' min')
+                  : React.createElement('span', { style: { fontSize: 11, color: 'var(--text-3)', marginLeft: 4, opacity: 0.5 } }, '\u00b7')));
+          }))
       )
     );
   }
+
   function Presupuesto({ s, cur, toast }) {
     const reload = () => BA.tripData(s.id).presupuesto;
     const [b, setB] = useState(reload);

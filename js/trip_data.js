@@ -222,6 +222,7 @@
           verdict: SV[stRaw] || 'Confirmado', rawStatus: stRaw || 'ok',
           clientVisible: !(sl.client && sl.client.visible === false), conflict: false, access,
           providerId: pv ? pv.id : '', provider: pv ? pv.name : '—',
+          lat: (pv && pv.latitude != null && pv.latitude !== '') ? Number(pv.latitude) : null, lng: (pv && pv.longitude != null && pv.longitude !== '') ? Number(pv.longitude) : null, mapUrl: pv ? (pv.mapUrl || '') : '', address: pv ? (pv.location || '') : '',
           attachments: (Array.isArray(sl.attachments) ? sl.attachments : []).map(a => (typeof a === 'string' ? { name: a, path: '' } : a)), comments: 0,
           internal: { title: (sl.internal && sl.internal.title) || sl.title || '', status: SV[(sl.internal && sl.internal.status) || stRaw] || 'Confirmado', desc: ((sl.internal && sl.internal.description) || sl.description || '') + extra },
           client: { title: (sl.client && sl.client.title) || sl.title || '', visible: !(sl.client && sl.client.visible === false), desc: (sl.client && sl.client.description) || '' }
@@ -235,7 +236,8 @@
       tipo: p.type || 'service', nombre: p.name || '—', michelin: Number(p.michelin) || 0,
       lugar: p.location || meta.region || '', precioUSD: 0, priceRange: p.priceRange || '',
       estado: RES[p.reservationStatus] || 'pendiente', cierra: p.closingDays || '—',
-      phone: p.phone || '', web: p.web || '', id: p.id
+      phone: p.phone || '', web: p.web || '', id: p.id,
+      lat: (p.latitude != null && p.latitude !== '') ? Number(p.latitude) : null, lng: (p.longitude != null && p.longitude !== '') ? Number(p.longitude) : null, mapUrl: p.mapUrl || '', address: p.location || ''
     }));
     provs.forEach(p => { if (p && p.id) BA._provCache[p.id] = mapProvDetail(p, id); });
 
@@ -256,6 +258,6 @@
     const TT2 = { reservation: 'reserva', contact: 'contacto', research: 'research', purchase: 'compra', logistics: 'logística', logistic: 'logística' };
     const tareas = (Array.isArray(data.actions) ? data.actions : []).map(a => ({ id: a.id || '', p: a.priority || 'P3', tipo: TT2[a.type] || 'otro', t: a.task || a.description || '—', done: !!a.done, due: a.dueDate || '' }));
 
-    return { itinerario, proveedores, presupuesto, reservas, tareas, cfg: { baseCurrency: baseCur, fxToUSD: Math.round(((Number(fx.USD) || 1) / (Number(fx[baseCur]) || 1)) * 10000) / 10000, region: meta.region || '' } };
+    return { itinerario, proveedores, presupuesto, reservas, tareas, travelCache: (data.travelCache && typeof data.travelCache === 'object') ? data.travelCache : {}, cfg: { baseCurrency: baseCur, fxToUSD: Math.round(((Number(fx.USD) || 1) / (Number(fx[baseCur]) || 1)) * 10000) / 10000, region: meta.region || '' } };
   };
 })();
