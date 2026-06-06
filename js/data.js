@@ -517,7 +517,7 @@ window.BA = (function () {
       if (Array.isArray(list) && list.length) { leads.length = 0; list.forEach(x => leads.push(x)); }
       return leads;
     },
-    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); await this.hydrateBiblioteca(); await this.hydrateClientes(); await this.hydrateHistorial(); await this.hydrateFunnel(); await this.hydrateCadencias(); },
+    async hydrate() { await this.hydrateTrips(); await this.hydrateAccesos(); await this.hydrateLeads(); await this.hydratePayments(); await this.hydrateFinanzas(); await this.hydrateEstado(); await this.hydratePuente(); await this.hydrateBandeja(); await this.hydrateBiblioteca(); await this.hydrateClientes(); await this.hydrateHistorial(); await this.hydrateFunnel(); await this.hydrateCadencias(); await this.hydrateMarketing(); },
     async funnel() {
       const L = (window.BA && window.BA.leads) || [];
       if (!L.length) return funnel;
@@ -1113,7 +1113,22 @@ window.BA = (function () {
         return { ok: true };
       } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
     },                                                            // escribe trip_id (real)
-    async marketing()  { return marketing; },                     // meta_lead_webhook + gasto cargado
+    async marketing() {
+      const sess = await this.getSession();
+      if (!window.SB || !sess) return marketing;
+      try {
+        const { data, error } = await window.SB.rpc('marketing_attribution');
+        if (error || !data) return marketing;
+        const atribucion = (data.fuentes || []).map(f => ({ fuente: f.fuente, source: f.source, leads: f.leads, reservas: f.reservas, conv: f.conv, revUSD: f.revUSD, color: f.color }));
+        const camps = (data.campanias || []).map(c => ({ name: c.name, source: c.source, leads: c.leads, reservas: c.reservas, conv: c.conv, revUSD: c.revUSD }));
+        return { atribucion: atribucion.length ? atribucion : marketing.atribucion, campañas: camps };
+      } catch (e) { return marketing; }
+    },                                                            // RPC marketing_attribution (derivado de leads.source)
+    async hydrateMarketing() {
+      const r = await this.marketing();
+      if (r && r.atribucion) { marketing.atribucion = r.atribucion; if (r.campañas) marketing.campañas = r.campañas; }
+      return marketing;
+    },
     async leadQuality() {
       const sess = await this.getSession();
       if (!window.SB || !sess) return null;

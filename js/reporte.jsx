@@ -4,6 +4,15 @@
   const BA = window.BA;
 
   function Reporte({ cur, toast }) {
+    const [, force] = React.useState(0);
+    React.useEffect(() => {
+      const tasks = [];
+      if (BA.source) {
+        if (BA.source.hydrateMarketing) tasks.push(Promise.resolve(BA.source.hydrateMarketing()));
+        if (BA.source.hydrateFunnel) tasks.push(Promise.resolve(BA.source.hydrateFunnel()));
+      }
+      if (tasks.length) Promise.all(tasks).then(() => force(x => x + 1));
+    }, []);
     const e = BA.estado, f = BA.finanzas, fx = BA.fx, sym = BA.sym;
     const k = v => sym[cur] + ' ' + Math.round(v * (fx[cur] / fx.USD)) + 'k';
     const activas = e.salidasActivas.go + e.salidasActivas.risk + e.salidasActivas.opcion + e.salidasActivas.curso;
