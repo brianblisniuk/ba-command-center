@@ -7,6 +7,8 @@
   const PT = { restaurant: 'Restaurante', winery: 'Bodega', wine: 'Bodega', meal: 'Restaurante', hotel: 'Hotel', transfer: 'Transfer', guide: 'Guía', activity: 'Actividad', lodging: 'Lodge', truffle: 'Trufa', service: 'Servicio', villa: 'Villa', expert: 'Acceso', culture: 'Cultura' };
   const PEST = { confirmada: { c: 'go', t: 'Confirmada' }, conversando: { c: 'risk', t: 'Conversando' }, pendiente: { c: 'ghost', t: 'Pendiente' } };
   const STAGES = ['pendiente', 'conversando', 'confirmada'];
+  const RAW = { pendiente: 'pending', conversando: 'negotiating', confirmada: 'confirmed' };
+  const TYPE_OPTS = [['restaurant', 'Restaurante'], ['winery', 'Bodega'], ['hotel', 'Hotel'], ['transfer', 'Transfer'], ['guide', 'Guía'], ['activity', 'Actividad'], ['lodging', 'Lodge'], ['service', 'Servicio'], ['villa', 'Villa'], ['expert', 'Acceso'], ['culture', 'Cultura'], ['truffle', 'Trufa']];
   const ST_LBL = { pendiente: 'Pendiente', conversando: 'Conversando', confirmada: 'Confirmada' };
 
   function Proveedores({ s, cur, toast, openProvider }) {
@@ -15,9 +17,26 @@
     const [vista, setVista] = useState('cards'); // cards | table | pipeline
     const [tipo, setTipo] = useState('all');
     const [barriendo, setBarriendo] = useState(false);
+    const [nuevo, setNuevo] = useState(null);
+    const [saving, setSaving] = useState(false);
     const tipos = ['all', ...Array.from(new Set(items.map(p => p.tipo)))];
     const sinGeo = items.filter(p => !p.geo).length;
-    function cycle(id) { toast('La edición de estado del proveedor llega en el próximo paso (se guardará en el viaje).'); }
+    async function cycle(id) {
+      const c = items.find(p => p.id === id); if (!c) return;
+      const nextEs = STAGES[(STAGES.indexOf(c.estado) + 1) % STAGES.length];
+      const r = await BA.source.tripDataApply(s.id, 'providers', 'upd', { id, patch: { reservationStatus: RAW[nextEs] } });
+      if (r && r.ok) setItems(L => L.map(p => p.id === id ? { ...p, estado: nextEs } : p));
+      else toast((r && r.error) || 'No se pudo guardar');
+    }
+    async function agregarProv() {
+      const it = nuevo || {}; const name = (it.name || '').trim();
+      if (!name) { toast('Falta el nombre'); return; }
+      setSaving(true);
+      const r = await BA.source.tripDataApply(s.id, 'providers', 'add', { item: { name, type: it.type || 'service', location: (it.location || '').trim(), reservationStatus: 'pending', michelin: 0, phone: '', web: '' } });
+      setSaving(false);
+      if (r && r.ok) { const fresh = (BA.tripData(s.id).proveedores || []).map(p => ({ ...p, geo: p.lat != null && p.lng != null })); setItems(fresh); setNuevo(null); toast('Proveedor agregado'); }
+      else toast((r && r.error) || 'No se pudo agregar');
+    }
     function barrer() { toast('El barrido real de Google Places (geolocalizar lo que falte) se activa al configurar la API key. Lo armo a continuación.'); }
     const list = items.filter(p => tipo === 'all' || p.tipo === tipo);
     const conf = items.filter(p => p.estado === 'confirmada').length;
@@ -28,7 +47,7 @@
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
         React.createElement('button', { className: 'btn sm', disabled: barriendo || sinGeo === 0, style: (barriendo || sinGeo === 0) ? { opacity: .5 } : null, onClick: barrer },
           React.createElement(Icon, { name: barriendo ? 'refresh' : 'pin' }), barriendo ? 'Barriendo…' : 'Barrer ahora' + (sinGeo ? ' (' + sinGeo + ')' : '')),
-        React.createElement('button', { className: 'btn sm primary', onClick: () => toast('Alta de proveedor: llega en el próximo paso.') }, React.createElement(Icon, { name: 'plus' }), 'Agregar')));
+        React.createElement('button', { className: 'btn sm primary', onClick: () => setNuevo(nuevo ? null : { name: '', type: 'restaurant', location: '' }) }, React.createElement(Icon, { name: 'plus' }), 'Agregar')));
 
     let viewEl;
     if (vista === 'cards') {
@@ -89,6 +108,14 @@
       React.createElement('div', { style: { display: 'flex', gap: 7, marginBottom: 14, flexWrap: 'wrap' } },
         tipos.map(tp => React.createElement('button', { key: tp, className: 'badge ' + (tipo === tp ? 'go' : 'ghost'), style: { cursor: 'pointer', padding: '6px 11px' }, onClick: () => setTipo(tp) }, tp === 'all' ? 'Todos' : PT[tp]))),
       toolbar,
+      nuevo && React.createElement('div', { className: 'card pad', style: { marginBottom: 14, border: '1px solid var(--laurel-soft)' } },
+        React.createElement('div', { className: 'eyebrow', style: { marginBottom: 10 } }, 'Nuevo proveedor'),
+        React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' } },
+          React.createElement('div', { style: { flex: 2, minWidth: 180 } }, React.createElement('div', { className: 'eyebrow', style: { marginBottom: 5, fontSize: 10 } }, 'Nombre'), React.createElement('input', { value: nuevo.name, onChange: e => setNuevo({ ...nuevo, name: e.target.value }), placeholder: 'Nombre del proveedor', style: { width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } })),
+          React.createElement('div', { style: { flex: 1, minWidth: 130 } }, React.createElement('div', { className: 'eyebrow', style: { marginBottom: 5, fontSize: 10 } }, 'Tipo'), React.createElement('select', { value: nuevo.type, onChange: e => setNuevo({ ...nuevo, type: e.target.value }), style: { width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } }, TYPE_OPTS.map(o => React.createElement('option', { key: o[0], value: o[0] }, o[1])))),
+          React.createElement('div', { style: { flex: 2, minWidth: 180 } }, React.createElement('div', { className: 'eyebrow', style: { marginBottom: 5, fontSize: 10 } }, 'Lugar / dirección'), React.createElement('input', { value: nuevo.location, onChange: e => setNuevo({ ...nuevo, location: e.target.value }), placeholder: 'Opcional', style: { width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13 } })),
+          React.createElement('div', { style: { display: 'flex', gap: 8 } }, React.createElement('button', { className: 'btn sm', onClick: () => setNuevo(null) }, 'Cancelar'), React.createElement('button', { className: 'btn sm primary', disabled: saving, onClick: agregarProv }, saving ? 'Guardando…' : 'Guardar'))),
+        React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)', marginTop: 8 } }, 'Se geolocaliza con «Barrer» una vez configurada la API de Google.')),
       viewEl
     );
   }
