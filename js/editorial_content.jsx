@@ -104,7 +104,7 @@ import { toPng } from 'html-to-image';
     let content = [];
     if (l === 'comparison') {
       content = [
-        E('h1', { key: 't', className: 'z ctitle', style: { left: 70, right: 70, top: 360 } }, slide.main || ''),
+        E('h1', { key: 't', className: 'z ctitle', style: { left: 70, right: 70, top: 360, fontSize: (slide.main || '').length > 26 ? 70 : 92 } }, slide.main || ''),
         E('div', { key: 'q', className: 'z quest', style: { left: 78, right: 78, top: 770 } }, slide.question || ''),
         E('div', { key: 'p', className: 'z', style: { left: 78, right: 78, bottom: 220, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 } },
           E('div', { className: 'panel' }, E('div', { className: 'plab' }, (slide.left || {}).label || ''), E('div', { className: 'ptext' }, (slide.left || {}).text || '')),
@@ -116,7 +116,7 @@ import { toPng } from 'html-to-image';
         slide.kicker ? E('div', { key: 'k', className: 'z kick', style: { left: 78, top: 315 } }, slide.kicker) : null,
         E('div', { key: 't', className: 'z', style: { left: 78, right: 78, top: 380 } },
           slide.script_text ? E('div', { className: 'script', style: { fontSize: 140 } }, slide.script_text) : null,
-          slide.main ? E('div', { className: 'disp', style: { fontSize: 124 } }, slide.main) : null
+          slide.main ? E('div', { className: 'disp', style: { fontSize: (slide.main || '').length > 16 ? 94 : 124 } }, slide.main) : null
         ),
         slide.body ? E('div', { key: 'q', className: 'z', style: { right: 78, bottom: 190, width: 390 } },
           E('div', { className: 'qmark' }, '\u201C'),
@@ -129,28 +129,29 @@ import { toPng } from 'html-to-image';
     } else if (l === 'final-cta') {
       content = [
         slide.kicker ? E('div', { key: 'k', className: 'z kick', style: { left: 78, top: 315 } }, slide.kicker) : null,
-        E('div', { key: 't', className: 'z', style: { left: 78, right: 78, top: 380 } },
+        E('div', { key: 't', className: 'z', style: { left: 78, right: 78, top: 380, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' } },
           slide.script_text ? E('div', { className: 'script', style: { fontSize: 142 } }, slide.script_text) : null,
-          slide.main ? E('div', { className: 'disp', style: { fontSize: 120 } }, slide.main) : null
+          slide.main ? E('div', { className: 'disp', style: { fontSize: (slide.main || '').length > 16 ? 94 : 120 } }, slide.main) : null,
+          slide.body ? E('div', { className: 'deck', style: { marginTop: 32, maxWidth: 570 } }, slide.body) : null
         ),
-        slide.body ? E('div', { key: 'b', className: 'z deck', style: { left: 78, top: 790, maxWidth: 570 } }, slide.body) : null,
         slide.cta ? E('div', { key: 'c', className: 'z ctabox', style: { left: 78, right: 78, bottom: 182 } },
           E('div', { className: 'ctah' }, (slide.cta || {}).headline || ''),
           E('div', { className: 'ctat' }, (slide.cta || {}).text || '')
         ) : null,
       ];
     } else {
-      // destination-editorial y story-cover
+      // destination-editorial y story-cover · bloque en flujo: nunca se superpone
+      const mlen = (slide.main || '').length;
+      const dsize = mlen > 26 ? 72 : mlen > 16 ? 92 : 116;
       content = [
         slide.kicker ? E('div', { key: 'k', className: 'z kick', style: { left: 78, top: 340 } }, slide.kicker) : null,
-        E('div', { key: 't', className: 'z', style: { left: 78, right: 78, top: 405 } },
+        E('div', { key: 't', className: 'z', style: { left: 78, right: 78, top: 405, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' } },
           slide.script_text ? E('div', { className: 'script' }, slide.script_text) : null,
-          slide.main ? E('div', { className: 'disp' }, slide.main) : null
+          slide.main ? E('div', { className: 'disp', style: { fontSize: dsize } }, slide.main) : null,
+          slide.body ? E('div', { className: 'deck', style: { marginTop: 34, maxWidth: 560 } }, slide.body) : null,
+          Array.isArray(slide.meta) && slide.meta.length ? E('div', { className: 'meta', style: { marginTop: 30 } },
+            slide.meta.slice(0, 4).map((m, i) => E('span', { key: i, className: 'pill' }, m))) : null
         ),
-        slide.body ? E('div', { key: 'b', className: 'z deck', style: { left: 82, top: 805, maxWidth: 560 } }, slide.body) : null,
-        Array.isArray(slide.meta) && slide.meta.length ? E('div', { key: 'm', className: 'z meta', style: { left: 78, top: 925 } },
-          slide.meta.slice(0, 4).map((m, i) => E('span', { key: i, className: 'pill' }, m))
-        ) : null,
       ];
     }
     return E('div', { className: 'ba-sl' }, base.concat(content));
@@ -271,14 +272,17 @@ import { toPng } from 'html-to-image';
           const node = holder.querySelector('.ba-sl');
           if (!node) throw new Error('No se pudo montar el slide ' + (i + 1));
           const png = await toPng(node, { width: 1080, height: 1350, pixelRatio: 1 });
+          const blob = await fetch(png).then(r => r.blob());
+          const burl = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = png; a.download = base + '-0' + (i + 1) + '.png';
+          a.href = burl; a.download = base + '-0' + (i + 1) + '.png';
           document.body.appendChild(a); a.click(); a.remove();
-          await new Promise(r => setTimeout(r, 450));
+          await new Promise(r => setTimeout(r, 500));
+          URL.revokeObjectURL(burl);
         }
         await save('rendered');
         toast(slides.length + ' PNG exportados (1080×1350)');
-      } catch (e) { toast('Error al exportar: ' + e.message); }
+      } catch (e) { try { window.__exportErr = String((e && e.stack) || e); } catch (_x) {} toast('Error al exportar: ' + e.message); }
       finally { root.unmount(); holder.remove(); setExporting(''); }
     }
 
