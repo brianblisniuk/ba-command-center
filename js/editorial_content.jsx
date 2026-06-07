@@ -33,7 +33,7 @@
     try { return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (er) { return iso; }
   }
   function SlideBadge({ layout }) {
-    const m = { 'destination-editorial': 'Destino', 'activity-specific': 'Actividad', 'comparison': 'Comparación', 'final-cta': 'CTA', 'story-cover': 'Story' };
+    const m = { 'destination-editorial': 'Destino', 'activity-specific': 'Actividad', 'comparison': 'Comparación', 'final-cta': 'CTA', 'story-cover': 'Story', 'minimal-cover': 'Minimal ✦', 'minimal': 'Minimal' };
     return e('span', { className: 'tag', style: { fontSize: 10 } }, m[layout] || layout);
   }
   function asArr(d) { return Array.isArray(d) ? d : (typeof d === 'string' ? (function () { try { return JSON.parse(d); } catch (x) { return []; } })() : []); }
@@ -78,6 +78,14 @@
         slide.body && e('p', { className: 'ba-deck' }, slide.body),
         Array.isArray(slide.meta) && e('div', { className: 'ba-meta' }, slide.meta.map((m, i) => e('span', { key: i, className: 'ba-pill' }, m))));
     }
+    if (l === 'minimal-cover') {
+      return e('section', { className: 'ba-layout ba-l-minc' },
+        e('div', { className: 'ba-min-text' }, slide.body || ''));
+    }
+    if (l === 'minimal') {
+      return e('section', { className: 'ba-layout ba-l-min' },
+        e('div', { className: 'ba-min-text' }, slide.body || ''));
+    }
     // destination-editorial (default)
     return e('section', { className: 'ba-layout ba-l-dest' },
       slide.kicker && e('div', { className: 'ba-kicker' }, slide.kicker),
@@ -90,6 +98,7 @@
 
   function SlidePreview({ slide, photoUrl, tema, format, scale, slideRef }) {
     const l = slide.layout || 'destination-editorial';
+    const isMin = l === 'minimal' || l === 'minimal-cover';
     const fmt = format || 'feed';
     const w = 1080, h = fmt === 'story' ? 1920 : 1350;
     const sc = scale || 0.34;
@@ -103,11 +112,11 @@
           : e('div', { className: 'ba-fallback' }),
         e('div', { className: 'ba-overlay' }),
         e('div', { className: 'ba-grain' }),
-        e('div', { className: 'ba-brand' },
+        !isMin && e('div', { className: 'ba-brand' },
           e('div', { className: 'ba-hash' }, '#'),
           e('div', { className: 'ba-words' }, e('div', null, 'Cuaderno'), e('div', null, 'B&A'))),
         layoutContent(slide),
-        e('div', { className: 'ba-footer' },
+        !isMin && e('div', { className: 'ba-footer' },
           e('div', { className: 'ba-handle' }, '@blisniukamanov'),
           e('div', { className: 'ba-arrow' }))
       )
@@ -142,7 +151,7 @@
 
   // ============ NUEVA PIEZA (máquina de guiones) ============
   function NuevaPieza({ toast }) {
-    const [brief, setBrief] = useState({ destino: '', tema: '', notas: '', num_slides: 4 });
+    const [brief, setBrief] = useState({ destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal' });
     const [loading, setLoading] = useState(false);
     const [draft, setDraft] = useState(null);
     const [caption, setCaption] = useState('');
@@ -155,7 +164,12 @@
       if (!brief.destino.trim() || !brief.tema.trim()) { toast('Complete el destino y el tema antes de continuar.'); return; }
       setLoading(true); setDraft(null); setSaved(null);
       try {
-        const { data, error } = await window.SB.functions.invoke('content-draft', { body: { destino: brief.destino, tema: brief.tema, notas: brief.notas, num_slides: brief.num_slides } });
+        var layoutSeq = null;
+        if (brief.estilo === 'minimal') {
+          layoutSeq = ['minimal-cover'];
+          for (var li = 1; li < brief.num_slides; li++) layoutSeq.push('minimal');
+        }
+        const { data, error } = await window.SB.functions.invoke('content-draft', { body: { destino: brief.destino, tema: brief.tema, notas: brief.notas, num_slides: brief.num_slides, layout_secuencia: layoutSeq } });
         if (error) throw new Error(error.message);
         if (!data || !data.ok) throw new Error((data && data.error) || 'Error al generar');
         setDraft(data.draft);
@@ -174,7 +188,7 @@
         if (error) throw new Error(error.message);
         setSaved({ status: status, id: data && data.id });
         toast(status === 'copy_approved' ? 'Copy aprobado — ya aparece en el Calendario' : 'Borrador guardado');
-        if (status === 'copy_approved') { setBrief({ destino: '', tema: '', notas: '', num_slides: 4 }); setDraft(null); }
+        if (status === 'copy_approved') { setBrief({ destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal' }); setDraft(null); }
       } catch (er) { toast('Error al guardar: ' + er.message); }
       finally { setSaving(false); }
     }
@@ -184,9 +198,12 @@
         e('div', { className: 'card-head', style: { marginBottom: 18 } },
           e('div', { className: 'card-title' }, 'Máquina de guiones'),
           e('div', { className: 'card-sub' }, 'Complete el brief y el sistema genera el copy en el tono editorial B&A.')),
-        e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 } },
+        e('div', { style: { display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 14 } },
           e('div', null, e(Lbl, { t: 'Destino' }), e(Inp, { v: brief.destino, onChange: v => upd('destino', v), placeholder: 'Ej: Engadín, Suiza' })),
-          e('div', null, e(Lbl, { t: 'Slides' }), e('select', { value: brief.num_slides, onChange: ev => upd('num_slides', parseInt(ev.target.value)), style: { width: '100%', padding: '9px 12px', border: '1px solid var(--rule)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text-1)', fontSize: 13 } }, [2, 3, 4, 5, 6].map(n => e('option', { key: n, value: n }, n + ' slides'))))),
+          e('div', null, e(Lbl, { t: 'Slides' }), e('select', { value: brief.num_slides, onChange: ev => upd('num_slides', parseInt(ev.target.value)), style: { width: '100%', padding: '9px 12px', border: '1px solid var(--rule)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text-1)', fontSize: 13 } }, [2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => e('option', { key: n, value: n }, n + ' slides')))),
+          e('div', null, e(Lbl, { t: 'Estilo' }), e('div', { style: { display: 'flex', gap: 4 } },
+            e('button', { className: 'btn sm' + (brief.estilo === 'minimal' ? ' primary' : ''), onClick: () => upd('estilo', 'minimal'), style: { fontSize: 12 } }, 'Minimal'),
+            e('button', { className: 'btn sm' + (brief.estilo === 'editorial' ? ' primary' : ''), onClick: () => upd('estilo', 'editorial'), style: { fontSize: 12 } }, 'Editorial')))),
         e(Sp, { h: 12 }),
         e(Lbl, { t: 'Tema o ángulo del carrusel' }),
         e(Cap, { v: brief.tema, onChange: v => upd('tema', v), rows: 3 }),
@@ -361,11 +378,23 @@
       setExporting(true);
       try {
         if (document.fonts && document.fonts.ready) await document.fonts.ready;
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 600));
         for (let i = 0; i < slides.length; i++) {
           const node = slideRefs.current[i];
           if (!node) continue;
-          const dataUrl = await window.htmlToImage.toPng(node, { width: 1080, height: 1350, pixelRatio: 1, cacheBust: true, style: { transform: 'none', transformOrigin: 'top left' } });
+          // temporarily remove scale for full-resolution capture
+          const frame = node.parentElement;
+          const origNodeStyle = node.style.cssText;
+          const origFrameStyle = frame ? frame.style.cssText : '';
+          node.style.transform = 'none';
+          node.style.width = '1080px';
+          node.style.height = '1350px';
+          if (frame) { frame.style.width = '1080px'; frame.style.height = '1350px'; frame.style.overflow = 'visible'; }
+          await new Promise(r => setTimeout(r, 200));
+          const dataUrl = await window.htmlToImage.toPng(node, { width: 1080, height: 1350, pixelRatio: 1, cacheBust: true, backgroundColor: '#111' });
+          // restore
+          node.style.cssText = origNodeStyle;
+          if (frame) frame.style.cssText = origFrameStyle;
           const a = document.createElement('a');
           const base = (pieza.destino || 'carrusel').toLowerCase().replace(/[^a-z0-9]/g, '_');
           a.href = dataUrl; a.download = base + '_slide' + (i + 1) + '.png'; document.body.appendChild(a); a.click(); a.remove();
@@ -407,7 +436,7 @@
           // slides grid
           e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 } },
             slides.map((s, i) => e('div', { key: i, style: { display: 'flex', flexDirection: 'column', gap: 10 } },
-              e('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, '0' + (i + 1)), e(SlideBadge, { layout: s.layout })),
+              e('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, String(i + 1).padStart(2, '0')), e(SlideBadge, { layout: s.layout })),
               e(SlidePreview, { slide: s, photoUrl: assigns[i] && assigns[i].url, tema: tema, format: 'feed', scale: 0.30, slideRef: el => { slideRefs.current[i] = el; } }),
               e('button', { className: 'btn sm' + (assigns[i] ? '' : ' primary'), onClick: () => setPickerFor(i), style: { width: 324 } }, assigns[i] ? 'Cambiar foto' : 'Elegir foto')))),
 
@@ -514,7 +543,7 @@
           e(Sp, { h: 8 }),
           slides.map((s, i) => e('div', { key: i, className: 'card', style: { marginBottom: 14, padding: '14px 16px' } },
             e('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 } },
-              e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, '0' + (i + 1)),
+              e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, String(i + 1).padStart(2, '0')),
               e(SlideBadge, { layout: s.layout })),
             slideFields(s, i))),
           e('div', { className: 'card', style: { padding: '14px 16px', marginBottom: 14 } },
