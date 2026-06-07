@@ -404,6 +404,8 @@
 
   function EditorCarrusel({ pieza, onClose, onSaved, toast }) {
     const slides = pieza.slides || [];
+    const fmt = pieza.formato || 'feed';
+    const EXW = 1080, EXH = fmt === 'story' ? 1920 : (fmt === 'square' ? 1080 : 1350);
     const [tema, setTema] = useState(pieza.tema_visual || 'alpine-dark');
     const [assigns, setAssigns] = useState({});      // idx -> { id, url(dataURL) }
     const [assets, setAssets] = useState([]);
@@ -427,7 +429,7 @@
         slides.forEach((s, i) => {
           if (s && s.asset_id) {
             const a = arr.find(x => x.id === s.asset_id);
-            if (a && a.url) init[i] = { id: a.id, url: a.url };
+            if (a && a.url) init[i] = { id: a.id, url: a.url, media_type: a.media_type === 'video' ? 'video' : 'image', filename: a.filename || '' };
           }
         });
         if (Object.keys(init).length) setAssigns(prev => (Object.keys(prev).length ? prev : init));
@@ -437,13 +439,18 @@
 
     async function pickPhoto(idx, asset) {
       setBusyPhoto(true);
+      const mt = asset.media_type === 'video' ? 'video' : 'image';
       let url = asset.url;
       try {
         const resp = await fetch(asset.url);
         const blob = await resp.blob();
-        url = await new Promise(res => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.readAsDataURL(blob); });
+        if (mt === 'video') {
+          url = URL.createObjectURL(blob);
+        } else {
+          url = await new Promise(res => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.readAsDataURL(blob); });
+        }
       } catch (er) { /* fallback a signed url */ }
-      setAssigns(a => ({ ...a, [idx]: { id: asset.id, url: url } }));
+      setAssigns(a => ({ ...a, [idx]: { id: asset.id, url: url, media_type: mt, filename: asset.filename || '' } }));
       setBusyPhoto(false); setPickerFor(null);
     }
 
