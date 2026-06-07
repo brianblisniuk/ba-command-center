@@ -1,0 +1,119 @@
+/* ============ CARRUSELES EDITORIALES B&A ============
+   5 layouts · 3 temas · feed 1080x1350 / story 1080x1920
+   Tipografía: Cormorant Garamond (display) · Pinyon Script (script) · Inter (sans)
+   Clases prefijadas ba- para no colisionar con el design system del Command Center. */
+
+.ba-slide {
+  --bw: 1080px; --bh: 1350px;
+  --white: #ffffff;
+  --text: rgba(255,255,255,0.97);
+  --muted: rgba(255,255,255,0.84);
+  --hair: rgba(255,255,255,0.34);
+  --serif: "Cormorant Garamond", Georgia, serif;
+  --script: "Pinyon Script", "Cormorant Garamond", cursive;
+  --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --sx: 78px; --st: 72px; --sb: 64px;
+
+  position: relative;
+  width: var(--bw); height: var(--bh);
+  overflow: hidden; background: #111;
+  color: var(--text); isolation: isolate;
+  font-family: var(--sans);
+}
+.ba-slide[data-format="story"] { --bw: 1080px; --bh: 1920px; --st: 92px; --sb: 94px; }
+
+.ba-bg, .ba-fallback, .ba-overlay, .ba-grain { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ba-bg { object-fit: cover; z-index: 1; }
+.ba-fallback { z-index: 0; background: linear-gradient(145deg,#28302d,#111817 52%,#070808); }
+.ba-overlay { z-index: 2; pointer-events: none; }
+.ba-slide[data-theme="alpine-dark"] .ba-overlay {
+  background: linear-gradient(to bottom, rgba(5,7,8,0.18), rgba(5,7,8,0.04) 22%, rgba(5,7,8,0.48) 100%),
+              linear-gradient(108deg, rgba(17,24,23,0.26), rgba(59,52,41,0.10) 52%, rgba(2,3,3,0.24));
+}
+.ba-slide[data-theme="noir-city"] .ba-overlay {
+  background: linear-gradient(to bottom, rgba(4,4,4,0.24), rgba(4,4,4,0.06) 34%, rgba(4,4,4,0.56) 100%),
+              linear-gradient(90deg, rgba(0,0,0,0.30), rgba(52,46,39,0.10));
+}
+.ba-slide[data-theme="warm-editorial"] .ba-overlay {
+  background: linear-gradient(to bottom, rgba(34,26,18,0.14), rgba(34,26,18,0.06) 34%, rgba(12,9,6,0.46) 100%),
+              linear-gradient(100deg, rgba(36,32,26,0.22), rgba(130,111,78,0.12));
+}
+.ba-grain {
+  z-index: 3; opacity: 0.08; mix-blend-mode: overlay; pointer-events: none;
+  background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.45) 0 1px, transparent 1px),
+                    radial-gradient(circle at 60% 80%, rgba(0,0,0,0.35) 0 1px, transparent 1px);
+  background-size: 9px 9px, 13px 13px;
+}
+
+/* Marca */
+.ba-brand { position: absolute; z-index: 10; top: var(--st); left: var(--sx); display: flex; align-items: flex-start; gap: 10px; }
+.ba-hash { font-family: var(--sans); font-weight: 800; font-size: 72px; line-height: 0.76; letter-spacing: -0.08em; }
+.ba-words { margin-top: 9px; font-family: var(--sans); font-size: 26px; line-height: 0.98; font-weight: 750; font-style: italic; letter-spacing: -0.02em; }
+.ba-label { position: absolute; top: calc(var(--st) + 16px); right: var(--sx); z-index: 10; font-family: var(--sans); font-size: 15px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+.ba-footer { position: absolute; left: var(--sx); right: var(--sx); bottom: var(--sb); z-index: 10; display: flex; justify-content: space-between; align-items: flex-end; }
+.ba-handle { font-family: var(--sans); font-size: 26px; font-style: italic; color: var(--text); }
+.ba-arrow { position: relative; width: 108px; height: 58px; border: 4px solid var(--white); border-radius: 999px; }
+.ba-arrow::before { content: ""; position: absolute; top: 26px; left: 22px; width: 46px; height: 4px; background: var(--white); border-radius: 999px; }
+.ba-arrow::after { content: ""; position: absolute; top: 18px; right: 22px; width: 19px; height: 19px; border-top: 4px solid var(--white); border-right: 4px solid var(--white); transform: rotate(45deg); }
+
+/* Tipografía */
+.ba-kicker { position: absolute; z-index: 8; font-family: var(--sans); font-size: 17px; text-transform: uppercase; letter-spacing: 0.22em; color: var(--muted); }
+.ba-hero { position: absolute; z-index: 8; left: var(--sx); right: var(--sx); }
+.ba-script { font-family: var(--script); font-weight: 400; font-size: var(--ss, 150px); line-height: 0.9; color: var(--text); }
+.ba-display { font-family: var(--serif); font-weight: 600; font-size: var(--ds, 118px); line-height: 0.84; letter-spacing: -0.03em; text-transform: uppercase; color: var(--text); }
+.ba-deck { position: absolute; z-index: 8; margin: 0; font-family: var(--sans); font-style: italic; font-size: 30px; line-height: 1.28; color: var(--text); }
+.ba-meta { position: absolute; z-index: 8; display: flex; flex-wrap: wrap; gap: 10px; }
+.ba-pill { display: inline-flex; align-items: center; min-height: 38px; padding: 8px 15px; border: 1px solid var(--hair); border-radius: 999px; font-family: var(--sans); font-size: 16px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+
+/* Layout visibility */
+.ba-layout { display: none; position: absolute; inset: 0; z-index: 5; }
+.ba-slide[data-layout="destination-editorial"] .ba-l-dest,
+.ba-slide[data-layout="activity-specific"] .ba-l-act,
+.ba-slide[data-layout="comparison"] .ba-l-cmp,
+.ba-slide[data-layout="final-cta"] .ba-l-cta,
+.ba-slide[data-layout="story-cover"] .ba-l-story { display: block; }
+
+/* 01 Destino */
+.ba-l-dest .ba-kicker { left: var(--sx); top: 340px; }
+.ba-l-dest .ba-hero { top: 400px; --ss: 156px; --ds: 116px; }
+.ba-l-dest .ba-deck { left: calc(var(--sx) + 2px); top: 800px; max-width: 560px; }
+.ba-l-dest .ba-meta { left: var(--sx); top: 920px; }
+
+/* 02 Actividad */
+.ba-l-act .ba-kicker { left: var(--sx); top: 315px; }
+.ba-l-act .ba-hero { top: 378px; --ss: 144px; --ds: 126px; }
+.ba-quote { position: absolute; z-index: 8; right: var(--sx); bottom: 200px; width: 400px; color: var(--text); }
+.ba-quote .qm { font-family: var(--sans); font-weight: 800; font-size: 96px; line-height: 0.5; margin-bottom: 8px; }
+.ba-quote p { margin: 0; font-family: var(--sans); font-size: 29px; line-height: 1.24; font-style: italic; }
+.ba-details { position: absolute; z-index: 8; left: var(--sx); bottom: 196px; width: 390px; display: grid; gap: 12px; }
+.ba-drow { display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding-top: 11px; border-top: 1px solid var(--hair); font-family: var(--sans); }
+.ba-dl { font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.ba-dv { font-size: 22px; font-style: italic; color: var(--text); }
+
+/* 03 Comparación */
+.ba-cmp-title { position: absolute; z-index: 8; left: 64px; right: 64px; top: 360px; margin: 0; font-family: var(--serif); font-size: 88px; line-height: 0.94; font-weight: 600; letter-spacing: -0.03em; text-align: center; text-transform: uppercase; color: var(--text); }
+.ba-panels { position: absolute; z-index: 8; left: var(--sx); right: var(--sx); bottom: 230px; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.ba-panel { min-height: 150px; padding: 24px; border: 1px solid var(--hair); background: rgba(0,0,0,0.16); }
+.ba-pl { margin-bottom: 14px; font-family: var(--serif); font-size: 34px; line-height: 1; letter-spacing: -0.02em; color: var(--text); }
+.ba-panel p { margin: 0; font-family: var(--sans); font-size: 22px; line-height: 1.26; font-style: italic; color: var(--muted); }
+.ba-question { position: absolute; z-index: 8; left: var(--sx); right: var(--sx); top: 782px; margin: 0; text-align: center; font-family: var(--sans); font-size: 31px; line-height: 1.22; font-style: italic; color: var(--text); }
+
+/* 04 CTA */
+.ba-l-cta .ba-kicker { left: var(--sx); top: 315px; }
+.ba-l-cta .ba-hero { top: 378px; --ss: 148px; --ds: 122px; }
+.ba-l-cta .ba-deck { left: var(--sx); top: 778px; max-width: 580px; }
+.ba-ctabox { position: absolute; z-index: 8; left: var(--sx); right: var(--sx); bottom: 192px; padding: 30px 34px; border: 1px solid var(--hair); background: rgba(0,0,0,0.18); }
+.ba-ctah { margin-bottom: 12px; font-family: var(--serif); font-size: 42px; line-height: 1; letter-spacing: -0.02em; color: var(--text); }
+.ba-ctat { margin: 0; max-width: 660px; font-family: var(--sans); font-size: 26px; line-height: 1.26; font-style: italic; color: var(--muted); }
+
+/* 05 Story */
+.ba-l-story .ba-kicker { left: var(--sx); top: 560px; }
+.ba-l-story .ba-hero { top: 640px; --ss: 168px; --ds: 130px; }
+.ba-l-story .ba-deck { left: var(--sx); top: 1060px; max-width: 640px; font-size: 34px; }
+.ba-l-story .ba-meta { left: var(--sx); top: 1220px; }
+.ba-slide[data-format="story"] .ba-hash { font-size: 80px; }
+.ba-slide[data-format="story"] .ba-words { font-size: 28px; }
+
+/* Wrapper escalado para preview en la app */
+.ba-frame { position: relative; overflow: hidden; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.18); }
+.ba-frame .ba-slide { transform-origin: top left; }

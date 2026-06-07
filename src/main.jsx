@@ -3,6 +3,11 @@
 // que tenían los <script> en index.html. globals.js va primero.
 import './globals.js';
 
+// CSS de los carruseles editoriales + librería de export a PNG.
+import '../css/carousel.css';
+import * as htmlToImage from 'html-to-image';
+window.htmlToImage = htmlToImage;
+
 // Capa de datos (plano, sin JSX) — setea window.SB, window.BA, etc.
 import '../js/data.js';
 import '../js/data_ext.js';
