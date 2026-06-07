@@ -154,7 +154,7 @@
 
   // ============ NUEVA PIEZA (máquina de guiones) ============
   function NuevaPieza({ toast }) {
-    const [brief, setBrief] = useState({ trip_id: '', destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal' });
+    const [brief, setBrief] = useState({ trip_id: '', destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal', formato: 'feed' });
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(false);
     const [draft, setDraft] = useState(null);
@@ -204,12 +204,12 @@
       if (!draft) return;
       setSaving(true);
       try {
-        const p_data = { tipo: 'carousel_feed', trip_id: brief.trip_id || null, destino: brief.destino, titulo: draft.titulo || brief.tema.slice(0, 60), brief: brief.tema + (brief.notas ? ' · ' + brief.notas : ''), slides: draft.slides, caption: caption, hashtags: hashtags.split(/[\s,]+/).filter(Boolean), status: status };
+        const p_data = { tipo: 'carousel_feed', formato: brief.formato || 'feed', trip_id: brief.trip_id || null, destino: brief.destino, titulo: draft.titulo || brief.tema.slice(0, 60), brief: brief.tema + (brief.notas ? ' · ' + brief.notas : ''), slides: draft.slides, caption: caption, hashtags: hashtags.split(/[\s,]+/).filter(Boolean), status: status };
         const { data, error } = await window.SB.rpc('editorial_content_save', { p_data });
         if (error) throw new Error(error.message);
         setSaved({ status: status, id: data && data.id });
         toast(status === 'copy_approved' ? 'Copy aprobado — ya aparece en el Calendario' : 'Borrador guardado');
-        if (status === 'copy_approved') { setBrief({ trip_id: '', destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal' }); setDraft(null); }
+        if (status === 'copy_approved') { setBrief({ trip_id: '', destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal', formato: 'feed' }); setDraft(null); }
       } catch (er) { toast('Error al guardar: ' + er.message); }
       finally { setSaving(false); }
     }
@@ -232,6 +232,12 @@
           e('div', null, e(Lbl, { t: 'Estilo' }), e('div', { style: { display: 'flex', gap: 4 } },
             e('button', { className: 'btn sm' + (brief.estilo === 'minimal' ? ' primary' : ''), onClick: () => upd('estilo', 'minimal'), style: { fontSize: 12 } }, 'Minimal'),
             e('button', { className: 'btn sm' + (brief.estilo === 'editorial' ? ' primary' : ''), onClick: () => upd('estilo', 'editorial'), style: { fontSize: 12 } }, 'Editorial')))),
+        e(Sp, { h: 12 }),
+        e(Lbl, { t: 'Formato' }),
+        e('div', { style: { display: 'flex', gap: 4, flexWrap: 'wrap' } },
+          e('button', { className: 'btn sm' + (brief.formato === 'feed' ? ' primary' : ''), onClick: () => upd('formato', 'feed'), style: { fontSize: 12 } }, 'Carrusel 4:5'),
+          e('button', { className: 'btn sm' + (brief.formato === 'square' ? ' primary' : ''), onClick: () => upd('formato', 'square'), style: { fontSize: 12 } }, 'Cuadrado 1:1'),
+          e('button', { className: 'btn sm' + (brief.formato === 'story' ? ' primary' : ''), onClick: () => upd('formato', 'story'), style: { fontSize: 12 } }, 'Historia 9:16')),
         e(Sp, { h: 12 }),
         e(Lbl, { t: 'Tema o ángulo del carrusel' }),
         e(Cap, { v: brief.tema, onChange: v => upd('tema', v), rows: 3 }),
