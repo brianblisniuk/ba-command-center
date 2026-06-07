@@ -279,6 +279,44 @@
     const [filterDestino, setFilterDestino] = useState('');
     const [dragging, setDragging] = useState(false);
     const inputRef = useRef(null);
+    const [tagAsset, setTagAsset] = useState(null);
+    const [tagTrip, setTagTrip] = useState('');
+    const [tagSlot, setTagSlot] = useState('');
+    const [tagSlots, setTagSlots] = useState([]);
+    const [tagSaving, setTagSaving] = useState(false);
+
+    async function fetchSlotsFor(id) {
+      try {
+        const { data } = await window.SB.from('trips').select('data').eq('id', id).single();
+        const itin = (data && data.data && Array.isArray(data.data.itinerary)) ? data.data.itinerary : [];
+        const flat = [];
+        itin.forEach(day => (day.slots || []).forEach(s => {
+          const t2 = (s.client && s.client.title) || s.title || '';
+          if (t2) flat.push({ id: s.id || ('d' + day.dayNumber + '_' + t2), label: 'Día ' + (day.dayNumber || '?') + ' · ' + t2 });
+        }));
+        return flat;
+      } catch (_e) { return []; }
+    }
+    function openTag(a) {
+      setTagAsset(a); setTagTrip(a.trip_id || ''); setTagSlot(a.slot_id || ''); setTagSlots([]);
+      if (a.trip_id) fetchSlotsFor(a.trip_id).then(setTagSlots);
+    }
+    function tagPickTrip(id) {
+      setTagTrip(id); setTagSlot(''); setTagSlots([]);
+      if (id) fetchSlotsFor(id).then(setTagSlots);
+    }
+    async function saveTag() {
+      if (!tagAsset) return;
+      setTagSaving(true);
+      try {
+        const t = trips.find(x => x.id === tagTrip);
+        const s = tagSlots.find(x => x.id === tagSlot);
+        const { error } = await window.SB.rpc('editorial_asset_update', { p_id: tagAsset.id, p_data: { trip_id: tagTrip || '', destino_tag: t ? (t.region || t.title) : null, slot_id: tagSlot || '', slot_label: s ? s.label : '' } });
+        if (error) throw new Error(error.message);
+        toast('Etiquetas actualizadas'); setTagAsset(null); load();
+      } catch (er) { toast('Error: ' + er.message); }
+      finally { setTagSaving(false); }
+    }
 
     useEffect(() => { load(); loadTrips(); }, []);
     async function loadTrips() {
@@ -316,29 +354,31 @@
     }
 
     function isImg(f) { return f.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|heic|heif|avif)$/i.test(f.name); }
+    function isVid(f) { return f.type.startsWith('video/') || /\.(mp4|mov|webm|m4v)$/i.test(f.name); }
 
     async function handleFiles(files) {
-      const arr = Array.from(files).filter(isImg);
-      if (!arr.length) { toast('Solo se aceptan imágenes (JPG, PNG, WEBP, AVIF, HEIC).'); return; }
+      const arr = Array.from(files).filter(f => isImg(f) || isVid(f));
+      if (!arr.length) { toast('Se aceptan imágenes (JPG, PNG, WEBP…) y videos (MP4, MOV, WEBM).'); return; }
       if (!destino.trim()) { toast('Elegí el viaje (o destino manual) antes de subir.'); return; }
       const slot = slots.find(s => s.id === slotId);
       setUploading(true); setTotal(arr.length); setUploadCount(0);
       let ok = 0;
       for (const file of arr) {
+        const mt = isVid(file) ? 'video' : 'image';
         const slug = destino.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
         const fname = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = slug + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '_' + fname;
         try {
-          const { error: upErr } = await window.SB.storage.from('editorial-assets').upload(path, file, { upsert: false, contentType: file.type || 'image/jpeg' });
+          const { error: upErr } = await window.SB.storage.from('editorial-assets').upload(path, file, { upsert: false, contentType: file.type || (mt === 'video' ? 'video/mp4' : 'image/jpeg') });
           if (upErr) { toast('Error subiendo ' + file.name + ': ' + upErr.message); setUploadCount(c => c + 1); continue; }
           const { data: signed } = await window.SB.storage.from('editorial-assets').createSignedUrl(path, 86400 * 30);
-          await window.SB.rpc('editorial_asset_register', { p_data: { storage_path: path, filename: file.name, destino_tag: destino.trim(), size_bytes: file.size, url: (signed && signed.signedUrl) || '', trip_id: tripId || null, slot_id: slotId || null, slot_label: slot ? slot.label : null } });
+          await window.SB.rpc('editorial_asset_register', { p_data: { storage_path: path, filename: file.name, destino_tag: destino.trim(), size_bytes: file.size, url: (signed && signed.signedUrl) || '', trip_id: tripId || null, slot_id: slotId || null, slot_label: slot ? slot.label : null, media_type: mt } });
           ok++;
         } catch (er) { toast('Error: ' + er.message); }
         setUploadCount(c => c + 1);
       }
       setUploading(false);
-      toast(ok + ' de ' + arr.length + ' foto(s) subidas correctamente.');
+      toast(ok + ' de ' + arr.length + ' archivo(s) subidos correctamente.');
       load();
     }
 
@@ -349,9 +389,26 @@
     const selStyle = { width: '100%', padding: '9px 12px', border: '1px solid var(--rule)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text-1)', fontSize: 13 };
 
     return e('div', null,
+      tagAsset && e('div', { style: { position: 'fixed', inset: 0, zIndex: 220, background: 'rgba(20,18,15,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 16 } },
+        e('div', { className: 'card pad', style: { maxWidth: 420, width: '100%', background: 'var(--bg)' } },
+          e('div', { style: { fontFamily: 'var(--ff-display)', fontSize: 16, marginBottom: 4 } }, 'Etiquetar media'),
+          e('div', { style: { fontSize: 11, color: 'var(--text-3)', marginBottom: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, tagAsset.filename || ''),
+          e(Lbl, { t: 'Viaje' }),
+          e('select', { value: tagTrip, onChange: ev => tagPickTrip(ev.target.value), style: selStyle },
+            e('option', { value: '' }, '— Sin viaje —'),
+            trips.map(t => e('option', { key: t.id, value: t.id }, t.title))),
+          e(Sp, { h: 10 }),
+          tagTrip && tagSlots.length > 0 && [e(Lbl, { key: 'l', t: 'Momento del itinerario' }),
+            e('select', { key: 's', value: tagSlot, onChange: ev => setTagSlot(ev.target.value), style: selStyle },
+              e('option', { value: '' }, '— Sin momento —'),
+              tagSlots.map(s => e('option', { key: s.id, value: s.id }, s.label))),
+            e(Sp, { key: 'sp', h: 12 })],
+          e('div', { style: { display: 'flex', gap: 8 } },
+            e('button', { className: 'btn primary', onClick: saveTag, disabled: tagSaving }, tagSaving ? 'Guardando…' : 'Guardar etiquetas'),
+            e('button', { className: 'btn', onClick: () => setTagAsset(null) }, 'Cancelar')))),
       e('div', { className: 'card pad', style: { maxWidth: 680 } },
         e('div', { className: 'card-head', style: { marginBottom: 14 } },
-          e('div', { className: 'card-title' }, 'Biblioteca de fotos'),
+          e('div', { className: 'card-title' }, 'Biblioteca de fotos y videos'),
           e('div', { className: 'card-sub' }, 'Cargá el material en batch. Etiquetá por viaje y por momento del itinerario para que el sistema pueda ubicar cada foto.')),
         e('div', { style: { marginBottom: 12 } },
           e(Lbl, { t: 'Viaje (obligatorio)' }),
@@ -370,13 +427,13 @@
           onClick: () => !uploading && inputRef.current && inputRef.current.click(), onDrop: onDrop, onDragOver: onDragOver, onDragLeave: onDragLeave,
           style: { border: '2px dashed ' + (dragging ? 'var(--accent)' : 'var(--rule)'), borderRadius: 12, padding: '32px 24px', textAlign: 'center', cursor: uploading ? 'default' : 'pointer', background: dragging ? 'var(--go-bg)' : 'var(--surface)', transition: 'all .15s' }
         },
-          e('input', { ref: inputRef, type: 'file', multiple: true, accept: 'image/*,.heic,.heif,.avif', style: { display: 'none' }, onChange: ev => handleFiles(ev.target.files) }),
+          e('input', { ref: inputRef, type: 'file', multiple: true, accept: 'image/*,video/*,.heic,.heif,.avif,.mp4,.mov,.webm,.m4v', style: { display: 'none' }, onChange: ev => handleFiles(ev.target.files) }),
           uploading
             ? e('div', null, e('div', { style: { fontWeight: 600, marginBottom: 6 } }, 'Subiendo ' + uploadCount + ' de ' + total + '…'), e('div', { style: { fontSize: 12, color: 'var(--text-3)' } }, 'No cierre esta pestaña.'))
             : e('div', null,
                 e(Icon, { name: 'layers', style: { width: 28, height: 28, color: 'var(--text-3)', marginBottom: 8 } }),
-                e('div', { style: { fontWeight: 600, marginBottom: 4 } }, 'Arrastre las fotos aquí o haga clic para seleccionar'),
-                e('div', { style: { fontSize: 12, color: 'var(--text-3)' } }, 'JPG, PNG, WEBP, AVIF, HEIC · hasta 50 MB por foto · sin límite de cantidad')))),
+                e('div', { style: { fontWeight: 600, marginBottom: 4 } }, 'Arrastre fotos o videos aquí, o haga clic para seleccionar'),
+                e('div', { style: { fontSize: 12, color: 'var(--text-3)' } }, 'Fotos JPG/PNG/WEBP · Videos MP4/MOV/WEBM (hasta 300 MB) · sin límite de cantidad')))),
 
       e(Sp, { h: 20 }),
       e('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' } },
@@ -390,12 +447,17 @@
           ? e('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, e('div', { style: { fontSize: 14, marginBottom: 6 } }, 'La biblioteca está vacía.'), e('div', { style: { fontSize: 12 } }, 'Subí las fotos para empezar.'))
           : e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 } },
               assets.map(a => e('div', { key: a.id, style: { borderRadius: 10, overflow: 'hidden', background: 'var(--surface-2)', border: '1px solid var(--rule)' } },
-                a.url ? e('img', { src: a.url, alt: a.filename, style: { width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }, loading: 'lazy' }) : e('div', { style: { aspectRatio: '4/5', background: 'var(--surface-sunk)', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, e(Icon, { name: 'layers' })),
+                e('div', { style: { position: 'relative' } },
+                  a.media_type === 'video'
+                    ? e('video', { src: a.url, style: { width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }, muted: true, playsInline: true, preload: 'metadata' })
+                    : (a.url ? e('img', { src: a.url, alt: a.filename, style: { width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }, loading: 'lazy' }) : e('div', { style: { aspectRatio: '4/5', background: 'var(--surface-sunk)', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, e(Icon, { name: 'layers' }))),
+                  a.media_type === 'video' && e('div', { style: { position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', color: '#fff', borderRadius: 4, padding: '1px 6px', fontSize: 10 } }, '▶ video')),
                 e('div', { style: { padding: '6px 8px' } },
                   e('div', { style: { fontSize: 10, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, a.filename),
                   e('div', { style: { display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 } },
                     a.destino_tag && e('span', { className: 'tag', style: { fontSize: 9 } }, a.destino_tag),
-                    a.slot_label && e('span', { className: 'tag', style: { fontSize: 9, opacity: 0.8 } }, a.slot_label))))))
+                    a.slot_label && e('span', { className: 'tag', style: { fontSize: 9, opacity: 0.8 } }, a.slot_label)),
+                  e('button', { className: 'btn sm', style: { marginTop: 6, width: '100%', fontSize: 10.5 }, onClick: () => openTag(a) }, 'Etiquetar')))))
     );
   }
 
