@@ -114,14 +114,14 @@
 .ba-slide[data-format="story"] .ba-hash { font-size: 80px; }
 .ba-slide[data-format="story"] .ba-words { font-size: 28px; }
 
-/* 06 Minimal — texto centrado, sin chrome */
+/* 06 Minimal — texto centrado, multilinea apilado (estilo editorial) */
 .ba-slide[data-layout="minimal-cover"] .ba-l-minc,
 .ba-slide[data-layout="minimal"] .ba-l-min { display: flex; }
 
 .ba-l-minc, .ba-l-min { position: absolute; inset: 0; z-index: 8; align-items: center; justify-content: center; padding: 80px var(--sx); }
-.ba-min-text { font-family: var(--serif); font-weight: 500; color: var(--text); line-height: 1.12; max-width: 860px; text-align: center; text-shadow: 0 1px 18px rgba(0,0,0,0.22); }
-.ba-l-minc .ba-min-text { font-size: 112px; }
-.ba-l-min  .ba-min-text { font-size: 54px; }
+.ba-min-text { font-family: var(--serif); font-weight: 500; color: var(--text); text-align: center; text-shadow: 0 1px 18px rgba(0,0,0,0.28); text-wrap: balance; }
+.ba-l-minc .ba-min-text { font-size: 104px; line-height: 1.04; max-width: 620px; }
+.ba-l-min  .ba-min-text { font-size: 60px; line-height: 1.08; max-width: 440px; }
 
 /* Wrapper escalado para preview en la app */
 .ba-frame { position: relative; overflow: hidden; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.18); }

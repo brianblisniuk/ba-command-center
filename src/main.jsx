@@ -7,6 +7,8 @@ import './globals.js';
 import '../css/carousel.css';
 import * as htmlToImage from 'html-to-image';
 window.htmlToImage = htmlToImage;
+import JSZip from 'jszip';
+window.JSZip = JSZip;
 
 // Capa de datos (plano, sin JSX) — setea window.SB, window.BA, etc.
 import '../js/data.js';
