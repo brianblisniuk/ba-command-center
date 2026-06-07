@@ -9,6 +9,8 @@
   --text: rgba(255,255,255,0.97);
   --muted: rgba(255,255,255,0.84);
   --hair: rgba(255,255,255,0.34);
+  --box: rgba(0,0,0,0.16);
+  --ink-shadow: 0 1px 16px rgba(0,0,0,0.30);
   --serif: "Cormorant Garamond", Georgia, serif;
   --script: "Pinyon Script", "Cormorant Garamond", cursive;
   --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
@@ -22,6 +24,37 @@
 }
 .ba-slide[data-format="story"] { --bw: 1080px; --bh: 1920px; --st: 92px; --sb: 94px; }
 .ba-slide[data-format="square"] { --bw: 1080px; --bh: 1080px; --st: 64px; --sb: 60px; }
+
+/* ===== Tinta del texto (claro / oscuro) ===== */
+.ba-slide[data-ink="dark"] {
+  --white: #1a1a1a;
+  --text: rgba(20,18,16,0.98);
+  --muted: rgba(20,18,16,0.70);
+  --hair: rgba(20,18,16,0.32);
+  --box: rgba(255,255,255,0.40);
+  --ink-shadow: 0 1px 14px rgba(255,255,255,0.55);
+}
+
+/* ===== Filtros de imagen por tema (suaves, no oscurecen) ===== */
+.ba-slide[data-theme="clean"] .ba-bg     { filter: none; }
+.ba-slide[data-theme="cinema"] .ba-bg    { filter: contrast(1.06) saturate(1.10); }
+.ba-slide[data-theme="warm-soft"] .ba-bg { filter: saturate(1.06) sepia(0.06) brightness(1.02); }
+.ba-slide[data-theme="cool-soft"] .ba-bg { filter: saturate(1.03) hue-rotate(-6deg) brightness(1.02); }
+.ba-slide[data-theme="bw-soft"] .ba-bg   { filter: grayscale(1) contrast(1.06); }
+.ba-slide[data-theme="fade"] .ba-bg      { filter: contrast(0.94) saturate(0.92) brightness(1.06); }
+
+/* Velo base de los temas nuevos: degradado suave solo abajo (preserva la foto) */
+.ba-slide[data-theme="clean"] .ba-overlay,
+.ba-slide[data-theme="cinema"] .ba-overlay,
+.ba-slide[data-theme="warm-soft"] .ba-overlay,
+.ba-slide[data-theme="cool-soft"] .ba-overlay,
+.ba-slide[data-theme="bw-soft"] .ba-overlay,
+.ba-slide[data-theme="fade"] .ba-overlay {
+  background: linear-gradient(to bottom, rgba(8,9,11,0) 0%, rgba(8,9,11,0) 48%, rgba(8,9,11,0.40) 100%);
+}
+
+/* Sombra sutil para que el texto se lea incluso sin velo */
+.ba-script, .ba-display, .ba-deck, .ba-cmp-title, .ba-question, .ba-ctah, .ba-handle, .ba-quote p, .ba-panel p { text-shadow: var(--ink-shadow); }
 
 .ba-bg, .ba-fallback, .ba-overlay, .ba-grain { position: absolute; inset: 0; width: 100%; height: 100%; }
 .ba-bg { object-fit: cover; z-index: 1; }
@@ -94,7 +127,7 @@
 /* 03 Comparación */
 .ba-cmp-title { position: absolute; z-index: 8; left: 64px; right: 64px; top: 360px; margin: 0; font-family: var(--serif); font-size: 88px; line-height: 0.94; font-weight: 600; letter-spacing: -0.03em; text-align: center; text-transform: uppercase; color: var(--text); }
 .ba-panels { position: absolute; z-index: 8; left: var(--sx); right: var(--sx); bottom: 230px; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-.ba-panel { min-height: 150px; padding: 24px; border: 1px solid var(--hair); background: rgba(0,0,0,0.16); }
+.ba-panel { min-height: 150px; padding: 24px; border: 1px solid var(--hair); background: var(--box); }
 .ba-pl { margin-bottom: 14px; font-family: var(--serif); font-size: 34px; line-height: 1; letter-spacing: -0.02em; color: var(--text); }
 .ba-panel p { margin: 0; font-family: var(--sans); font-size: 22px; line-height: 1.26; font-style: italic; color: var(--muted); }
 .ba-question { position: absolute; z-index: 8; left: var(--sx); right: var(--sx); top: 782px; margin: 0; text-align: center; font-family: var(--sans); font-size: 31px; line-height: 1.22; font-style: italic; color: var(--text); }
@@ -103,7 +136,7 @@
 .ba-l-cta .ba-kicker { left: var(--sx); top: 315px; }
 .ba-l-cta .ba-hero { top: 378px; --ss: 148px; --ds: 122px; }
 .ba-l-cta .ba-deck { left: var(--sx); top: 778px; max-width: 580px; }
-.ba-ctabox { position: absolute; z-index: 8; left: var(--sx); right: var(--sx); bottom: 192px; padding: 30px 34px; border: 1px solid var(--hair); background: rgba(0,0,0,0.18); }
+.ba-ctabox { position: absolute; z-index: 8; left: var(--sx); right: var(--sx); bottom: 192px; padding: 30px 34px; border: 1px solid var(--hair); background: var(--box); }
 .ba-ctah { margin-bottom: 12px; font-family: var(--serif); font-size: 42px; line-height: 1; letter-spacing: -0.02em; color: var(--text); }
 .ba-ctat { margin: 0; max-width: 660px; font-family: var(--sans); font-size: 26px; line-height: 1.26; font-style: italic; color: var(--muted); }
 
@@ -120,9 +153,18 @@
 .ba-slide[data-layout="minimal"] .ba-l-min { display: flex; }
 
 .ba-l-minc, .ba-l-min { position: absolute; inset: 0; z-index: 8; align-items: center; justify-content: center; padding: 80px var(--sx); }
-.ba-min-text { font-family: var(--serif); font-weight: 500; color: var(--text); text-align: center; text-shadow: 0 1px 18px rgba(0,0,0,0.28); text-wrap: balance; }
+.ba-min-text { font-family: var(--serif); font-weight: 500; color: var(--text); text-align: center; text-shadow: var(--ink-shadow); text-wrap: balance; }
 .ba-l-minc .ba-min-text { font-size: 104px; line-height: 1.04; max-width: 620px; }
 .ba-l-min  .ba-min-text { font-size: 60px; line-height: 1.08; max-width: 440px; }
+
+/* ===== Velo como eje independiente (override del tema). Va al final para ganar por orden ===== */
+.ba-slide[data-overlay="none"] .ba-overlay { background: none; }
+.ba-slide[data-overlay="soft"] .ba-overlay { background: linear-gradient(to bottom, rgba(8,9,11,0.10), rgba(8,9,11,0.16)); }
+.ba-slide[data-overlay="gradient"] .ba-overlay { background: linear-gradient(to bottom, rgba(8,9,11,0) 0%, rgba(8,9,11,0) 44%, rgba(8,9,11,0.50) 100%); }
+.ba-slide[data-overlay="gradient-top"] .ba-overlay { background: linear-gradient(to bottom, rgba(8,9,11,0.46) 0%, rgba(8,9,11,0) 42%, rgba(8,9,11,0) 100%); }
+.ba-slide[data-overlay="strong"] .ba-overlay { background: linear-gradient(to bottom, rgba(6,7,9,0.40), rgba(6,7,9,0.30) 40%, rgba(6,7,9,0.62) 100%); }
+.ba-slide[data-ink="dark"][data-overlay="soft"] .ba-overlay { background: linear-gradient(to bottom, rgba(245,241,234,0.22), rgba(245,241,234,0.44)); }
+.ba-slide[data-ink="dark"][data-overlay="gradient"] .ba-overlay { background: linear-gradient(to bottom, rgba(245,241,234,0) 0%, rgba(245,241,234,0) 40%, rgba(245,241,234,0.66) 100%); }
 
 /* Wrapper escalado para preview en la app */
 .ba-frame { position: relative; overflow: hidden; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.18); }
