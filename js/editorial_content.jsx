@@ -461,29 +461,43 @@
         if (document.fonts && document.fonts.ready) await document.fonts.ready;
         await new Promise(r => setTimeout(r, 600));
         const base = (pieza.destino || pieza.titulo || 'carrusel').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-        const pngs = [];
+        const files = [];
         for (let i = 0; i < slides.length; i++) {
           const node = slideRefs.current[i];
           if (!node) continue;
+          const nn = String(i + 1).padStart(2, '0');
+          const asg = assigns[i];
+          if (asg && asg.media_type === 'video') {
+            try {
+              const resp = await fetch(asg.url);
+              const blob = await resp.blob();
+              const ext = (asg.filename && asg.filename.indexOf('.') >= 0) ? asg.filename.split('.').pop().toLowerCase() : 'mp4';
+              files.push({ name: base + '_' + nn + '.' + ext, blob: blob });
+            } catch (er) { toast('No se pudo incluir el video del slide ' + (i + 1)); }
+            continue;
+          }
           const frame = node.parentElement;
           const origNodeStyle = node.style.cssText;
           const origFrameStyle = frame ? frame.style.cssText : '';
           node.style.transform = 'none';
-          node.style.width = '1080px';
-          node.style.height = '1350px';
-          if (frame) { frame.style.width = '1080px'; frame.style.height = '1350px'; frame.style.overflow = 'visible'; }
+          node.style.width = EXW + 'px';
+          node.style.height = EXH + 'px';
+          if (frame) { frame.style.width = EXW + 'px'; frame.style.height = EXH + 'px'; frame.style.overflow = 'visible'; }
           await new Promise(r => setTimeout(r, 200));
           // NO cacheBust: corrompe los dataURL de las fotos de fondo
-          const dataUrl = await window.htmlToImage.toPng(node, { width: 1080, height: 1350, pixelRatio: 1, backgroundColor: '#111' });
+          const dataUrl = await window.htmlToImage.toPng(node, { width: EXW, height: EXH, pixelRatio: 1, backgroundColor: '#111' });
           node.style.cssText = origNodeStyle;
           if (frame) frame.style.cssText = origFrameStyle;
-          pngs.push({ name: base + '_' + String(i + 1).padStart(2, '0') + '.png', dataUrl: dataUrl });
+          files.push({ name: base + '_' + nn + '.png', dataUrl: dataUrl });
         }
-        if (!pngs.length) { toast('No hay slides para exportar.'); setExporting(false); return; }
+        if (!files.length) { toast('No hay slides para exportar.'); setExporting(false); return; }
 
         if (window.JSZip) {
           const zip = new window.JSZip();
-          for (const p of pngs) zip.file(p.name, p.dataUrl.split(',')[1], { base64: true });
+          for (const f of files) {
+            if (f.dataUrl) zip.file(f.name, f.dataUrl.split(',')[1], { base64: true });
+            else if (f.blob) zip.file(f.name, f.blob);
+          }
           const cap = (pieza.caption || '') + ((pieza.hashtags && pieza.hashtags.length) ? '\n\n' + (Array.isArray(pieza.hashtags) ? pieza.hashtags.join(' ') : pieza.hashtags) : '');
           zip.file('caption.txt', cap);
           const blob = await zip.generateAsync({ type: 'blob' });
@@ -492,15 +506,16 @@
           a.download = base + '_carrusel.zip';
           document.body.appendChild(a); a.click(); a.remove();
           setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-          toast('Carrusel exportado: ' + pngs.length + ' PNG + caption.txt en un ZIP');
+          toast('Carrusel exportado en un ZIP' + (files.some(f => f.blob) ? ' (incluye videos tal cual)' : ''));
         } else {
           // fallback sin JSZip: descarga individual
-          for (const p of pngs) {
+          for (const f of files) {
+            if (!f.dataUrl) continue;
             const a = document.createElement('a');
-            a.href = p.dataUrl; a.download = p.name; document.body.appendChild(a); a.click(); a.remove();
+            a.href = f.dataUrl; a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
             await new Promise(r => setTimeout(r, 350));
           }
-          toast('PNGs exportados (' + pngs.length + ')');
+          toast('PNGs exportados');
         }
       } catch (er) { toast('Error al exportar: ' + er.message); }
       finally { setExporting(false); }
@@ -525,7 +540,7 @@
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--rule)', position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 2 } },
           e('div', { style: { flex: 1 } },
             e('div', { style: { fontFamily: 'var(--ff-display)', fontSize: 18 } }, 'Armar carrusel'),
-            e('div', { style: { fontSize: 12, color: 'var(--text-3)' } }, (pieza.titulo || pieza.destino || '') + ' · ' + assignedCount + ' de ' + slides.length + ' slides con foto')),
+            e('div', { style: { fontSize: 12, color: 'var(--text-3)' } }, (pieza.titulo || pieza.destino || '') + ' · ' + assignedCount + ' de ' + slides.length + ' slides con media')),
           e('button', { className: 'btn sm', onClick: onClose }, 'Cerrar')),
 
         e('div', { style: { padding: '18px 20px' } },
@@ -537,23 +552,23 @@
           // slides grid
           e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 } },
             slides.map((s, i) => e('div', { key: i, style: { display: 'flex', flexDirection: 'column', gap: 10 } },
-              e('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, String(i + 1).padStart(2, '0')), e(SlideBadge, { layout: s.layout })),
-              e(SlidePreview, { slide: s, photoUrl: assigns[i] && assigns[i].url, tema: tema, format: 'feed', scale: 0.30, slideRef: el => { slideRefs.current[i] = el; } }),
-              e('button', { className: 'btn sm' + (assigns[i] ? '' : ' primary'), onClick: () => setPickerFor(i), style: { width: 324 } }, assigns[i] ? 'Cambiar foto' : 'Elegir foto')))),
+              e('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, String(i + 1).padStart(2, '0')), e(SlideBadge, { layout: s.layout }), assigns[i] && assigns[i].media_type === 'video' && e('span', { className: 'tag', style: { fontSize: 9 } }, '▶ video')),
+              e(SlidePreview, { slide: s, photoUrl: assigns[i] && assigns[i].url, mediaType: assigns[i] && assigns[i].media_type, tema: tema, format: fmt, scale: 0.30, slideRef: el => { slideRefs.current[i] = el; } }),
+              e('button', { className: 'btn sm' + (assigns[i] ? '' : ' primary'), onClick: () => setPickerFor(i), style: { width: 324 } }, assigns[i] ? 'Cambiar media' : 'Elegir foto o video')))),
 
           e(Sp, { h: 22 }),
           // acciones
           e('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', borderTop: '1px solid var(--rule)', paddingTop: 18 } },
-            e('button', { className: 'btn primary', onClick: exportAll, disabled: exporting }, exporting ? 'Exportando…' : [e(Icon, { key: 'i', name: 'eye' }), 'Exportar PNGs']),
+            e('button', { className: 'btn primary', onClick: exportAll, disabled: exporting }, exporting ? 'Exportando…' : [e(Icon, { key: 'i', name: 'eye' }), 'Exportar (ZIP)']),
             e('button', { className: 'btn', onClick: saveCarrusel, disabled: assignedCount === 0 }, 'Guardar carrusel'),
-            assignedCount < slides.length && e('span', { style: { fontSize: 12, color: 'var(--text-3)', alignSelf: 'center' } }, assignedCount === 0 ? 'Sin fotos asignadas: exporta con fondo neutro.' : (assignedCount + ' de ' + slides.length + ' con foto.')))
+            assignedCount < slides.length && e('span', { style: { fontSize: 12, color: 'var(--text-3)', alignSelf: 'center' } }, assignedCount === 0 ? 'Sin media asignada: exporta con fondo neutro.' : (assignedCount + ' de ' + slides.length + ' con media. Los videos van al ZIP tal cual, sin texto.')))
         ),
 
         // picker de fotos
         pickerFor !== null && e('div', { style: { position: 'fixed', inset: 0, zIndex: 210, background: 'rgba(20,18,15,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', overflowY: 'auto', padding: '24px 16px' } },
           e('div', { className: 'card', style: { maxWidth: 720, width: '100%', background: 'var(--bg)' } },
             e('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid var(--rule)' } },
-              e('div', { style: { flex: 1, fontWeight: 600 } }, 'Elegí la foto para el slide ' + (pickerFor + 1)),
+              e('div', { style: { flex: 1, fontWeight: 600 } }, 'Elegí la foto o el video para el slide ' + (pickerFor + 1)),
               busyPhoto && e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, 'Procesando…'),
               e('button', { className: 'btn sm', onClick: () => setPickerFor(null) }, 'Cancelar')),
             e('div', { style: { padding: 16 } },
@@ -562,8 +577,11 @@
                 : assets.length === 0
                   ? e('div', { style: { textAlign: 'center', color: 'var(--text-3)', padding: 20 } }, 'No hay fotos en la biblioteca. Subilas primero en la tab Fotos.')
                   : e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8 } },
-                      assets.map(a => e('div', { key: a.id, onClick: () => !busyPhoto && pickPhoto(pickerFor, a), style: { borderRadius: 8, overflow: 'hidden', cursor: busyPhoto ? 'default' : 'pointer', border: '1px solid var(--rule)', opacity: busyPhoto ? 0.6 : 1 } },
-                        a.url ? e('img', { src: a.url, alt: a.filename, style: { width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }, loading: 'lazy' }) : e('div', { style: { aspectRatio: '4/5', background: 'var(--surface-sunk)' } })))))
+                      assets.map(a => e('div', { key: a.id, onClick: () => !busyPhoto && pickPhoto(pickerFor, a), style: { position: 'relative', borderRadius: 8, overflow: 'hidden', cursor: busyPhoto ? 'default' : 'pointer', border: '1px solid var(--rule)', opacity: busyPhoto ? 0.6 : 1 } },
+                        a.media_type === 'video'
+                          ? e('video', { src: a.url, style: { width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }, muted: true, playsInline: true, preload: 'metadata' })
+                          : (a.url ? e('img', { src: a.url, alt: a.filename, style: { width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }, loading: 'lazy' }) : e('div', { style: { aspectRatio: '4/5', background: 'var(--surface-sunk)' } })),
+                        a.media_type === 'video' && e('div', { style: { position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', color: '#fff', borderRadius: 4, padding: '1px 5px', fontSize: 10 } }, '▶')))))
           ))
       )
     );
