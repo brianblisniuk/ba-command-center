@@ -96,11 +96,12 @@
       Array.isArray(slide.meta) && e('div', { className: 'ba-meta' }, slide.meta.map((m, i) => e('span', { key: i, className: 'ba-pill' }, m))));
   }
 
-  function SlidePreview({ slide, photoUrl, tema, format, scale, slideRef }) {
+  function SlidePreview({ slide, photoUrl, mediaType, tema, format, scale, slideRef }) {
     const l = slide.layout || 'destination-editorial';
     const isMin = l === 'minimal' || l === 'minimal-cover';
+    const isVideo = mediaType === 'video';
     const fmt = format || 'feed';
-    const w = 1080, h = fmt === 'story' ? 1920 : 1350;
+    const w = 1080, h = fmt === 'story' ? 1920 : (fmt === 'square' ? 1080 : 1350);
     const sc = scale || 0.34;
     return e('div', { className: 'ba-frame', style: { width: Math.round(w * sc), height: Math.round(h * sc) } },
       e('div', {
@@ -108,15 +109,17 @@
         style: { transform: 'scale(' + sc + ')', transformOrigin: 'top left' }
       },
         photoUrl
-          ? e('img', { className: 'ba-bg', src: photoUrl, crossOrigin: 'anonymous', alt: '' })
+          ? (isVideo
+              ? e('video', { className: 'ba-bg', src: photoUrl, autoPlay: true, muted: true, loop: true, playsInline: true })
+              : e('img', { className: 'ba-bg', src: photoUrl, crossOrigin: 'anonymous', alt: '' }))
           : e('div', { className: 'ba-fallback' }),
-        e('div', { className: 'ba-overlay' }),
-        e('div', { className: 'ba-grain' }),
-        !isMin && e('div', { className: 'ba-brand' },
+        !isVideo && e('div', { className: 'ba-overlay' }),
+        !isVideo && e('div', { className: 'ba-grain' }),
+        !isMin && !isVideo && e('div', { className: 'ba-brand' },
           e('div', { className: 'ba-hash' }, '#'),
           e('div', { className: 'ba-words' }, e('div', null, 'Cuaderno'), e('div', null, 'B&A'))),
-        layoutContent(slide),
-        !isMin && e('div', { className: 'ba-footer' },
+        !isVideo && layoutContent(slide),
+        !isMin && !isVideo && e('div', { className: 'ba-footer' },
           e('div', { className: 'ba-handle' }, '@blisniukamanov'),
           e('div', { className: 'ba-arrow' }))
       )
