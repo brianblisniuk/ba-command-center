@@ -331,6 +331,15 @@
         let arr = asArr(r.data);
         if (!arr.length) { r = await window.SB.rpc('editorial_assets_list', { p_destino: null }); arr = asArr(r.data); }
         setAssets(arr);
+        // pre-cargar fotos ya asignadas a cada slide (carrusel reabierto)
+        const init = {};
+        slides.forEach((s, i) => {
+          if (s && s.asset_id) {
+            const a = arr.find(x => x.id === s.asset_id);
+            if (a && a.url) init[i] = { id: a.id, url: a.url };
+          }
+        });
+        if (Object.keys(init).length) setAssigns(prev => (Object.keys(prev).length ? prev : init));
       } catch (er) { toast('Error al cargar fotos: ' + er.message); }
       finally { setLoadingA(false); }
     }
@@ -370,7 +379,8 @@
     async function saveCarrusel() {
       try {
         const asset_ids = slides.map((_, i) => assigns[i] && assigns[i].id).filter(Boolean);
-        const { error } = await window.SB.rpc('editorial_content_save', { p_data: { id: pieza.id, status: 'rendered', asset_ids: asset_ids } });
+        const enriched = slides.map((s, i) => Object.assign({}, s, { asset_id: assigns[i] ? assigns[i].id : null }));
+        const { error } = await window.SB.rpc('editorial_content_save', { p_data: { id: pieza.id, status: 'rendered', asset_ids: asset_ids, slides: enriched, tema_visual: tema } });
         if (error) throw new Error(error.message);
         toast('Carrusel armado y guardado');
         onSaved && onSaved();
