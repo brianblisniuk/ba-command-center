@@ -96,7 +96,7 @@
       Array.isArray(slide.meta) && e('div', { className: 'ba-meta' }, slide.meta.map((m, i) => e('span', { key: i, className: 'ba-pill' }, m))));
   }
 
-  function SlidePreview({ slide, photoUrl, mediaType, tema, format, scale, slideRef }) {
+  function SlidePreview({ slide, photoUrl, mediaType, tema, ink, overlay, format, scale, slideRef }) {
     const l = slide.layout || 'destination-editorial';
     const isMin = l === 'minimal' || l === 'minimal-cover';
     const isVideo = mediaType === 'video';
@@ -105,7 +105,7 @@
     const sc = scale || 0.34;
     return e('div', { className: 'ba-frame', style: { width: Math.round(w * sc), height: Math.round(h * sc) } },
       e('div', {
-        ref: slideRef, className: 'ba-slide', 'data-layout': l, 'data-theme': tema || 'alpine-dark', 'data-format': fmt,
+        ref: slideRef, className: 'ba-slide', 'data-layout': l, 'data-theme': tema || 'alpine-dark', 'data-ink': ink || 'light', 'data-overlay': overlay || undefined, 'data-format': fmt,
         style: { transform: 'scale(' + sc + ')', transformOrigin: 'top left' }
       },
         photoUrl
@@ -468,13 +468,15 @@
   }
 
   // ============ EDITOR DE CARRUSEL (preview + fotos + export) ============
-  const TEMAS = [['alpine-dark', 'Alpine'], ['noir-city', 'Noir'], ['warm-editorial', 'Cálido']];
+  const TEMAS = [['clean', 'Natural'], ['cinema', 'Cine'], ['warm-soft', 'Cálido'], ['cool-soft', 'Frío'], ['bw-soft', 'B&N'], ['fade', 'Tenue'], ['alpine-dark', 'Alpine'], ['noir-city', 'Noir'], ['warm-editorial', 'Denso']];
 
   function EditorCarrusel({ pieza, onClose, onSaved, toast }) {
     const slides = pieza.slides || [];
     const fmt = pieza.formato || 'feed';
     const EXW = 1080, EXH = fmt === 'story' ? 1920 : (fmt === 'square' ? 1080 : 1350);
     const [tema, setTema] = useState(pieza.tema_visual || 'alpine-dark');
+    const [ink, setInk] = useState(pieza.ink || 'light');
+    const [overlay, setOverlay] = useState(pieza.overlay || '');
     const [assigns, setAssigns] = useState({});      // idx -> { id, url(dataURL) }
     const [assets, setAssets] = useState([]);
     const [loadingA, setLoadingA] = useState(false);
@@ -593,7 +595,7 @@
       try {
         const asset_ids = slides.map((_, i) => assigns[i] && assigns[i].id).filter(Boolean);
         const enriched = slides.map((s, i) => Object.assign({}, s, { asset_id: assigns[i] ? assigns[i].id : null }));
-        const { error } = await window.SB.rpc('editorial_content_save', { p_data: { id: pieza.id, status: 'rendered', asset_ids: asset_ids, slides: enriched, tema_visual: tema } });
+        const { error } = await window.SB.rpc('editorial_content_save', { p_data: { id: pieza.id, status: 'rendered', asset_ids: asset_ids, slides: enriched, tema_visual: tema, ink: ink, overlay: overlay } });
         if (error) throw new Error(error.message);
         toast('Carrusel armado y guardado');
         onSaved && onSaved();
@@ -613,15 +615,23 @@
 
         e('div', { style: { padding: '18px 20px' } },
           // tema selector
-          e('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 } },
-            e('span', { className: 'eyebrow' }, 'TEMA VISUAL'),
-            TEMAS.map(t => e('button', { key: t[0], className: 'btn sm' + (tema === t[0] ? ' primary' : ''), onClick: () => setTema(t[0]) }, t[1]))),
+          e('div', { style: { display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 18 } },
+            e('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
+              e('span', { className: 'eyebrow', style: { width: 78, flexShrink: 0 } }, 'FILTRO'),
+              TEMAS.map(t => e('button', { key: t[0], className: 'btn sm' + (tema === t[0] ? ' primary' : ''), onClick: () => setTema(t[0]), style: { fontSize: 12 } }, t[1]))),
+            e('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
+              e('span', { className: 'eyebrow', style: { width: 78, flexShrink: 0 } }, 'VELO'),
+              [['', 'Auto'], ['none', 'Ninguno'], ['gradient', 'Degradado'], ['soft', 'Suave'], ['strong', 'Fuerte']].map(o => e('button', { key: o[0] || 'auto', className: 'btn sm' + (overlay === o[0] ? ' primary' : ''), onClick: () => setOverlay(o[0]), style: { fontSize: 12 } }, o[1]))),
+            e('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
+              e('span', { className: 'eyebrow', style: { width: 78, flexShrink: 0 } }, 'TEXTO'),
+              [['light', 'Claro'], ['dark', 'Oscuro']].map(o => e('button', { key: o[0], className: 'btn sm' + (ink === o[0] ? ' primary' : ''), onClick: () => setInk(o[0]), style: { fontSize: 12 } }, o[1]))),
+            e('div', { style: { fontSize: 11, color: 'var(--text-3)' } }, 'El filtro realza la foto sin oscurecerla; el velo solo se usa para que el texto se lea. Para fotos cinematográficas: velo Ninguno o Degradado.')),
 
           // slides grid
           e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 } },
             slides.map((s, i) => e('div', { key: i, style: { display: 'flex', flexDirection: 'column', gap: 10 } },
               e('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, String(i + 1).padStart(2, '0')), e(SlideBadge, { layout: s.layout }), assigns[i] && assigns[i].media_type === 'video' && e('span', { className: 'tag', style: { fontSize: 9 } }, '▶ video')),
-              e(SlidePreview, { slide: s, photoUrl: assigns[i] && assigns[i].url, mediaType: assigns[i] && assigns[i].media_type, tema: tema, format: fmt, scale: 0.30, slideRef: el => { slideRefs.current[i] = el; } }),
+              e(SlidePreview, { slide: s, photoUrl: assigns[i] && assigns[i].url, mediaType: assigns[i] && assigns[i].media_type, tema: tema, ink: ink, overlay: overlay, format: fmt, scale: 0.30, slideRef: el => { slideRefs.current[i] = el; } }),
               e('button', { className: 'btn sm' + (assigns[i] ? '' : ' primary'), onClick: () => setPickerFor(i), style: { width: 324 } }, assigns[i] ? 'Cambiar media' : 'Elegir foto o video')))),
 
           e(Sp, { h: 22 }),
