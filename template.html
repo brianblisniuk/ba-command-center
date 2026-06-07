@@ -1,0 +1,16 @@
+{
+  "name": "ba-carousel-pro",
+  "version": "2.0.0",
+  "description": "Programmatic editorial carousel generator for Blisniuk & Amanov.",
+  "type": "module",
+  "scripts": {
+    "generate": "node src/generate.mjs",
+    "generate:feed": "node src/generate.mjs --format=feed",
+    "generate:story": "node src/generate.mjs --format=story",
+    "preview": "node src/generate.mjs --preview",
+    "validate": "node src/generate.mjs --validate-only"
+  },
+  "dependencies": {
+    "playwright": "^1.54.0"
+  }
+}

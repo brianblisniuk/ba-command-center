@@ -1,0 +1,160 @@
+[
+  {
+    "id": "01-engadin-destination",
+    "layout": "destination-editorial",
+    "format": "feed",
+    "theme": "alpine-dark",
+    "brand": {
+      "top": "Cuaderno",
+      "bottom": "B&A",
+      "handle": "@blisniukamanov"
+    },
+    "templateLabel": "DESTINATION 01",
+    "background": {
+      "src": "assets/images/engadin.jpg",
+      "fallback": "alpine",
+      "position": "center center",
+      "zoom": 1.04
+    },
+    "title": {
+      "script": "Silent",
+      "main": "ENGADIN",
+      "kicker": "Christmas Retreat"
+    },
+    "body": "A private Christmas retreat in the Swiss Alps.",
+    "meta": [
+      "Zuoz",
+      "St. Moritz",
+      "December 2026"
+    ],
+    "arrow": true
+  },
+  {
+    "id": "02-val-fex-activity",
+    "layout": "activity-specific",
+    "format": "feed",
+    "theme": "alpine-dark",
+    "brand": {
+      "top": "Cuaderno",
+      "bottom": "B&A",
+      "handle": "@blisniukamanov"
+    },
+    "templateLabel": "ACTIVITY 01",
+    "background": {
+      "src": "assets/images/val-fex.jpg",
+      "fallback": "snow",
+      "position": "center center",
+      "zoom": 1.05
+    },
+    "title": {
+      "script": "Val Fex",
+      "main": "SLEIGH",
+      "kicker": "Christmas morning"
+    },
+    "body": "Horse-drawn sleighs, snow silence and a beautifully paced ritual.",
+    "details": [
+      {
+        "label": "Mood",
+        "value": "Quiet luxury"
+      },
+      {
+        "label": "Moment",
+        "value": "Morning"
+      },
+      {
+        "label": "Pace",
+        "value": "Slow"
+      }
+    ],
+    "arrow": true
+  },
+  {
+    "id": "03-stmoritz-vs-zuoz",
+    "layout": "comparison",
+    "format": "feed",
+    "theme": "noir-city",
+    "brand": {
+      "top": "Cuaderno",
+      "bottom": "B&A",
+      "handle": "@blisniukamanov"
+    },
+    "templateLabel": "COMPARISON 01",
+    "background": {
+      "src": "assets/images/zuoz.jpg",
+      "fallback": "architecture",
+      "position": "center center",
+      "zoom": 1.04
+    },
+    "title": {
+      "main": "ST. MORITZ VS ZUOZ"
+    },
+    "left": {
+      "label": "St. Moritz",
+      "text": "The name everyone knows."
+    },
+    "right": {
+      "label": "Zuoz",
+      "text": "The silence insiders choose."
+    },
+    "question": "Luxury noise or private silence?",
+    "arrow": true
+  },
+  {
+    "id": "04-engadin-final-cta",
+    "layout": "final-cta",
+    "format": "feed",
+    "theme": "alpine-dark",
+    "brand": {
+      "top": "Cuaderno",
+      "bottom": "B&A",
+      "handle": "@blisniukamanov"
+    },
+    "templateLabel": "CTA 01",
+    "background": {
+      "src": "assets/images/muottas.jpg",
+      "fallback": "alpine",
+      "position": "center center",
+      "zoom": 1.05
+    },
+    "title": {
+      "script": "Engadin",
+      "main": "RETREAT",
+      "kicker": "Private brief"
+    },
+    "body": "8 guests · 1 chalet · Christmas 2026",
+    "cta": {
+      "headline": "Request the private itinerary",
+      "text": "DM us “ENGADIN” to receive the complete brief."
+    },
+    "arrow": true
+  },
+  {
+    "id": "05-story-cover",
+    "layout": "story-cover",
+    "format": "story",
+    "theme": "alpine-dark",
+    "brand": {
+      "top": "Cuaderno",
+      "bottom": "B&A",
+      "handle": "@blisniukamanov"
+    },
+    "templateLabel": "STORY COVER",
+    "background": {
+      "src": "assets/images/engadin-story.jpg",
+      "fallback": "snow",
+      "position": "center center",
+      "zoom": 1.06
+    },
+    "title": {
+      "script": "Explore",
+      "main": "ENGADIN",
+      "kicker": "Christmas 2026"
+    },
+    "body": "Snow, design, mountain rituals and a house made for silence.",
+    "meta": [
+      "Story cover",
+      "1080×1920"
+    ],
+    "arrow": true
+  }
+]
