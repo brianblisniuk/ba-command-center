@@ -439,6 +439,95 @@
     );
   }
 
+  // ============ EDITOR DE COPY (corregir texto de los slides) ============
+  function FieldRow({ label, children }) {
+    return e('div', { style: { marginBottom: 9 } },
+      e('div', { className: 'eyebrow', style: { marginBottom: 4 } }, label),
+      children);
+  }
+  function MiniInp({ v, onChange, mono }) {
+    return e('input', { type: 'text', value: v || '', onChange: ev => onChange(ev.target.value),
+      style: { width: '100%', fontSize: 12.5, padding: '7px 10px', border: '1px solid var(--rule)', borderRadius: 7, background: 'var(--surface)', color: 'var(--text-1)', fontFamily: mono ? 'var(--ff-display)' : 'var(--ff-body)' } });
+  }
+
+  function EditorCopy({ pieza, onClose, onSaved, toast }) {
+    const [titulo, setTitulo] = useState(pieza.titulo || '');
+    const [slides, setSlides] = useState(JSON.parse(JSON.stringify(pieza.slides || [])));
+    const [caption, setCaption] = useState(pieza.caption || '');
+    const [hashtags, setHashtags] = useState((pieza.hashtags || []).join(' '));
+    const [saving, setSaving] = useState(false);
+
+    function updF(idx, field, val) { setSlides(s => s.map((sl, i) => i === idx ? Object.assign({}, sl, { [field]: val }) : sl)); }
+    function updMeta(idx, mi, val) { setSlides(s => s.map((sl, i) => { if (i !== idx) return sl; const meta = (sl.meta || []).slice(); meta[mi] = val; return Object.assign({}, sl, { meta }); })); }
+    function updDet(idx, di, field, val) { setSlides(s => s.map((sl, i) => { if (i !== idx) return sl; const details = (sl.details || []).map((d, j) => j === di ? Object.assign({}, d, { [field]: val }) : d); return Object.assign({}, sl, { details }); })); }
+    function updNest(idx, parent, field, val) { setSlides(s => s.map((sl, i) => i === idx ? Object.assign({}, sl, { [parent]: Object.assign({}, sl[parent] || {}, { [field]: val }) }) : sl)); }
+
+    async function save() {
+      setSaving(true);
+      try {
+        const { error } = await window.SB.rpc('editorial_content_save', { p_data: { id: pieza.id, titulo: titulo, slides: slides, caption: caption, hashtags: hashtags.split(/[\s,]+/).filter(Boolean) } });
+        if (error) throw new Error(error.message);
+        toast('Copy actualizado');
+        onSaved && onSaved();
+      } catch (er) { toast('Error al guardar: ' + er.message); }
+      finally { setSaving(false); }
+    }
+
+    function slideFields(s, i) {
+      const rows = [];
+      if ('kicker' in s) rows.push(e(FieldRow, { key: 'k', label: 'Kicker' }, e(MiniInp, { v: s.kicker, onChange: v => updF(i, 'kicker', v) })));
+      if ('script_text' in s) rows.push(e(FieldRow, { key: 'sc', label: 'Script (caligráfico)' }, e(MiniInp, { v: s.script_text, onChange: v => updF(i, 'script_text', v) })));
+      if ('main' in s) rows.push(e(FieldRow, { key: 'm', label: 'Display (título grande)' }, e(MiniInp, { v: s.main, onChange: v => updF(i, 'main', v), mono: true })));
+      if ('body' in s) rows.push(e(FieldRow, { key: 'b', label: 'Body' }, e(Cap, { v: s.body || '', onChange: v => updF(i, 'body', v), rows: 3 })));
+      if ('question' in s) rows.push(e(FieldRow, { key: 'q', label: 'Pregunta' }, e(Cap, { v: s.question || '', onChange: v => updF(i, 'question', v), rows: 2 })));
+      if (Array.isArray(s.meta)) rows.push(e(FieldRow, { key: 'mt', label: 'Etiquetas' },
+        e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } }, s.meta.map((m, mi) => e(MiniInp, { key: mi, v: m, onChange: v => updMeta(i, mi, v) })))));
+      if (Array.isArray(s.details)) rows.push(e(FieldRow, { key: 'dt', label: 'Datos' },
+        e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } }, s.details.map((d, di) => e('div', { key: di, style: { display: 'flex', gap: 6 } },
+          e('div', { style: { width: 120 } }, e(MiniInp, { v: d.label, onChange: v => updDet(i, di, 'label', v) })),
+          e('div', { style: { flex: 1 } }, e(MiniInp, { v: d.value, onChange: v => updDet(i, di, 'value', v) })))))));
+      if (s.left) rows.push(e(FieldRow, { key: 'l', label: 'Panel izquierdo' },
+        e('div', { style: { display: 'flex', gap: 6 } },
+          e('div', { style: { width: 120 } }, e(MiniInp, { v: s.left.label, onChange: v => updNest(i, 'left', 'label', v) })),
+          e('div', { style: { flex: 1 } }, e(MiniInp, { v: s.left.text, onChange: v => updNest(i, 'left', 'text', v) })))));
+      if (s.right) rows.push(e(FieldRow, { key: 'r', label: 'Panel derecho' },
+        e('div', { style: { display: 'flex', gap: 6 } },
+          e('div', { style: { width: 120 } }, e(MiniInp, { v: s.right.label, onChange: v => updNest(i, 'right', 'label', v) })),
+          e('div', { style: { flex: 1 } }, e(MiniInp, { v: s.right.text, onChange: v => updNest(i, 'right', 'text', v) })))));
+      if (s.cta) rows.push(e(FieldRow, { key: 'c', label: 'Llamado a la acción' },
+        e('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+          e(MiniInp, { v: s.cta.headline, onChange: v => updNest(i, 'cta', 'headline', v), mono: true }),
+          e(MiniInp, { v: s.cta.text, onChange: v => updNest(i, 'cta', 'text', v) }))));
+      return rows;
+    }
+
+    return e('div', { style: { position: 'fixed', inset: 0, zIndex: 205, background: 'rgba(20,18,15,0.55)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', overflowY: 'auto', padding: '24px 16px' } },
+      e('div', { className: 'card', style: { maxWidth: 720, width: '100%', background: 'var(--bg)', padding: 0 } },
+        e('div', { style: { display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--rule)', position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 2 } },
+          e('div', { style: { flex: 1 } },
+            e('div', { style: { fontFamily: 'var(--ff-display)', fontSize: 18 } }, 'Editar copy'),
+            e('div', { style: { fontSize: 12, color: 'var(--text-3)' } }, pieza.destino || '')),
+          e('button', { className: 'btn sm', onClick: onClose }, 'Cancelar')),
+
+        e('div', { style: { padding: '18px 20px' } },
+          e(FieldRow, { label: 'Título (interno)' }, e(MiniInp, { v: titulo, onChange: setTitulo })),
+          e(Sp, { h: 8 }),
+          slides.map((s, i) => e('div', { key: i, className: 'card', style: { marginBottom: 14, padding: '14px 16px' } },
+            e('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 } },
+              e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, '0' + (i + 1)),
+              e(SlideBadge, { layout: s.layout })),
+            slideFields(s, i))),
+          e('div', { className: 'card', style: { padding: '14px 16px', marginBottom: 14 } },
+            e(FieldRow, { label: 'Caption Instagram' }, e(Cap, { v: caption, onChange: setCaption, rows: 5 })),
+            e(FieldRow, { label: 'Hashtags' }, e(Cap, { v: hashtags, onChange: setHashtags, rows: 2 }))),
+          e('div', { style: { display: 'flex', gap: 10, borderTop: '1px solid var(--rule)', paddingTop: 16 } },
+            e('button', { className: 'btn primary', onClick: save, disabled: saving }, saving ? 'Guardando…' : [e(Icon, { key: 'i', name: 'check' }), 'Guardar cambios']),
+            e('button', { className: 'btn', onClick: onClose }, 'Cancelar'))
+        )
+      )
+    );
+  }
+
   // ============ CALENDARIO DE CONTENIDO ============
   function CalendarioContenido({ toast }) {
     const [pieces, setPieces] = useState([]);
@@ -446,6 +535,7 @@
     const [openId, setOpenId] = useState(null);
     const [scheduling, setScheduling] = useState({});
     const [editorPieza, setEditorPieza] = useState(null);
+    const [editorCopyPieza, setEditorCopyPieza] = useState(null);
 
     useEffect(() => { load(); }, []);
     async function load() {
@@ -488,6 +578,7 @@
 
     return e('div', null,
       editorPieza && e(EditorCarrusel, { pieza: editorPieza, onClose: () => setEditorPieza(null), onSaved: () => { setEditorPieza(null); load(); }, toast: toast }),
+      editorCopyPieza && e(EditorCopy, { pieza: editorCopyPieza, onClose: () => setEditorCopyPieza(null), onSaved: () => { setEditorCopyPieza(null); load(); }, toast: toast }),
       e('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 } },
         e('div', { className: 'eyebrow' }, pieces.length + ' PIEZAS'),
         e('button', { className: 'btn sm', onClick: load }, e(Icon, { name: 'refresh' }))),
@@ -505,8 +596,9 @@
           openId === p.id && e('div', { style: { padding: '0 16px 16px', borderTop: '1px solid var(--rule)' } },
             e(Sp, { h: 12 }),
             // botón armar carrusel (destacado para copy_approved / assets_selected / rendered)
-            Array.isArray(p.slides) && p.slides.length > 0 && e('div', { style: { marginBottom: 14 } },
-              e('button', { className: 'btn primary', onClick: () => setEditorPieza(p), style: { display: 'flex', alignItems: 'center', gap: 8 } }, e(Icon, { name: 'layers' }), p.status === 'rendered' ? 'Editar carrusel' : 'Armar carrusel con fotos')),
+            Array.isArray(p.slides) && p.slides.length > 0 && e('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 } },
+              e('button', { className: 'btn primary', onClick: () => setEditorPieza(p), style: { display: 'flex', alignItems: 'center', gap: 8 } }, e(Icon, { name: 'layers' }), p.status === 'rendered' ? 'Editar carrusel' : 'Armar carrusel con fotos'),
+              e('button', { className: 'btn', onClick: () => setEditorCopyPieza(p), style: { display: 'flex', alignItems: 'center', gap: 8 } }, e(Icon, { name: 'list' }), 'Editar copy')),
 
             p.caption && [e('div', { key: 'cl', className: 'eyebrow', style: { marginBottom: 4 } }, 'CAPTION'), e('div', { key: 'cv', style: { fontSize: 12.5, color: 'var(--text-1)', lineHeight: 1.6, fontStyle: 'italic', marginBottom: 10, whiteSpace: 'pre-wrap' } }, p.caption)],
             Array.isArray(p.hashtags) && p.hashtags.length > 0 && e('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 } }, p.hashtags.map((h, i) => e('span', { key: i, className: 'tag', style: { fontSize: 10 } }, h))),
