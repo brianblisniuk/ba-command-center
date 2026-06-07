@@ -21,6 +21,7 @@
   font-family: var(--sans);
 }
 .ba-slide[data-format="story"] { --bw: 1080px; --bh: 1920px; --st: 92px; --sb: 94px; }
+.ba-slide[data-format="square"] { --bw: 1080px; --bh: 1080px; --st: 64px; --sb: 60px; }
 
 .ba-bg, .ba-fallback, .ba-overlay, .ba-grain { position: absolute; inset: 0; width: 100%; height: 100%; }
 .ba-bg { object-fit: cover; z-index: 1; }
