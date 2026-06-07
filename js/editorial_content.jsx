@@ -151,7 +151,8 @@
 
   // ============ NUEVA PIEZA (máquina de guiones) ============
   function NuevaPieza({ toast }) {
-    const [brief, setBrief] = useState({ destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal' });
+    const [brief, setBrief] = useState({ trip_id: '', destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal' });
+    const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(false);
     const [draft, setDraft] = useState(null);
     const [caption, setCaption] = useState('');
@@ -160,8 +161,25 @@
     const [saved, setSaved] = useState(null);
     function upd(k, v) { setBrief(b => ({ ...b, [k]: v })); }
 
+    useEffect(() => {
+      (async () => {
+        try {
+          const { data } = await window.SB.rpc('trips_board');
+          const arr = Array.isArray(data) ? data : [];
+          setTrips(arr.map(t => ({ id: t.id, title: t.title || t.id, region: t.region_label || '' })));
+        } catch (_e) { /* dropdown queda vacío, modo manual disponible */ }
+      })();
+    }, []);
+
+    function pickTrip(id) {
+      if (id === '__manual__') { setBrief(b => ({ ...b, trip_id: '', destino: '' })); return; }
+      const t = trips.find(x => x.id === id);
+      setBrief(b => ({ ...b, trip_id: id, destino: t ? (t.region || t.title) : '' }));
+    }
+
     async function generate() {
-      if (!brief.destino.trim() || !brief.tema.trim()) { toast('Complete el destino y el tema antes de continuar.'); return; }
+      const hasTrip = !!brief.trip_id;
+      if ((!hasTrip && !brief.destino.trim()) || !brief.tema.trim()) { toast('Elegí el viaje (o destino manual) y completá el tema.'); return; }
       setLoading(true); setDraft(null); setSaved(null);
       try {
         var layoutSeq = null;
@@ -169,7 +187,7 @@
           layoutSeq = ['minimal-cover'];
           for (var li = 1; li < brief.num_slides; li++) layoutSeq.push('minimal');
         }
-        const { data, error } = await window.SB.functions.invoke('content-draft', { body: { destino: brief.destino, tema: brief.tema, notas: brief.notas, num_slides: brief.num_slides, layout_secuencia: layoutSeq } });
+        const { data, error } = await window.SB.functions.invoke('content-draft', { body: { trip_id: brief.trip_id || null, destino: brief.destino, tema: brief.tema, notas: brief.notas, num_slides: brief.num_slides, layout_secuencia: layoutSeq } });
         if (error) throw new Error(error.message);
         if (!data || !data.ok) throw new Error((data && data.error) || 'Error al generar');
         setDraft(data.draft);
@@ -183,24 +201,31 @@
       if (!draft) return;
       setSaving(true);
       try {
-        const p_data = { tipo: 'carousel_feed', destino: brief.destino, titulo: draft.titulo || brief.tema.slice(0, 60), brief: brief.tema + (brief.notas ? ' · ' + brief.notas : ''), slides: draft.slides, caption: caption, hashtags: hashtags.split(/[\s,]+/).filter(Boolean), status: status };
+        const p_data = { tipo: 'carousel_feed', trip_id: brief.trip_id || null, destino: brief.destino, titulo: draft.titulo || brief.tema.slice(0, 60), brief: brief.tema + (brief.notas ? ' · ' + brief.notas : ''), slides: draft.slides, caption: caption, hashtags: hashtags.split(/[\s,]+/).filter(Boolean), status: status };
         const { data, error } = await window.SB.rpc('editorial_content_save', { p_data });
         if (error) throw new Error(error.message);
         setSaved({ status: status, id: data && data.id });
         toast(status === 'copy_approved' ? 'Copy aprobado — ya aparece en el Calendario' : 'Borrador guardado');
-        if (status === 'copy_approved') { setBrief({ destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal' }); setDraft(null); }
+        if (status === 'copy_approved') { setBrief({ trip_id: '', destino: '', tema: '', notas: '', num_slides: 6, estilo: 'minimal' }); setDraft(null); }
       } catch (er) { toast('Error al guardar: ' + er.message); }
       finally { setSaving(false); }
     }
+
+    const selStyle = { width: '100%', padding: '9px 12px', border: '1px solid var(--rule)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text-1)', fontSize: 13 };
 
     return e('div', { style: { maxWidth: 720 } },
       e('div', { className: 'card pad' },
         e('div', { className: 'card-head', style: { marginBottom: 18 } },
           e('div', { className: 'card-title' }, 'Máquina de guiones'),
-          e('div', { className: 'card-sub' }, 'Complete el brief y el sistema genera el copy en el tono editorial B&A.')),
+          e('div', { className: 'card-sub' }, 'Elegí el viaje: el sistema lee el itinerario real y genera el copy en el tono B&A.')),
         e('div', { style: { display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 14 } },
-          e('div', null, e(Lbl, { t: 'Destino' }), e(Inp, { v: brief.destino, onChange: v => upd('destino', v), placeholder: 'Ej: Engadín, Suiza' })),
-          e('div', null, e(Lbl, { t: 'Slides' }), e('select', { value: brief.num_slides, onChange: ev => upd('num_slides', parseInt(ev.target.value)), style: { width: '100%', padding: '9px 12px', border: '1px solid var(--rule)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text-1)', fontSize: 13 } }, [2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => e('option', { key: n, value: n }, n + ' slides')))),
+          e('div', null, e(Lbl, { t: 'Viaje' }),
+            e('select', { value: brief.trip_id || (brief.destino ? '__manual__' : ''), onChange: ev => pickTrip(ev.target.value), style: selStyle },
+              e('option', { value: '' }, '— Elegir viaje —'),
+              trips.map(t => e('option', { key: t.id, value: t.id }, t.title)),
+              e('option', { value: '__manual__' }, 'Otro destino (manual)')),
+            !brief.trip_id && e('div', { style: { marginTop: 8 } }, e(Inp, { v: brief.destino, onChange: v => upd('destino', v), placeholder: 'Destino manual, ej: Engadín, Suiza' }))),
+          e('div', null, e(Lbl, { t: 'Slides' }), e('select', { value: brief.num_slides, onChange: ev => upd('num_slides', parseInt(ev.target.value)), style: selStyle }, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => e('option', { key: n, value: n }, n + ' slides')))),
           e('div', null, e(Lbl, { t: 'Estilo' }), e('div', { style: { display: 'flex', gap: 4 } },
             e('button', { className: 'btn sm' + (brief.estilo === 'minimal' ? ' primary' : ''), onClick: () => upd('estilo', 'minimal'), style: { fontSize: 12 } }, 'Minimal'),
             e('button', { className: 'btn sm' + (brief.estilo === 'editorial' ? ' primary' : ''), onClick: () => upd('estilo', 'editorial'), style: { fontSize: 12 } }, 'Editorial')))),
@@ -214,7 +239,7 @@
         e('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginTop: 4 } }, 'Cupos, fechas, accesos, tono específico, CTA deseado.'),
         e(Sp, { h: 16 }),
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
-          e('button', { className: 'btn primary', onClick: generate, disabled: loading || !brief.destino.trim() || !brief.tema.trim(), style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          e('button', { className: 'btn primary', onClick: generate, disabled: loading || (!brief.trip_id && !brief.destino.trim()) || !brief.tema.trim(), style: { display: 'flex', alignItems: 'center', gap: 8 } },
             loading ? e('span', { className: 'mono', style: { fontSize: 11 } }, 'Generando copy…') : [e(Icon, { key: 'i', name: 'spark' }), 'Generar copy']),
           saved && e('span', { style: { fontSize: 12, color: 'var(--text-3)' } }, saved.status === 'copy_approved' ? '✓ Copy aprobado' : '✓ Borrador guardado'))),
 
@@ -443,9 +468,9 @@
           e(Sp, { h: 22 }),
           // acciones
           e('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', borderTop: '1px solid var(--rule)', paddingTop: 18 } },
-            e('button', { className: 'btn primary', onClick: exportAll, disabled: exporting || assignedCount === 0 }, exporting ? 'Exportando…' : [e(Icon, { key: 'i', name: 'eye' }), 'Exportar PNGs']),
+            e('button', { className: 'btn primary', onClick: exportAll, disabled: exporting }, exporting ? 'Exportando…' : [e(Icon, { key: 'i', name: 'eye' }), 'Exportar PNGs']),
             e('button', { className: 'btn', onClick: saveCarrusel, disabled: assignedCount === 0 }, 'Guardar carrusel'),
-            assignedCount === 0 && e('span', { style: { fontSize: 12, color: 'var(--text-3)', alignSelf: 'center' } }, 'Asigná una foto a cada slide para exportar.'))
+            assignedCount < slides.length && e('span', { style: { fontSize: 12, color: 'var(--text-3)', alignSelf: 'center' } }, assignedCount === 0 ? 'Sin fotos asignadas: exporta con fondo neutro.' : (assignedCount + ' de ' + slides.length + ' con foto.')))
         ),
 
         // picker de fotos

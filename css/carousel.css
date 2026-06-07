@@ -116,12 +116,12 @@
 
 /* 06 Minimal — texto centrado, sin chrome */
 .ba-slide[data-layout="minimal-cover"] .ba-l-minc,
-.ba-slide[data-layout="minimal"] .ba-l-min { display: block; }
+.ba-slide[data-layout="minimal"] .ba-l-min { display: flex; }
 
-.ba-l-minc, .ba-l-min { position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center; padding: 80px var(--sx); }
-.ba-min-text { font-family: var(--serif); font-weight: 500; color: var(--text); line-height: 1.10; max-width: 820px; }
-.ba-l-minc .ba-min-text { font-size: 96px; text-align: center; }
-.ba-l-min  .ba-min-text { font-size: 52px; text-align: center; }
+.ba-l-minc, .ba-l-min { position: absolute; inset: 0; z-index: 8; align-items: center; justify-content: center; padding: 80px var(--sx); }
+.ba-min-text { font-family: var(--serif); font-weight: 500; color: var(--text); line-height: 1.12; max-width: 860px; text-align: center; text-shadow: 0 1px 18px rgba(0,0,0,0.22); }
+.ba-l-minc .ba-min-text { font-size: 112px; }
+.ba-l-min  .ba-min-text { font-size: 54px; }
 
 /* Wrapper escalado para preview en la app */
 .ba-frame { position: relative; overflow: hidden; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.18); }
