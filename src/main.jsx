@@ -31,6 +31,7 @@ import '../js/trip.jsx';
 import '../js/ia.jsx';
 import '../js/composer.jsx';
 import '../js/editorial.jsx';
+import '../js/editorial_content.jsx';
 import '../js/app.jsx'; // monta la app (ReactDOM.createRoot)
 
 // Splash: oculta el boot una vez que React montó.

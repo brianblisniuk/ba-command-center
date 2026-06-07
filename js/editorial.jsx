@@ -74,7 +74,7 @@
   }
 
   function Editorial({ cur, op, toast, openTrip, nav }) {
-    const [tab, setTab] = useState('plan');
+    const [tab, setTab] = useState('nueva');
     const [st, setSt] = useState({ loading: true, board: null });
     const [busy, setBusy] = useState(false);
     const [openId, setOpenId] = useState(null);
@@ -348,13 +348,19 @@
       else { toast('No se pudo generar: ' + ((r && r.error) || 'error')); }
     }
 
-    const TABS = [['plan', 'Plan', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['feed', 'Feed', 'eye'], ['tanda', 'Tanda', 'list'], ['publicar', 'Publicar', 'send'], ['subs', 'Suscriptores', 'users'], ['adn', 'Semana tipo', 'layers'], ['assets', 'Assets', 'grid'], ['highlights', 'Highlights', 'star'], ['lab', 'Laboratorio', 'list']];
+    const TABS = [['nueva', 'Nueva pieza', 'plus'], ['fotos', 'Fotos', 'layers'], ['cal_c', 'Calendario', 'calendar'], ['aprobar', 'Aprobar', 'check'], ['publicar', 'Publicar', 'send'], ['subs', 'Suscriptores', 'users'], ['highlights', 'Highlights', 'star'], ['lab', 'Laboratorio', 'list']];
     const tabbar = React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--gap)' } },
       TABS.map(t => React.createElement('button', { key: t[0], className: 'btn sm' + (tab === t[0] ? ' primary' : ''), onClick: () => setTab(t[0]) },
         React.createElement(Icon, { name: t[2] }), t[1] + (t[0] === 'aprobar' && qPend > 0 ? ' · ' + qPend : ''))));
 
     let bodyInner;
-    if (st.loading) {
+    if (tab === 'nueva') {
+      bodyInner = typeof window.NuevaPieza === 'function' ? React.createElement(window.NuevaPieza, { toast }) : null;
+    } else if (tab === 'fotos') {
+      bodyInner = typeof window.BibliotecaFotos === 'function' ? React.createElement(window.BibliotecaFotos, { toast }) : null;
+    } else if (tab === 'cal_c') {
+      bodyInner = typeof window.CalendarioContenido === 'function' ? React.createElement(window.CalendarioContenido, { toast }) : null;
+    } else if (st.loading) {
       bodyInner = React.createElement('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, 'Cargando La Editorial…');
     } else if (!st.board) {
       bodyInner = React.createElement('div', { className: 'card pad' }, 'No se pudo cargar el tablero editorial.');
