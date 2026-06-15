@@ -63,7 +63,7 @@
     return React.createElement('div', { className: 'content-inner' },
       React.createElement('div', { className: 'page-head' }, React.createElement('div', null,
         React.createElement('h1', null, React.createElement('span', { className: 'lt' }, 'Calendario operativo')),
-        React.createElement('div', { className: 'page-greet-sub' }, 'Todo el negocio en una grilla \u2014 salidas, cobros, accesos y decisiones, derivado de tus datos'))),
+        React.createElement('div', { className: 'page-greet-sub' }, 'Todo el negocio en una grilla \u2014 salidas, cobros, accesos y decisiones, derivado de los datos'))),
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(5,1fr)', marginBottom: 'var(--gap)' } },
         Object.entries(TYPE).map(([k, v]) => React.createElement('div', { key: k, className: 'card pad', style: { padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 } },
           React.createElement('span', { style: { width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'color-mix(in oklab,' + v.c + ' 16%, transparent)', color: v.c } }, React.createElement(Icon, { name: v.ic })),

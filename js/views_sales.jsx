@@ -236,7 +236,7 @@
               ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-2)' } }, B.campanias.length + ' campañas activas')
               : React.createElement('div', { className: 'sub', style: { padding: '6px 0' } }, 'Sin campañas activas todavía.')),
           React.createElement('div', { className: 'card pad', style: { marginTop: 'var(--gap)' } },
-            React.createElement(CardHead, { title: 'Atribución por fuente', right: React.createElement('span', { className: 'eyebrow' }, 'de tus leads reales') }),
+            React.createElement(CardHead, { title: 'Atribución por fuente', right: React.createElement('span', { className: 'eyebrow' }, 'de los leads reales') }),
             fuentes.length
               ? React.createElement('table', { className: 'tbl' },
                   React.createElement('thead', null, React.createElement('tr', null, ['Fuente', 'Leads', 'Reservas', 'Conversión', 'Pipeline'].map(function (h, i) { return React.createElement('th', { key: i }, h); }))),
@@ -312,13 +312,13 @@
       ];
       bodyInner = React.createElement(React.Fragment, null,
         React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
-          React.createElement(CardHead, { title: 'Copiloto de marketing', right: React.createElement('span', { className: 'eyebrow', style: { color: 'var(--brass)' } }, 'Claude Sonnet · ve tus leads y campañas') }),
+          React.createElement(CardHead, { title: 'Copiloto de marketing', right: React.createElement('span', { className: 'eyebrow', style: { color: 'var(--brass)' } }, 'Claude Sonnet · analiza los leads y campañas') }),
           React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 } },
             prompts.map((p, i) => React.createElement('button', { key: i, className: 'btn sm', onClick: () => ask(p), disabled: thinking }, p))),
           React.createElement('textarea', { value: q, onChange: e => setQ(e.target.value), placeholder: 'Preguntá sobre adquisición, calidad de leads o contenido…', rows: 3, style: { width: '100%', padding: '11px 12px', borderRadius: 10, border: '1px solid var(--rule)', background: 'var(--surface-2)', color: 'var(--text-1)', fontSize: 13.5, lineHeight: 1.5, resize: 'vertical', fontFamily: 'inherit' } }),
           React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: 10 } },
             React.createElement('button', { className: 'btn primary', onClick: () => ask(), disabled: thinking || !q.trim() }, React.createElement(Icon, { name: 'send' }), thinking ? 'Pensando…' : 'Preguntar'))),
-        thinking && React.createElement('div', { className: 'card pad', style: { color: 'var(--text-3)', textAlign: 'center' } }, 'El copiloto está mirando tus datos…'),
+        thinking && React.createElement('div', { className: 'card pad', style: { color: 'var(--text-3)', textAlign: 'center' } }, 'El copiloto está analizando los datos…'),
         ans && React.createElement('div', { className: 'card pad' },
           React.createElement('div', { style: { whiteSpace: 'pre-wrap', fontSize: 13.5, color: 'var(--text-1)', lineHeight: 1.6 } }, ans.respuesta || 'Sin respuesta.'),
           (ans.acciones && ans.acciones.length) ? React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--rule)' } },

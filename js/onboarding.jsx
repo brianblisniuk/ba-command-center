@@ -90,7 +90,7 @@
           : React.createElement(React.Fragment, null,
               React.createElement('div', { className: 'auth-divider' }, 'O'),
               React.createElement('div', { className: 'auth-alt' },
-                mode === 'login' ? '¿No tenés cuenta? ' : '¿Ya tenés cuenta? ',
+                mode === 'login' ? '¿No tiene una cuenta? ' : '¿Ya tiene una cuenta? ',
                 React.createElement('span', { className: 'auth-link', onClick: () => setMode(mode === 'login' ? 'signup' : 'login') }, mode === 'login' ? 'Crear una' : 'Ingresá'))));
     }
     return React.createElement('div', { className: 'auth' }, art, React.createElement('div', { className: 'auth-form' }, card));
