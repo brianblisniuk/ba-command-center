@@ -82,7 +82,7 @@
             })),
       React.createElement('div', { className: 'cmt-box' },
         React.createElement('span', { className: 'av', style: { width: 30, height: 30, borderRadius: 9, background: op.color, flexShrink: 0 } }, op.initials),
-        React.createElement('textarea', { ref: taRef, value: val, placeholder: 'Escribí un comentario… usá @ para mencionar', onChange,
+        React.createElement('textarea', { ref: taRef, value: val, placeholder: 'Escribir un comentario… usar @ para mencionar', onChange,
           onKeyDown: e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); } }),
         React.createElement('button', { className: 'btn primary', style: { flexShrink: 0, height: 40 }, onClick: send }, React.createElement(Icon, { name: 'send' })),
         menu && React.createElement('div', { className: 'mention-menu' },

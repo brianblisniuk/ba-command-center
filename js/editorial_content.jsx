@@ -182,7 +182,7 @@
 
     async function generate() {
       const hasTrip = !!brief.trip_id;
-      if ((!hasTrip && !brief.destino.trim()) || !brief.tema.trim()) { toast('Elegí el viaje (o destino manual) y completá el tema.'); return; }
+      if ((!hasTrip && !brief.destino.trim()) || !brief.tema.trim()) { toast('Elija el viaje (o destino manual) y complete el tema.'); return; }
       setLoading(true); setDraft(null); setSaved(null);
       try {
         var layoutSeq = null;
@@ -220,7 +220,7 @@
       e('div', { className: 'card pad' },
         e('div', { className: 'card-head', style: { marginBottom: 18 } },
           e('div', { className: 'card-title' }, 'Máquina de guiones'),
-          e('div', { className: 'card-sub' }, 'Elegí el viaje: el sistema lee el itinerario real y genera el copy en el tono B&A.')),
+          e('div', { className: 'card-sub' }, 'Elija el viaje: el sistema lee el itinerario real y genera el copy en el tono B&A.')),
         e('div', { style: { display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 14 } },
           e('div', null, e(Lbl, { t: 'Viaje' }),
             e('select', { value: brief.trip_id || (brief.destino ? '__manual__' : ''), onChange: ev => pickTrip(ev.target.value), style: selStyle },
@@ -365,7 +365,7 @@
     async function handleFiles(files) {
       const arr = Array.from(files).filter(f => isImg(f) || isVid(f));
       if (!arr.length) { toast('Se aceptan imágenes (JPG, PNG, WEBP…) y videos (MP4, MOV, WEBM).'); return; }
-      if (!destino.trim()) { toast('Elegí el viaje (o destino manual) antes de subir.'); return; }
+      if (!destino.trim()) { toast('Elija el viaje (o destino manual) antes de subir.'); return; }
       const slot = slots.find(s => s.id === slotId);
       setUploading(true); setTotal(arr.length); setUploadCount(0);
       let ok = 0;
@@ -415,7 +415,7 @@
       e('div', { className: 'card pad', style: { maxWidth: 680 } },
         e('div', { className: 'card-head', style: { marginBottom: 14 } },
           e('div', { className: 'card-title' }, 'Biblioteca de fotos y videos'),
-          e('div', { className: 'card-sub' }, 'Cargá el material en batch. Etiquetá por viaje y por momento del itinerario para que el sistema pueda ubicar cada foto.')),
+          e('div', { className: 'card-sub' }, 'Cargue el material en batch. Etiquete por viaje y por momento del itinerario para que el sistema pueda ubicar cada foto.')),
         e('div', { style: { marginBottom: 12 } },
           e(Lbl, { t: 'Viaje (obligatorio)' }),
           e('select', { value: tripId || (destino ? '__manual__' : ''), onChange: ev => pickTrip(ev.target.value), style: selStyle },
@@ -428,7 +428,7 @@
           e('select', { value: slotId, onChange: ev => setSlotId(ev.target.value), style: selStyle },
             e('option', { value: '' }, '— Sin asignar a un momento —'),
             slots.map(s => e('option', { key: s.id, value: s.id }, s.label))),
-          e('div', { style: { fontSize: 11, color: 'var(--text-3)', marginTop: 4 } }, 'Si asignás un momento, estas fotos quedan vinculadas a esa actividad.')),
+          e('div', { style: { fontSize: 11, color: 'var(--text-3)', marginTop: 4 } }, 'Si asigna un momento, estas fotos quedan vinculadas a esa actividad.')),
         e('div', {
           onClick: () => !uploading && inputRef.current && inputRef.current.click(), onDrop: onDrop, onDragOver: onDragOver, onDragLeave: onDragLeave,
           style: { border: '2px dashed ' + (dragging ? 'var(--accent)' : 'var(--rule)'), borderRadius: 12, padding: '32px 24px', textAlign: 'center', cursor: uploading ? 'default' : 'pointer', background: dragging ? 'var(--go-bg)' : 'var(--surface)', transition: 'all .15s' }
@@ -450,7 +450,7 @@
       loadingAssets
         ? e('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, 'Cargando biblioteca…')
         : assets.length === 0
-          ? e('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, e('div', { style: { fontSize: 14, marginBottom: 6 } }, 'La biblioteca está vacía.'), e('div', { style: { fontSize: 12 } }, 'Subí las fotos para empezar.'))
+          ? e('div', { className: 'card pad', style: { textAlign: 'center', color: 'var(--text-3)' } }, e('div', { style: { fontSize: 14, marginBottom: 6 } }, 'La biblioteca está vacía.'), e('div', { style: { fontSize: 12 } }, 'Suba las fotos para empezar.'))
           : e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 } },
               assets.map(a => e('div', { key: a.id, style: { borderRadius: 10, overflow: 'hidden', background: 'var(--surface-2)', border: '1px solid var(--rule)' } },
                 e('div', { style: { position: 'relative' } },
@@ -646,7 +646,7 @@
         pickerFor !== null && e('div', { style: { position: 'fixed', inset: 0, zIndex: 210, background: 'rgba(20,18,15,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', overflowY: 'auto', padding: '24px 16px' } },
           e('div', { className: 'card', style: { maxWidth: 720, width: '100%', background: 'var(--bg)' } },
             e('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid var(--rule)' } },
-              e('div', { style: { flex: 1, fontWeight: 600 } }, 'Elegí la foto o el video para el slide ' + (pickerFor + 1)),
+              e('div', { style: { flex: 1, fontWeight: 600 } }, 'Elija la foto o el video para el slide ' + (pickerFor + 1)),
               busyPhoto && e('span', { className: 'mono', style: { fontSize: 11, color: 'var(--text-3)' } }, 'Procesando…'),
               e('button', { className: 'btn sm', onClick: () => setPickerFor(null) }, 'Cancelar')),
             e('div', { style: { padding: 16 } },

@@ -63,7 +63,7 @@
       ),
       // kanban (drag-and-drop real → lead_change_stage)
       React.createElement('div', { className: 'card pad' },
-        React.createElement(CardHead, { title: 'Pipeline', right: React.createElement('span', { className: 'eyebrow' }, 'arrastrá entre etapas') }),
+        React.createElement(CardHead, { title: 'Pipeline', right: React.createElement('span', { className: 'eyebrow' }, 'arrastre entre etapas') }),
         React.createElement('div', { className: 'kanban' },
           fn.map(col => {
             const cards = BA.leads.filter(l => l.stageKey === col.key);
@@ -302,7 +302,7 @@
               React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--rule)' } },
                 React.createElement('span', { className: 'sub' }, (p.viaje || '') + ' · ' + (p.creado_por === 'ia' ? 'IA' : (p.creado_por || '—'))),
                 React.createElement('button', { className: 'btn sm', onClick: () => { try { navigator.clipboard.writeText(p.cuerpo || ''); toast('Copiado al portapapeles'); } catch (e) { toast('No se pudo copiar'); } } }, React.createElement(Icon, { name: 'copy' }), 'Copiar'))))
-          : React.createElement('div', { className: 'card pad' }, React.createElement('div', { className: 'sub' }, 'Todavía no hay piezas. Generá las primeras arriba.')));
+          : React.createElement('div', { className: 'card pad' }, React.createElement('div', { className: 'sub' }, 'Todavía no hay piezas. Genere las primeras arriba.')));
     } else {
       const prompts = [
         '¿Qué canal me trae mejores leads y dónde conviene poner los US$200 de Meta?',

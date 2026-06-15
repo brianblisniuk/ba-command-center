@@ -61,7 +61,7 @@
     if (mode === 'identity') {
       card = React.createElement('div', { className: 'auth-card' },
         React.createElement('h1', null, '¿Quién entra?'),
-        React.createElement('div', { className: 'auth-sub' }, 'Elegí tu identidad de operador para esta sesión.'),
+        React.createElement('div', { className: 'auth-sub' }, 'Elija su identidad de operador para esta sesión.'),
         React.createElement('div', { className: 'id-pick' },
           BA.operadores.map(o => React.createElement('button', { key: o.id, className: 'id-opt', onClick: () => onEnter(o.id) },
             React.createElement('span', { className: 'av', style: { background: 'linear-gradient(150deg,' + o.color + ',#1F2E20)' } }, o.initials),
@@ -71,7 +71,7 @@
             React.createElement(Icon, { name: 'cr', style: { color: 'var(--text-3)' } })))),
         React.createElement('div', { className: 'auth-alt' }, React.createElement('span', { className: 'auth-link', onClick: () => setMode('login') }, 'Volver')));
     } else {
-      const titles = { login: ['Bienvenido de nuevo', 'Ingresá a tu centro de operaciones.'], signup: ['Crear cuenta', 'Sumate a la consola de B&A.'], reset: ['Recuperar acceso', 'Te mandamos un link para restablecer la contraseña.'] };
+      const titles = { login: ['Bienvenido de nuevo', 'Ingrese a su centro de operaciones.'], signup: ['Crear cuenta', 'Sumate a la consola de B&A.'], reset: ['Recuperar acceso', 'Te mandamos un link para restablecer la contraseña.'] };
       card = React.createElement('div', { className: 'auth-card' },
         React.createElement('h1', null, titles[mode][0]),
         React.createElement('div', { className: 'auth-sub' }, titles[mode][1]),
@@ -81,7 +81,7 @@
         mode === 'login' && React.createElement('div', { className: 'auth-row' },
           React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--text-3)', textTransform: 'none', letterSpacing: 0 } },
             React.createElement('input', { type: 'checkbox', defaultChecked: true, style: { width: 'auto' } }), 'Recordarme'),
-          React.createElement('span', { className: 'auth-link', onClick: () => setMode('reset') }, '¿Olvidaste tu contraseña?')),
+          React.createElement('span', { className: 'auth-link', onClick: () => setMode('reset') }, '¿Olvidó su contraseña?')),
         err && React.createElement('div', { style: { color: '#C0563A', fontSize: 12.5, margin: '2px 0 6px', lineHeight: 1.35 } }, err),
         React.createElement('button', { className: 'btn primary', style: { width: '100%', padding: '11px', fontSize: 14, marginTop: mode === 'reset' ? 8 : 0, opacity: busy ? .7 : 1 }, onClick: go, disabled: busy },
           busy ? (mode === 'reset' ? 'Enviando…' : 'Ingresando…') : (mode === 'login' ? 'Ingresar' : mode === 'signup' ? 'Crear cuenta' : 'Enviar link')),
@@ -91,7 +91,7 @@
               React.createElement('div', { className: 'auth-divider' }, 'O'),
               React.createElement('div', { className: 'auth-alt' },
                 mode === 'login' ? '¿No tiene una cuenta? ' : '¿Ya tiene una cuenta? ',
-                React.createElement('span', { className: 'auth-link', onClick: () => setMode(mode === 'login' ? 'signup' : 'login') }, mode === 'login' ? 'Crear una' : 'Ingresá'))));
+                React.createElement('span', { className: 'auth-link', onClick: () => setMode(mode === 'login' ? 'signup' : 'login') }, mode === 'login' ? 'Crear una' : 'Ingresar'))));
     }
     return React.createElement('div', { className: 'auth' }, art, React.createElement('div', { className: 'auth-form' }, card));
   }
@@ -150,7 +150,7 @@
         React.createElement(Icon, { name: 'key', style: { width: 17, height: 17, color: 'var(--brass)' } }),
         React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-2)' } }, 'Se crearán ', React.createElement('b', null, '2 slots de Acceso'), ' por defecto — sin dos encuentros confirmados, el viaje no sale.')));
     else body = React.createElement('div', null,
-      React.createElement('h2', null, 'Revisá y creá'),
+      React.createElement('h2', null, 'Revisar y crear'),
       React.createElement('div', { className: 'lead' }, 'Todo listo para empezar a producir.'),
       React.createElement('div', { className: 'wz-review' },
         [['Categoría', d.cat], ['Título', d.titulo || '—'], ['Etiqueta', d.etiqueta || '—'], ['Destino', (d.region || '—') + (d.pais ? ' · ' + d.pais : '')], ['Inicio', d.inicio || '—'], ['Noches', d.noches], ['Grupo', d.pax + ' pax · mín ' + d.min], ['Ticket', 'US$ ' + d.ticket + ' / pax'], ['Responsable', BA.operadores.find(o => o.id === d.resp).name]]

@@ -36,7 +36,7 @@
     function exportIcal() {
       const t = BA.tripData(s.id); const days = (t.itinerario || []); const sd = t.startDate ? new Date(t.startDate + 'T00:00:00Z') : null;
       if (!days.length) { toast('No hay itinerario para exportar'); return; }
-      if (!sd || isNaN(sd.getTime())) { toast('Cargá las fechas del viaje (Config) para exportar el calendario'); return; }
+      if (!sd || isNaN(sd.getTime())) { toast('Cargue las fechas del viaje (Config) para exportar el calendario'); return; }
       const p2 = n => String(n).padStart(2, '0');
       const dD = d => d.getUTCFullYear() + p2(d.getUTCMonth() + 1) + p2(d.getUTCDate());
       const dT = d => dD(d) + 'T' + p2(d.getUTCHours()) + p2(d.getUTCMinutes()) + '00Z';
@@ -78,7 +78,7 @@
     }
     return React.createElement('div', null,
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: '1fr 1fr', marginBottom: 'var(--gap)' } },
-        React.createElement(Tool, { icon: 'download', t: 'Exportar JSON', d: 'Descargá una copia completa del viaje', onClick: exportJson }),
+        React.createElement(Tool, { icon: 'download', t: 'Exportar JSON', d: 'Descargue una copia completa del viaje', onClick: exportJson }),
         React.createElement(Tool, { icon: 'layers', t: 'Importar JSON', d: 'Reemplazá el contenido desde un archivo exportado', onClick: importJson }),
         React.createElement(Tool, { icon: 'calendar', t: 'Exportar iCal (.ics)', d: 'El itinerario para tu calendario', onClick: exportIcal }),
         React.createElement(Tool, { icon: 'download', t: 'Imprimir itinerario', d: 'Versión PDF lista para el cliente', onClick: () => { toast('Abriendo impresión…'); setTimeout(() => window.print(), 250); } })),
@@ -141,7 +141,7 @@
       if (busy || !fields) return; setBusy(true);
       try {
         if (kind === 'proveedor') {
-          if (!tripSel) { toast('Eleg\u00ed un viaje'); setBusy(false); return; }
+          if (!tripSel) { toast('Elija un viaje'); setBusy(false); return; }
           const TYPES = ['restaurant', 'winery', 'hotel', 'transfer', 'guide', 'activity', 'lodging', 'service', 'villa', 'expert', 'culture', 'truffle'];
           const item = { type: TYPES.includes(fields.type) ? fields.type : 'service', name: (fields.name || '').trim() || 'Proveedor', location: fields.location || '', phone: fields.phone || '', web: fields.web || '', email: fields.email || '', priceRange: fields.priceRange || '', notes: fields.notes || '', reservationStatus: 'pending' };
           const r = await BA.source.tripDataApply(tripSel, 'providers', 'add', { item });
@@ -171,7 +171,7 @@
               : React.createElement('label', { className: 'dropzone', style: { cursor: 'pointer', display: 'block' } },
                   React.createElement('input', { type: 'file', accept: 'image/*,application/pdf', style: { display: 'none' }, onChange: pickFile }),
                   React.createElement('div', { className: 'ic' }, React.createElement(Icon, { name: file ? 'check' : 'download' })),
-                  React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600, color: 'var(--text-1)' } }, file ? file.name : 'Eleg\u00ed una foto o PDF'),
+                  React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600, color: 'var(--text-1)' } }, file ? file.name : 'Elija una foto o PDF'),
                   React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 4 } }, file ? 'Lista para analizar \u2014 toc\u00e1 para cambiar' : 'Tarjeta, factura, captura de email \u2014 Claude extrae los datos')),
             React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
               React.createElement('span', { style: { fontSize: 12, color: 'var(--text-3)', alignSelf: 'center', marginRight: 4 } }, 'Crear:'),
@@ -182,7 +182,7 @@
             React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', marginTop: 4 } }, 'Extrayendo campos y normalizando datos')),
           stage === 'result' && fields && React.createElement('div', null,
             React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12.5, color: 'var(--go)' } },
-              React.createElement(Icon, { name: 'check', style: { width: 16, height: 16 } }), 'Datos extra\u00eddos \u00b7 revis\u00e1 y confirm\u00e1'),
+              React.createElement(Icon, { name: 'check', style: { width: 16, height: 16 } }), 'Datos extra\u00eddos \u00b7 revise y confirme'),
             LBL.map(([k, lbl]) => React.createElement('div', { key: k, className: 'xrow' },
               React.createElement('span', { className: 'k' }, lbl),
               React.createElement('input', { value: fields[k] == null ? '' : String(fields[k]), onChange: e => setFields(o => Object.assign({}, o, { [k]: e.target.value })) }),

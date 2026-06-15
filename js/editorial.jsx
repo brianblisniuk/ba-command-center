@@ -105,7 +105,7 @@
     }
     useEffect(() => { if (tab === 'assets' && !aSt.data && !aSt.loading) loadAssets(); }, [tab]);
     async function addAsset() {
-      if (!fa.trip || !fa.url.trim()) { toast('Elegí viaje y pegá una URL'); return; }
+      if (!fa.trip || !fa.url.trim()) { toast('Elija un viaje y pegue una URL'); return; }
       const r = await BA.source.assetAdd({ trip_id: fa.trip, kit_slot: fa.slot || null, tipo: fa.tipo, procedencia: fa.proc, url: fa.url.trim(), titulo: fa.titulo.trim() || null, consentimiento: fa.consent });
       if (r && r.ok) { toast('Material agregado a la biblioteca'); setFa(f => ({ ...f, url: '', titulo: '' })); setAOpen(fa.trip); loadAssets(); }
       else { toast('No se pudo agregar: ' + ((r && r.error) || 'error')); }
@@ -242,7 +242,7 @@
     }
     async function enviarLista(p2, n) {
       if (pbBusy) return;
-      if (!window.confirm('Enviar esta carta a ' + n + ' suscriptor' + (n === 1 ? '' : 'es') + ' de la lista. ¿Confirmás?')) return;
+      if (!window.confirm('Enviar esta carta a ' + n + ' suscriptor' + (n === 1 ? '' : 'es') + ' de la lista. ¿Confirma?')) return;
       setPbBusy(p2.id + ':live');
       const r = await BA.source.newsletterSend(p2.id, 'live');
       setPbBusy('');
@@ -266,7 +266,7 @@
 
     async function programar(p2) {
       const v = schedVals[p2.id];
-      if (!v) { toast('Elegí fecha y hora'); return; }
+      if (!v) { toast('Elija fecha y hora'); return; }
       setPbBusy(p2.id + ':sched');
       const r = await BA.source.programarPieza(p2.id, new Date(v).toISOString());
       setPbBusy('');
@@ -414,7 +414,7 @@
           React.createElement(CardHead, { title: 'Plan semanal', right: React.createElement('button', { className: 'btn sm primary', onClick: generarSemana, disabled: busy },
             React.createElement(Icon, { name: 'plus' }), busy ? 'Generando…' : 'Generar semana') }),
           grupos.length === 0
-            ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', padding: '6px 0' } }, 'Sin piezas en los próximos días. Generá la próxima semana desde la semana tipo.')
+            ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', padding: '6px 0' } }, 'Sin piezas en los próximos días. Genere la próxima semana desde la semana tipo.')
             : grupos.map(g => React.createElement('div', { key: g.key, style: { marginBottom: 14 } },
               React.createElement('div', { className: 'eyebrow', style: { marginBottom: 6, textTransform: 'capitalize' } }, g.label),
               g.items.map(p => {
@@ -448,7 +448,7 @@
       bodyInner = React.createElement(React.Fragment, null,
         React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)' } },
           React.createElement(CardHead, { title: 'Cola de aprobación', count: pend.length, right: React.createElement('button', { className: 'btn sm', onClick: loadCola, disabled: qSt.loading }, React.createElement(Icon, { name: 'refresh' }), qSt.loading ? 'Cargando…' : 'Actualizar') }),
-          React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginBottom: 12, lineHeight: 1.5 } }, 'Nada se publica sin tu visto. Aprobá o rechazá cada pieza con guion; las rechazadas vuelven a la fábrica con tu motivo.'),
+          React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginBottom: 12, lineHeight: 1.5 } }, 'Nada se publica sin su visto. Apruebe o rechace cada pieza con guion; las rechazadas vuelven a la fábrica con su motivo.'),
           pend.length === 0
             ? React.createElement('div', { style: { fontSize: 12.5, color: 'var(--text-3)', padding: '6px 0' } }, 'Nada pendiente. Las piezas llegan acá cuando la fábrica escribe el guion.')
             : pend.map(p => {
@@ -569,7 +569,7 @@
               React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 3, lineHeight: 1.5 } }, 'Colchón de producción · objetivo ≥2. Una semana está lista cuando no le queda nada en idea ni en guion.')),
             React.createElement('button', { className: 'btn sm', onClick: loadTanda, disabled: tSt.loading }, React.createElement(Icon, { name: 'refresh' }), tSt.loading ? '…' : 'Actualizar'))),
         tandas.length === 0
-          ? React.createElement('div', { className: 'card pad', style: { fontSize: 12.5, color: 'var(--text-3)' } }, 'Sin tandas todavía. Generá una semana en el Plan.')
+          ? React.createElement('div', { className: 'card pad', style: { fontSize: 12.5, color: 'var(--text-3)' } }, 'Sin tandas todavía. Genere una semana en el Plan.')
           : meses.map(m => React.createElement('div', { key: m.key, style: { marginBottom: 'var(--gap)' } },
             React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, m.label + ' · Tanda Mayor'),
             React.createElement('div', { className: 'card pad' },
@@ -624,7 +624,7 @@
           React.createElement('button', { className: 'btn sm', onClick: loadPB, disabled: pbSt.loading }, React.createElement(Icon, { name: 'refresh' }), pbSt.loading ? '…' : 'Actualizar')),
         React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Newsletter · ' + news.length),
         news.length === 0
-          ? React.createElement('div', { className: 'card pad', style: { fontSize: 12.5, color: 'var(--text-3)', marginBottom: 'var(--gap)' } }, 'Sin cartas aprobadas. Cuando aprobés una pieza de newsletter, aparece acá para enviar.')
+          ? React.createElement('div', { className: 'card pad', style: { fontSize: 12.5, color: 'var(--text-3)', marginBottom: 'var(--gap)' } }, 'Sin cartas aprobadas. Cuando apruebe una pieza de newsletter, aparece aquí para enviar.')
           : news.map(p2 => {
             const open = pbOpen === p2.id;
             const pub = p2.publicado || {};

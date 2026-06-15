@@ -350,7 +350,7 @@
     const colors = ['var(--laurel)', 'var(--brass)', 'var(--laurel-soft)', 'var(--curso)', 'var(--stone)', 'var(--bad)'];
     const toStore = (arr) => arr.map(x => { const o = { category: x.cat || 'Varios', amount: Number(x.amount) || 0, currency: x.currency || 'USD' }; if (x.dayRef) o.dayRef = x.dayRef; if (x.id && !String(x.id).startsWith('tmp')) o.id = x.id; return o; });
     async function persist(items) { const r = await BA.source.tripDataApply(s.id, 'budget', 'set', { items: toStore(items) }); if (r && r.ok) setB(reload()); else toast((r && r.error) || 'No se pudo guardar'); }
-    function addLine() { const amt = Number(f.amount); if (!f.cat.trim() || !amt) { toast('Completá categoría y monto'); return; } setAdding(false); const items = (b.items || []).concat([{ id: 'tmp_' + Date.now(), cat: f.cat.trim(), amount: amt, currency: f.currency, dayRef: '' }]); setF({ cat: '', amount: '', currency: cur || 'USD' }); persist(items); }
+    function addLine() { const amt = Number(f.amount); if (!f.cat.trim() || !amt) { toast('Complete categoría y monto'); return; } setAdding(false); const items = (b.items || []).concat([{ id: 'tmp_' + Date.now(), cat: f.cat.trim(), amount: amt, currency: f.currency, dayRef: '' }]); setF({ cat: '', amount: '', currency: cur || 'USD' }); persist(items); }
     function delLine(id) { persist((b.items || []).filter(x => x.id !== id)); }
     return React.createElement('div', null,
       React.createElement('div', { className: 'grid', style: { gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 'var(--gap)' } },

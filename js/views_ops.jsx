@@ -114,7 +114,7 @@
     }
 
     const tripPicker = pickTrip && React.createElement('div', { style: { marginTop: 12, padding: 13, border: '1px solid var(--rule)', borderRadius: 'var(--radius-sm)', background: 'var(--surface-2)' } },
-      React.createElement('div', { className: 'eyebrow', style: { marginBottom: 9 } }, 'Elegí la salida'),
+      React.createElement('div', { className: 'eyebrow', style: { marginBottom: 9 } }, 'Elija la salida'),
       React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 7 } },
         (BA.salidas || []).map(sal => React.createElement('button', { key: sal.id, className: 'badge ' + (cur && cur.salida === sal.id ? 'go' : 'ghost'),
           style: { cursor: 'pointer', padding: '6px 11px' }, onClick: () => linkTrip(sal) },

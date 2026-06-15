@@ -125,7 +125,7 @@
             React.createElement(CardHead, { title: 'Plan de pago', right: React.createElement('span', { className: 'badge ghost' }, plan.politica) }),
             !showPlan
               ? React.createElement('button', { className: 'btn', style: { width: '100%' }, onClick: async () => {
-                  if (!lead.salida) { toast('Asigná un viaje al lead primero'); return; }
+                  if (!lead.salida) { toast('Asigne un viaje al lead primero'); return; }
                   const r = await BA.source.generatePlan(lead.id);
                   if (r && r.error) { toast('No se pudo generar: ' + r.error); return; }
                   if (r && r.data) setPlanData(r.data);

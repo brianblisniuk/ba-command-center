@@ -50,7 +50,7 @@
             React.createElement(Row, { label: 'Tema', control: React.createElement(Seg, { value: dark ? 'dark' : 'light', options: [{ v: 'light', t: 'Claro' }, { v: 'dark', t: 'Oscuro' }], onChange: v => set('theme', v) }) }),
             React.createElement(Row, { label: 'Densidad', control: React.createElement(Seg, { value: density, options: [{ v: 'regular', t: 'Cómodo' }, { v: 'compact', t: 'Compacto' }], onChange: v => set('density', v) }) }),
             React.createElement(Row, { label: 'Acento', control: React.createElement(Seg, { value: accent, options: [{ v: 'laurel', t: 'Laurel' }, { v: 'brass', t: 'Brass' }], onChange: v => set('accent', v) }) }),
-            React.createElement(Row, { label: 'Moneda', control: React.createElement('span', { className: 'mono', style: { fontSize: 13, color: 'var(--text-2)' } }, cur + ' · cambiá en la barra') })),
+            React.createElement(Row, { label: 'Moneda', control: React.createElement('span', { className: 'mono', style: { fontSize: 13, color: 'var(--text-2)' } }, cur + ' · cambie en la barra') })),
           React.createElement(Card, { title: 'Identidad', sub: 'Operadores con acceso a la consola.' },
             BA.operadores.map((o, i) => React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < BA.operadores.length - 1 ? '1px solid var(--rule-soft)' : 'none' } },
               React.createElement(Avatar, { id: o.id, size: 34 }),
