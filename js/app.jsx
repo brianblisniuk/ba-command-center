@@ -177,7 +177,7 @@
         React.createElement('div', { className: 'sb-brand' },
           React.createElement('div', { className: 'sb-logo' }, 'B'),
           React.createElement('div', { className: 'sb-brand-txt' },
-            React.createElement('div', { className: 'sb-brand-name' }, 'Blisniuk ', React.createElement('em', null, '& '), 'Amanov'),
+            React.createElement('div', { className: 'sb-brand-name' }, 'Pasaporte ', React.createElement('em', null, 'Negro')),
             React.createElement('div', { className: 'sb-brand-sub' }, 'Command Center'))),
         React.createElement('nav', { className: 'sb-nav' },
           NAV.map((g, gi) => React.createElement('div', { key: gi },
