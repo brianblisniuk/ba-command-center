@@ -1,4 +1,4 @@
-/* B&A · Extras: Backup/Snapshots (tab viaje) · Carga IA (modal) · Propuesta PDF (modal) → window */
+/* Pasaporte Negro · Extras: Backup/Snapshots (tab viaje) · Carga IA (modal) · Propuesta PDF (modal) → window */
 (function () {
   const { Icon, StatCard, CardHead } = window;
   const { useState, useEffect } = React;
@@ -41,7 +41,7 @@
       const dD = d => d.getUTCFullYear() + p2(d.getUTCMonth() + 1) + p2(d.getUTCDate());
       const dT = d => dD(d) + 'T' + p2(d.getUTCHours()) + p2(d.getUTCMinutes()) + '00Z';
       const esc = x => String(x || '').replace(/[,;\\]/g, ' ').replace(/\n/g, ' ');
-      let L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Blisniuk & Amanov//Itinerario//ES', 'CALSCALE:GREGORIAN'];
+      let L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Pasaporte Negro//Itinerario//ES', 'CALSCALE:GREGORIAN'];
       days.forEach(day => {
         const base = new Date(sd.getTime() + (Math.max(1, day.n) - 1) * 86400000);
         const slots = (day.slots || []).filter(sl => sl.type !== 'lodging');
@@ -221,7 +221,7 @@
               React.createElement('div', { className: 'pg-body' },
                 i === 0
                   ? React.createElement('div', null,
-                      React.createElement('div', { style: { fontFamily: 'var(--ff-mono)', fontSize: 7, letterSpacing: '0.16em', color: 'var(--brass-soft)', textTransform: 'uppercase', marginBottom: 8 } }, 'Blisniuk & Amanov'),
+                      React.createElement('div', { style: { fontFamily: 'var(--ff-mono)', fontSize: 7, letterSpacing: '0.16em', color: 'var(--brass-soft)', textTransform: 'uppercase', marginBottom: 8 } }, 'Pasaporte Negro'),
                       React.createElement('div', { className: 'pg-ttl' }, s ? s.titulo : 'Propuesta'))
                   : React.createElement('div', null,
                       React.createElement('div', { className: 'pg-ttl' }, p),

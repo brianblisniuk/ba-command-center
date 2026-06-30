@@ -1,4 +1,4 @@
-/* B&A · Inteligencia (vista IA integral) → window.IAIntegral */
+/* Pasaporte Negro · Inteligencia (vista IA integral) → window.IAIntegral */
 (function () {
   const { useState } = React;
   const KIND_LBL = { copiloto: 'Copiloto', email_triage: 'Triage de mails', otro: 'Otro' };

@@ -1,4 +1,4 @@
-/* B&A · Patrón de detalle único (página dedicada, NO drawer): Lead · Proveedor → window */
+/* Pasaporte Negro · Patrón de detalle único (página dedicada, NO drawer): Lead · Proveedor → window */
 (function () {
   const { Icon, Avatar, Badge, CardHead } = window;
   const { useState } = React;
@@ -88,7 +88,7 @@
               React.createElement('span', { className: 'mono', style: { fontSize: 12, color: 'var(--accent)', fontWeight: 700 } }, 'US$ ' + lead.potUSD + 'k'),
               lead.empresa !== '—' && React.createElement('span', { style: { fontSize: 12.5, color: 'var(--text-3)' } }, lead.empresa)))),
         React.createElement('div', { style: { display: 'flex', gap: 9 } },
-          React.createElement('button', { className: 'btn', onClick: () => openCompose ? openCompose({ to: (lead.email && lead.email.indexOf('@') >= 0) ? lead.email : '', account: 'reservas', subject: 'B&A · ' + (lead.nombre || ''), name: lead.nombre }) : toast('Escribir email') }, React.createElement(Icon, { name: 'mail' }), 'Email'),
+          React.createElement('button', { className: 'btn', onClick: () => openCompose ? openCompose({ to: (lead.email && lead.email.indexOf('@') >= 0) ? lead.email : '', account: 'reservas', subject: 'Pasaporte Negro · ' + (lead.nombre || ''), name: lead.nombre }) : toast('Escribir email') }, React.createElement(Icon, { name: 'mail' }), 'Email'),
           lead.etapa !== 'Reservado' && lead.etapa !== 'Perdidos' && React.createElement('button', { className: 'btn primary', onClick: advance }, React.createElement(Icon, { name: 'au', style: { transform: 'rotate(90deg)' } }), 'Avanzar etapa'))
       ),
       // stage stepper
@@ -147,7 +147,7 @@
             React.createElement(CardHead, { title: 'Acciones' }),
             React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 } },
               React.createElement('button', { className: 'btn', onClick: () => { addEvent({ kind:'email', who: op.short, t:'Mail de seguimiento enviado', when:'ahora' }); toast('Borrador en Bandeja'); } }, React.createElement(Icon, { name: 'mail' }), 'Preparar mail'),
-              React.createElement('button', { className: 'btn', onClick: () => { const ph = (lead.phone || '').replace(/[^0-9]/g, ''); const msg = encodeURIComponent('Hola ' + (lead.nombre ? lead.nombre.split(' ')[0] : '') + ', te escribo de Blisniuk & Amanov.'); window.open('https://wa.me/' + ph + '?text=' + msg, '_blank'); addEvent({ kind:'whatsapp', who: op.short, t:'WhatsApp abierto', when:'ahora' }); } }, React.createElement(Icon, { name: 'chat' }), 'WhatsApp'),
+              React.createElement('button', { className: 'btn', onClick: () => { const ph = (lead.phone || '').replace(/[^0-9]/g, ''); const msg = encodeURIComponent('Hola ' + (lead.nombre ? lead.nombre.split(' ')[0] : '') + ', te escribo de Pasaporte Negro.'); window.open('https://wa.me/' + ph + '?text=' + msg, '_blank'); addEvent({ kind:'whatsapp', who: op.short, t:'WhatsApp abierto', when:'ahora' }); } }, React.createElement(Icon, { name: 'chat' }), 'WhatsApp'),
               React.createElement('button', { className: 'btn', onClick: async () => { if (!window.SB) return; const nextShort = lead.resp === 'fede' ? 'brian' : 'fede'; const nextUid = nextShort === 'brian' ? '9e11bed5-8e3a-4e7a-b3a0-dccd3b3ce188' : '1bf337b7-72d7-411b-98e8-c8f29f878778'; const nextName = nextShort === 'brian' ? 'Brian' : 'Federico'; try { const { error } = await window.SB.from('leads').update({ assigned_to: nextUid }).eq('id', lead.id); if (error) { toast('No se pudo reasignar'); return; } addEvent({ kind:'assign', who: op.short, t:'Reasignado a ' + nextName, when:'ahora' }); toast('Lead reasignado a ' + nextName); if (BA.source.hydrateLeads) BA.source.hydrateLeads(); } catch (e) { toast('Error al reasignar'); } } }, React.createElement(Icon, { name: 'users' }), 'Asignar'),
               React.createElement('button', { className: 'btn', onClick: () => openProposal && openProposal(lead) }, React.createElement(Icon, { name: 'download' }), 'Propuesta PDF'),
               s && React.createElement('button', { className: 'btn', onClick: () => openTrip(lead.salida) }, React.createElement(Icon, { name: 'compass' }), 'Ver salida'))
@@ -179,7 +179,7 @@
               p.michelin > 0 && React.createElement('span', { style: { color: 'var(--brass)', fontSize: 13 } }, '★'.repeat(p.michelin))))),
         React.createElement('div', { style: { display: 'flex', gap: 9 } },
           React.createElement('button', { className: 'btn', onClick: () => window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(((p.name||'') + ' ' + (p.location||'')).trim()), '_blank') }, React.createElement(Icon, { name: 'pin' }), 'Ver en Google Maps'),
-          React.createElement('button', { className: 'btn primary', onClick: () => openCompose ? openCompose({ to: (p.email && p.email.indexOf('@') >= 0) ? p.email : '', account: 'reservas', subject: 'B&A · ' + p.name, name: p.name }) : toast('Contactar proveedor') }, React.createElement(Icon, { name: 'mail' }), 'Contactar'))
+          React.createElement('button', { className: 'btn primary', onClick: () => openCompose ? openCompose({ to: (p.email && p.email.indexOf('@') >= 0) ? p.email : '', account: 'reservas', subject: 'Pasaporte Negro · ' + p.name, name: p.name }) : toast('Contactar proveedor') }, React.createElement(Icon, { name: 'mail' }), 'Contactar'))
       ),
       React.createElement('div', { className: 'detail-grid' },
         // left: comms + notes + attachments

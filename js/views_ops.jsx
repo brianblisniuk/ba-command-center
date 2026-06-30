@@ -1,4 +1,4 @@
-/* B&A · dominios de operaciones: Viajes · Bandeja · Finanzas → window */
+/* Pasaporte Negro · dominios de operaciones: Viajes · Bandeja · Finanzas → window */
 (function () {
   const { Icon, BarChart, Donut, StatCard, Badge, Avatar, SalidaCard, CardHead, estadoMeta } = window;
   const { useState } = React;
@@ -275,7 +275,7 @@
                   React.createElement('td', { style: { textAlign: 'right', whiteSpace: 'nowrap' } },
                     isPaid ? React.createElement('span', { className: 'tag' }, React.createElement(Icon, { name: 'check' }), 'OK')
                       : React.createElement('span', { style: { display: 'inline-flex', gap: 6 } },
-                        React.createElement('button', { className: 'btn sm', onClick: () => { if (!openCompose) { toast('Recordar a ' + c.cliente); return; } var lk = (BA.leads || []).find(function (x) { return x.nombre === c.cliente; }); var mail = (lk && lk.email && lk.email.indexOf('@') >= 0) ? lk.email : ''; var region = s ? s.region : (c.region || ''); var body = 'Hola ' + ((c.cliente || '').split(' ')[0]) + ', ¿cómo va? Te escribo para recordarte la ' + (c.cuota || 'cuota') + ' del viaje' + (region ? ' a ' + region : '') + '. Cualquier cosa quedamos a disposición. Un abrazo.'; openCompose({ to: mail, account: 'reservas', subject: 'B&A · recordatorio de pago', name: c.cliente, body: body }); } }, 'Recordar'),
+                        React.createElement('button', { className: 'btn sm', onClick: () => { if (!openCompose) { toast('Recordar a ' + c.cliente); return; } var lk = (BA.leads || []).find(function (x) { return x.nombre === c.cliente; }); var mail = (lk && lk.email && lk.email.indexOf('@') >= 0) ? lk.email : ''; var region = s ? s.region : (c.region || ''); var body = 'Hola ' + ((c.cliente || '').split(' ')[0]) + ', ¿cómo va? Te escribo para recordarte la ' + (c.cuota || 'cuota') + ' del viaje' + (region ? ' a ' + region : '') + '. Cualquier cosa quedamos a disposición. Un abrazo.'; openCompose({ to: mail, account: 'reservas', subject: 'Pasaporte Negro · recordatorio de pago', name: c.cliente, body: body }); } }, 'Recordar'),
                         React.createElement('button', { className: 'btn sm primary', onClick: () => { setPaid(p => ({ ...p, [c.id]: true })); Promise.resolve(BA.source.markPaid(c.id)).then(r => { if (r && r.error) { setPaid(p => { const q = { ...p }; delete q[c.id]; return q; }); toast('No se pudo marcar: ' + r.error); } else { toast(c.cliente + ' · cobrado ✓'); } }); } }, 'Pagado'))));
               }) : React.createElement('tr', null, React.createElement('td', { colSpan: 6, style: { textAlign: 'center', color: 'var(--text-3)', padding: '20px' } }, 'Sin cuotas por cobrar.')))
           ))

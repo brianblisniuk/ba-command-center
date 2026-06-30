@@ -1,4 +1,4 @@
-/* B&A · Cadencias (reglas reales cadence_rules + cola derivada de leads) → window.Cadencias */
+/* Pasaporte Negro · Cadencias (reglas reales cadence_rules + cola derivada de leads) → window.Cadencias */
 (function () {
   const { Icon, StatCard, Avatar, CardHead } = window;
   const { useState } = React;
@@ -73,7 +73,7 @@
       const body = renderTpl(it.body, it.lead, it.tripId);
       const nombre = it.lead.replace(/^Sample\s·\s/, '');
       if (it.channel === 'email') {
-        const subject = renderTpl(it.subject, it.lead, it.tripId) || ('B&A · ' + viajeDe(it.tripId));
+        const subject = renderTpl(it.subject, it.lead, it.tripId) || ('Pasaporte Negro · ' + viajeDe(it.tripId));
         if (openCompose) { openCompose({ to: it.email || '', account: 'reservas', subject, body, name: it.lead, cadenceLeadId: it.leadId }); toast('Borrador listo para ' + nombre); }
         else { navigator.clipboard && navigator.clipboard.writeText(body); toast('Copiado'); }
       } else if (it.channel === 'whatsapp') {

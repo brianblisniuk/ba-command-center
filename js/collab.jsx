@@ -1,4 +1,4 @@
-/* B&A · Colaboración: comentarios (Supabase + Realtime) + centro de notificaciones → window */
+/* Pasaporte Negro · Colaboración: comentarios (Supabase + Realtime) + centro de notificaciones → window */
 (function () {
   const { Icon, Avatar } = window;
   const { useState, useRef, useEffect } = React;

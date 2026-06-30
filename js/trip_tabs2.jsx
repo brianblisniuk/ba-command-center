@@ -1,4 +1,4 @@
-/* B&A · Plano Viaje V2: Cupos · Pulso · To-Do con drawer → window (override Tareas) */
+/* Pasaporte Negro · Plano Viaje V2: Cupos · Pulso · To-Do con drawer → window (override Tareas) */
 (function () {
   const { Icon, StatCard, Avatar, Badge, OccBar, CardHead } = window;
   const { useState } = React;

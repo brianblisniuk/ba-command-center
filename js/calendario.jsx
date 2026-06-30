@@ -1,4 +1,4 @@
-/* B&A · Calendario operativo unificado → window.Calendario */
+/* Pasaporte Negro · Calendario operativo unificado → window.Calendario */
 (function () {
   const { Icon, StatCard, CardHead } = window;
   const BA = window.BA;

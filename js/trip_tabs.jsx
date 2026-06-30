@@ -1,4 +1,4 @@
-/* B&A · pestañas del Plano Viaje → window (Itinerario, Ruta, Proveedores, Presupuesto, Reservas, Tareas, AppCliente) */
+/* Pasaporte Negro · pestañas del Plano Viaje → window (Itinerario, Ruta, Proveedores, Presupuesto, Reservas, Tareas, AppCliente) */
 (function () {
   const { Icon, Donut, Badge, Avatar, CardHead } = window;
   const { useState } = React;
@@ -481,7 +481,7 @@
         React.createElement('div', { className: 'eyebrow', style: { alignSelf: 'flex-start', marginBottom: 14 } }, 'Vista del cliente'),
         React.createElement('div', { style: { width: 270, borderRadius: 30, border: '8px solid var(--ink)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', background: 'var(--laurel-deep)' } },
           React.createElement('div', { style: { height: 150, background: 'linear-gradient(150deg, var(--laurel-soft), var(--laurel-deep))', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 16 } },
-            React.createElement('div', { style: { fontFamily: 'var(--ff-mono)', fontSize: 8, letterSpacing: '0.16em', color: 'var(--brass-soft)', textTransform: 'uppercase' } }, 'Blisniuk & Amanov'),
+            React.createElement('div', { style: { fontFamily: 'var(--ff-mono)', fontSize: 8, letterSpacing: '0.16em', color: 'var(--brass-soft)', textTransform: 'uppercase' } }, 'Pasaporte Negro'),
             React.createElement('div', { style: { fontFamily: 'var(--ff-display)', fontSize: 20, color: 'var(--bone)', lineHeight: 1.1, marginTop: 4 } }, s.titulo)),
           React.createElement('div', { style: { background: 'var(--surface)', padding: 16 } },
             React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--ff-mono)', marginBottom: 8 } }, s.fecha),

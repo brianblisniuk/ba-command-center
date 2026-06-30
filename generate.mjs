@@ -1,6 +1,6 @@
-# B&A Carousel Pro
+# Pasaporte Negro Carousel Pro
 
-Generador programático de carruseles editoriales para Blisniuk & Amanov.
+Generador programático de carruseles editoriales para Pasaporte Negro.
 
 ## Qué incluye
 
@@ -167,7 +167,7 @@ No subas ni compartas fuentes si no tenés licencia.
 
 ## Recomendación de uso
 
-Para un carrusel B&A real:
+Para un carrusel Pasaporte Negro real:
 
 1. `destination-editorial`
 2. `activity-specific`

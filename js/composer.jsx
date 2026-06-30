@@ -1,4 +1,4 @@
-/* B&A · Redactor de correo → window.Composer (usa BA.source.sendEmail → edge fn email-send) */
+/* Pasaporte Negro · Redactor de correo → window.Composer (usa BA.source.sendEmail → edge fn email-send) */
 (function () {
   const { useState } = React;
   const { Icon } = window;

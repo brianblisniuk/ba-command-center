@@ -1,4 +1,4 @@
-/* B&A · icon set (lucide-style) + chart primitives → window */
+/* Pasaporte Negro · icon set (lucide-style) + chart primitives → window */
 (function () {
   const P = {
     home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',

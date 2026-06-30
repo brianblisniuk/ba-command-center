@@ -1,4 +1,4 @@
-/* B&A · V2: Historial · Biblioteca (real) · Clientes · Configuración → window (override) */
+/* Pasaporte Negro · V2: Historial · Biblioteca (real) · Clientes · Configuración → window (override) */
 (function () {
   const { Icon, StatCard, Badge, Avatar, CardHead } = window;
   const { useState } = React;

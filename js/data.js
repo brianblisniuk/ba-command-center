@@ -1,5 +1,5 @@
 /* ============================================================
-   B&A · Command Center — datos de operaciones
+   Pasaporte Negro · Command Center — datos de operaciones
    Salidas reales del backup + CRM/finanzas curados (realista)
    ============================================================ */
 /* ===== Supabase client · base nueva (onnqcdjkvpvpvtsorpup). Anon key es pública, protegida por RLS. ===== */
@@ -13,14 +13,14 @@ window.SB = (window.supabase && window.supabase.createClient)
 
 window.BA = (function () {
   const brand = {
-    name: 'Blisniuk & Amanov',
+    name: 'Pasaporte Negro',
     tagline: 'Acceso · Autoría · Afinidad',
     pilares: ['Acceso', 'Autoría', 'Afinidad'],
   };
 
   const operadores = [
     { id: 'brian', name: 'Brian Blisniuk', short: 'Brian', role: 'Operador', initials: 'BB', color: '#B8945A' },
-    { id: 'fede',  name: 'Federico Amanov', short: 'Federico', role: 'Operador', initials: 'FA', color: '#3D5A3E' },
+    { id: 'fede',  name: 'Federico Buenaventura', short: 'Federico', role: 'Operador', initials: 'FB', color: '#3D5A3E' },
   ];
 
   const fx = { EUR: 1, USD: 1.08, ARS: 1180 };
@@ -325,7 +325,7 @@ window.BA = (function () {
   // ---- Propuesta (contenido para el PDF) ----
   const propuesta = {
     paginas3: ['Portada · el viaje en una imagen', 'El itinerario en una página', 'Inversión y próximos pasos'],
-    paginas10: ['Portada', 'Carta de bienvenida', 'Filosofía B&A · Acceso·Autoría·Afinidad', 'Mapa del viaje', 'Día por día (I)', 'Día por día (II)', 'Los encuentros de acceso', 'Alojamientos', 'Inversión y plan de pagos', 'Próximos pasos'],
+    paginas10: ['Portada', 'Carta de bienvenida', 'Filosofía Pasaporte Negro · Acceso·Autoría·Afinidad', 'Mapa del viaje', 'Día por día (I)', 'Día por día (II)', 'Los encuentros de acceso', 'Alojamientos', 'Inversión y plan de pagos', 'Próximos pasos'],
   };
 
   // ---- Proyección: ingreso por mes (forecast vs comprometido) ----

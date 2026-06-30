@@ -1,4 +1,4 @@
-// ============ SISTEMA DE CONTENIDO B&A ============
+// ============ SISTEMA DE CONTENIDO Pasaporte Negro ============
 // NuevaPieza (máquina de guiones) · BibliotecaFotos · EditorCarrusel (preview + export) · CalendarioContenido
 (function () {
   const { useState, useEffect, useRef } = React;
@@ -117,10 +117,10 @@
         !isVideo && e('div', { className: 'ba-grain' }),
         !isMin && !isVideo && e('div', { className: 'ba-brand' },
           e('div', { className: 'ba-hash' }, '#'),
-          e('div', { className: 'ba-words' }, e('div', null, 'Cuaderno'), e('div', null, 'B&A'))),
+          e('div', { className: 'ba-words' }, e('div', null, 'Cuaderno'), e('div', null, 'Pasaporte Negro'))),
         !isVideo && layoutContent(slide),
         !isMin && !isVideo && e('div', { className: 'ba-footer' },
-          e('div', { className: 'ba-handle' }, '@blisniukamanov'),
+          e('div', { className: 'ba-handle' }, '@pasaportenegro'),
           e('div', { className: 'ba-arrow' }))
       )
     );
@@ -220,7 +220,7 @@
       e('div', { className: 'card pad' },
         e('div', { className: 'card-head', style: { marginBottom: 18 } },
           e('div', { className: 'card-title' }, 'Máquina de guiones'),
-          e('div', { className: 'card-sub' }, 'Elija el viaje: el sistema lee el itinerario real y genera el copy en el tono B&A.')),
+          e('div', { className: 'card-sub' }, 'Elija el viaje: el sistema lee el itinerario real y genera el copy en el tono Pasaporte Negro.')),
         e('div', { style: { display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 14 } },
           e('div', null, e(Lbl, { t: 'Viaje' }),
             e('select', { value: brief.trip_id || (brief.destino ? '__manual__' : ''), onChange: ev => pickTrip(ev.target.value), style: selStyle },

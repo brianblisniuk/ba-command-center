@@ -1,4 +1,4 @@
-/* B&A · Proveedores del viaje V2: 3 vistas (tarjetas/tabla/pipeline) + Barrer ahora → window.Proveedores (override) */
+/* Pasaporte Negro · Proveedores del viaje V2: 3 vistas (tarjetas/tabla/pipeline) + Barrer ahora → window.Proveedores (override) */
 (function () {
   const { Icon, StatCard, CardHead } = window;
   const { useState } = React;

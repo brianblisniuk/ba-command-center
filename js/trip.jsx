@@ -1,4 +1,4 @@
-/* B&A · Plano Viaje (workspace de una salida) → window.Trip */
+/* Pasaporte Negro · Plano Viaje (workspace de una salida) → window.Trip */
 (function () {
   const { Icon, Ring, StatCard, Badge, Avatar, OccBar, CardHead, estadoMeta } = window;
   const { useState } = React;

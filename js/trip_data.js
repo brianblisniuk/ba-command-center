@@ -1,4 +1,4 @@
-/* B&A · generadores de datos del Plano Viaje (por salida) → BA.tripData(id) */
+/* Pasaporte Negro · generadores de datos del Plano Viaje (por salida) → BA.tripData(id) */
 (function () {
   const BA = window.BA;
 
@@ -62,7 +62,7 @@
   const PROV_BY_TYPE = {
     meal: 'Trattoria della Posta', wine: 'Tenuta dei Langhe', access: 'Castello di Verduno',
     culture: 'Guía historiador local', activity: 'Maestro artesano', transfer: 'Chofer privado',
-    lodging: 'Relais San Maurizio', truffle: 'Cazador de trufa · Alba', service: 'Concierge B&A',
+    lodging: 'Relais San Maurizio', truffle: 'Cazador de trufa · Alba', service: 'Concierge Pasaporte Negro',
   };
 
   function buildItinerario(s) {
@@ -90,7 +90,7 @@
           id: 's' + (++sid), time: hh(hour), end: hh(hour + dur), type, title: tpl[1], desc: tpl[2],
           verdict, clientVisible: !isAccess || verdict === 'Confirmado', conflict, access: isAccess,
           provider: PROV_BY_TYPE[type] || '—', attachments: i % 3 === 0 ? 2 : 0, comments: i === 1 ? 1 : 0,
-          internal: { title: tpl[1], status: verdict, desc: isAccess ? 'Encuentro de acceso. Confirmar figura, horario y plan B. ' + tpl[2] : 'Reserva a nombre de B&A. ' + tpl[2] },
+          internal: { title: tpl[1], status: verdict, desc: isAccess ? 'Encuentro de acceso. Confirmar figura, horario y plan B. ' + tpl[2] : 'Reserva a nombre de Pasaporte Negro. ' + tpl[2] },
           client: { title: tpl[1].replace('privada', '').replace('privado', '').trim(), visible: !isAccess || verdict === 'Confirmado', desc: tpl[2] },
         });
         hour += dur + 1;

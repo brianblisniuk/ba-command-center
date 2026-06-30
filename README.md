@@ -1,4 +1,4 @@
-# Blisniuk & Amanov · Command Center
+# Pasaporte Negro · Command Center
 
 Rediseño del prototipo **batwt** como un *command center* negocio-céntrico
 (paleta laurel/bone/brass, dashboard moderno + alma editorial Fraunces).

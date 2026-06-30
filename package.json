@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "type": "module",
   "sideEffects": true,
-  "description": "Blisniuk & Amanov — Command Center (build Vite)",
+  "description": "Pasaporte Negro — Command Center (build Vite)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

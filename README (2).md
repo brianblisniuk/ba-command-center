@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>B&A Carousel Template</title>
+  <title>Pasaporte Negro Carousel Template</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -17,7 +17,7 @@
       <div class="brand-hash">#</div>
       <div class="brand-words">
         <div id="brandTop">Cuaderno</div>
-        <div id="brandBottom">B&amp;A</div>
+        <div id="brandBottom">PN</div>
       </div>
     </header>
 
@@ -90,7 +90,7 @@
     </section>
 
     <footer class="footer">
-      <div id="handle" class="handle">@blisniukamanov</div>
+      <div id="handle" class="handle">@pasaportenegro</div>
       <div id="arrow" class="arrow-pill" aria-hidden="true">
         <span class="arrow-line"></span>
         <span class="arrow-head"></span>

@@ -1,4 +1,4 @@
-/* B&A · Reporte ejecutivo mensual (imprimible / PDF) → window.Reporte */
+/* Pasaporte Negro · Reporte ejecutivo mensual (imprimible / PDF) → window.Reporte */
 (function () {
   const { Icon, Badge, estadoMeta } = window;
   const BA = window.BA;

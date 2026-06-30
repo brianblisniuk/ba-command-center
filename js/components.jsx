@@ -1,4 +1,4 @@
-/* B&A · shared UI components → window */
+/* Pasaporte Negro · shared UI components → window */
 (function () {
   const { Icon, Spark } = window;
 

@@ -1,4 +1,4 @@
-/* B&A · Onboarding: Login / crear cuenta / reset · selector de identidad · wizard de nuevo viaje → window */
+/* Pasaporte Negro · Onboarding: Login / crear cuenta / reset · selector de identidad · wizard de nuevo viaje → window */
 (function () {
   const { Icon, Avatar } = window;
   const { useState } = React;
@@ -31,7 +31,7 @@
       React.createElement('div', { className: 'auth-mk' }, 'B'),
       React.createElement('div', { className: 'auth-quote' },
         React.createElement('h2', null, 'Acceso, ', React.createElement('em', null, 'autoría'), ', afinidad.'),
-        React.createElement('p', null, 'Blisniuk & Amanov · Command Center')),
+        React.createElement('p', null, 'Pasaporte Negro · Command Center')),
       React.createElement('div', { className: 'auth-meta' },
         React.createElement('div', { className: 'm' }, React.createElement('div', { className: 'v' }, BA.salidas.length), React.createElement('div', { className: 'k' }, 'Salidas')),
         React.createElement('div', { className: 'm' }, React.createElement('div', { className: 'v' }, BA.leads.length), React.createElement('div', { className: 'k' }, 'Leads activos')),
@@ -71,7 +71,7 @@
             React.createElement(Icon, { name: 'cr', style: { color: 'var(--text-3)' } })))),
         React.createElement('div', { className: 'auth-alt' }, React.createElement('span', { className: 'auth-link', onClick: () => setMode('login') }, 'Volver')));
     } else {
-      const titles = { login: ['Bienvenido de nuevo', 'Ingrese a su centro de operaciones.'], signup: ['Crear cuenta', 'Sumate a la consola de B&A.'], reset: ['Recuperar acceso', 'Te mandamos un link para restablecer la contraseña.'] };
+      const titles = { login: ['Bienvenido de nuevo', 'Ingrese a su centro de operaciones.'], signup: ['Crear cuenta', 'Sumate a la consola de Pasaporte Negro.'], reset: ['Recuperar acceso', 'Te mandamos un link para restablecer la contraseña.'] };
       card = React.createElement('div', { className: 'auth-card' },
         React.createElement('h1', null, titles[mode][0]),
         React.createElement('div', { className: 'auth-sub' }, titles[mode][1]),

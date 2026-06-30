@@ -438,7 +438,7 @@
                       (p.guion && p.guion.advertencias || []).map((a, i) => chip('✕ ' + a, 'adv' + i, { borderColor: '#C0563A', color: '#C0563A' }))),
                     tiene
                       ? React.createElement('div', null, renderGuion(p.guion))
-                      : React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 9, lineHeight: 1.5 } }, 'Sin guion todavía. La fábrica lo escribe con el destino, la serie, los ★ y la voz B&A — validado contra los prohibidos.')));
+                      : React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 9, lineHeight: 1.5 } }, 'Sin guion todavía. La fábrica lo escribe con el destino, la serie, los ★ y la voz Pasaporte Negro — validado contra los prohibidos.')));
               })))) 
       );
     } else if (tab === 'aprobar') {
@@ -619,7 +619,7 @@
       bodyInner = React.createElement(React.Fragment, null,
         React.createElement('div', { className: 'card pad', style: { marginBottom: 'var(--gap)', borderLeft: '3px solid var(--brass)', display: 'flex', alignItems: 'center', gap: 12 } },
           React.createElement('div', { style: { flex: 1 } },
-            React.createElement('div', { style: { fontSize: 13, fontWeight: 700, color: 'var(--text-1)' } }, 'Cuaderno B&A · lista de correo'),
+            React.createElement('div', { style: { fontSize: 13, fontWeight: 700, color: 'var(--text-1)' } }, 'Cuaderno Pasaporte Negro · lista de correo'),
             React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 3, lineHeight: 1.5 } }, nSubs + ' suscriptor' + (nSubs === 1 ? '' : 'es') + ' activo' + (nSubs === 1 ? '' : 's') + '. Sale desde newsletter@blisniukamanov.com. Probá a tu correo antes de mandar a la lista.')),
           React.createElement('button', { className: 'btn sm', onClick: loadPB, disabled: pbSt.loading }, React.createElement(Icon, { name: 'refresh' }), pbSt.loading ? '…' : 'Actualizar')),
         React.createElement('div', { className: 'eyebrow', style: { marginBottom: 8 } }, 'Newsletter · ' + news.length),
@@ -725,7 +725,7 @@
             React.createElement('div', { style: { fontFamily: 'var(--ff-display)', fontSize: 34, lineHeight: 1, color: '#3D5A3E' } }, SB2.activos || 0),
             React.createElement('div', { className: 'eyebrow', style: { marginTop: 3 } }, 'activos')),
           React.createElement('div', { style: { flex: 1 } },
-            React.createElement('div', { style: { fontSize: 13, fontWeight: 700, color: 'var(--text-1)' } }, 'Lista del Cuaderno B&A'),
+            React.createElement('div', { style: { fontSize: 13, fontWeight: 700, color: 'var(--text-1)' } }, 'Lista del Cuaderno Pasaporte Negro'),
             React.createElement('div', { style: { fontSize: 12, color: 'var(--text-3)', marginTop: 3, lineHeight: 1.5 } }, 'Es aparte de los leads: el lead es prospecto de venta; el suscriptor pidió recibir el contenido. Si un lead se suscribe, se linkean.'),
             React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-faint)', marginTop: 5, fontFamily: 'var(--ff-mono)' } }, (SB2.total || 0) + ' en total · ' + (SB2.baja || 0) + ' de baja')),
           React.createElement('button', { className: 'btn sm', onClick: loadSubs, disabled: subSt.loading }, React.createElement(Icon, { name: 'refresh' }), subSt.loading ? '…' : 'Actualizar')),
@@ -770,7 +770,7 @@
           slots.map((s, i) => React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < slots.length - 1 ? '1px solid var(--line)' : 'none' } },
             React.createElement('span', { style: { width: 86, fontSize: 12.5, fontWeight: 600, color: 'var(--text-2)' } }, DOW[s.dow] || ''),
             React.createElement('span', { style: { flexShrink: 0, color: 'var(--text-3)', display: 'flex' } }, React.createElement(Icon, { name: CANAL_IC[s.canal] || 'send' })),
-            React.createElement('span', { style: { flex: 1, fontSize: 13, color: 'var(--text-1)' } }, s.serie ? serieNombre(s.serie) : ({ blog: 'Blog semanal (pieza madre escrita)', linkedin: 'LinkedIn · derivado del blog', newsletter: 'Carta semanal · Cuaderno B&A' }[s.canal] || s.canal)),
+            React.createElement('span', { style: { flex: 1, fontSize: 13, color: 'var(--text-1)' } }, s.serie ? serieNombre(s.serie) : ({ blog: 'Blog semanal (pieza madre escrita)', linkedin: 'LinkedIn · derivado del blog', newsletter: 'Carta semanal · Cuaderno Pasaporte Negro' }[s.canal] || s.canal)),
             chip(s.canal, 'c'), chip(s.formato, 'f'))),
           React.createElement('div', { style: { fontSize: 11.5, color: 'var(--text-3)', marginTop: 10, lineHeight: 1.5 } },
             'Rotación: ' + ((semana.rotacion || []).map(serieNombre).join(' · ') || '—') + ' según material y destino. Comunidad: ' + (semana.comunidad || '—') + '.')),

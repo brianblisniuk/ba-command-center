@@ -1,4 +1,4 @@
-/* B&A · datos extendidos (V2): eventos de lead, biblioteca de proveedores,
+/* Pasaporte Negro · datos extendidos (V2): eventos de lead, biblioteca de proveedores,
    bitácora de cambios, cuerpos de cadencia, clientes. Se acoplan a window.BA. */
 (function () {
   const BA = window.BA;
@@ -43,7 +43,7 @@
     ];
   };
 
-  // ---- Plan de pagos por política B&A (según meses a la salida) ----
+  // ---- Plan de pagos por política Pasaporte Negro (según meses a la salida) ----
   BA.planDePago = function (lead) {
     const s = BA.salidaById(lead.salida);
     const total = lead.potUSD * 1000;
@@ -61,7 +61,7 @@
 
   // ---- Cuerpos de cadencia (cadence_render) ----
   BA.cadenceBody = {
-    'Nuevos|1': 'Hola {nombre}, ¡gracias por escribir! Soy {operador} de Blisniuk & Amanov. Vi que te interesa {salida}. Te cuento en dos líneas cómo trabajamos y te paso fechas y disponibilidad. ¿Cómo preferís que sigamos, por acá o una llamada corta?',
+    'Nuevos|1': 'Hola {nombre}, ¡gracias por escribir! Soy {operador} de Pasaporte Negro. Vi que te interesa {salida}. Te cuento en dos líneas cómo trabajamos y te paso fechas y disponibilidad. ¿Cómo preferís que sigamos, por acá o una llamada corta?',
     'Nuevos|2': 'Hola {nombre}, te escribo de nuevo por las dudas se haya traspapelado. {salida} tiene lugares todavía. Si querés te mando la propuesta con el día a día. ¿Te viene bien?',
     'Contactados|1': 'Hola {nombre}, te dejo la propuesta de {salida} con el itinerario día por día y los encuentros de acceso ya marcados. Cualquier duda la vemos juntos. ¿La pudiste ver?',
     'Contactados|2': '{nombre}, ¿pudiste mirar la propuesta de {salida}? Quedan {libres} lugares y se está moviendo. Si querés reservás el lugar con la seña y después ajustamos detalles.',

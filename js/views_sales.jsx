@@ -1,4 +1,4 @@
-/* B&A · dominios: Ventas · Marketing · Clientes · Biblioteca · Config → window */
+/* Pasaporte Negro · dominios: Ventas · Marketing · Clientes · Biblioteca · Config → window */
 (function () {
   const { Icon, Donut, StatCard, Badge, Avatar, CardHead } = window;
   const { useState } = React;

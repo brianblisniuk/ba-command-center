@@ -1,4 +1,4 @@
-/* B&A · Hoy · El Puente (command center home) → window.Puente */
+/* Pasaporte Negro · Hoy · El Puente (command center home) → window.Puente */
 (function () {
   const { Icon, Spark, BarChart, Donut, Ring, StatCard, Badge, Avatar, SalidaCard, OccBar, CardHead, estadoMeta } = window;
   const { useState, useRef, useEffect } = React;
@@ -42,7 +42,7 @@
       React.createElement('div', { className: 'copilot-head' },
         React.createElement('div', { className: 'copilot-orb' }, React.createElement(Icon, { name: 'spark' })),
         React.createElement('div', null,
-          React.createElement('div', { className: 'copilot-title' }, 'Preguntale a ', React.createElement('em', null, 'B&A')),
+          React.createElement('div', { className: 'copilot-title' }, 'Preguntale a ', React.createElement('em', null, 'Pasaporte Negro')),
           React.createElement('div', { className: 'copilot-sub' }, 'Copiloto · Claude Sonnet sobre todo el negocio'))
       ),
       React.createElement('div', { className: 'copilot-body' },

@@ -1,4 +1,4 @@
-/* B&A · Command Center — app shell + routing + tweaks → mount */
+/* Pasaporte Negro · Command Center — app shell + routing + tweaks → mount */
 (function () {
   const { Icon } = window;
   const { useState, useEffect, useRef } = React;

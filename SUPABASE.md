@@ -24,7 +24,7 @@ lectura sincrónica del mock a `await BA.source.x()`.
 | Marketing / ROAS           | `marketing()`           | `meta_lead_webhook` + gasto de campaña (a cargar)|
 | Cadencias                  | `cadencias()`           | RPC `cadence_render` (tabla `cadence_rules`)     |
 | Calendario operativo       | `calendario()`          | composición de `payments_due` + deadlines + `trips_board` |
-| Copiloto «Preguntale a B&A»| —                       | `claude_writer` + orquestador sobre las 23 RPCs  |
+| Copiloto «Preguntale a Pasaporte Negro»| —                       | `claude_writer` + orquestador sobre las 23 RPCs  |
 | Reporte ejecutivo PDF      | —                       | `generate_pdf_3pager` / `generate_pdf_10pager`   |
 
 ## Pasos sugeridos

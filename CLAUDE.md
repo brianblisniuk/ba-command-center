@@ -1,6 +1,6 @@
-# CLAUDE.md — reglas del proyecto (Command Center B&A)
+# CLAUDE.md — reglas del proyecto (Command Center Pasaporte Negro)
 
-Prototipo de alta fidelidad de un *command center* para Blisniuk & Amanov (operador de
+Prototipo de alta fidelidad de un *command center* para Pasaporte Negro (operador de
 viajes). Vite + React, **TS-ready**. Leé `README.md` y `SUPABASE.md` primero.
 
 ## Modelo mental

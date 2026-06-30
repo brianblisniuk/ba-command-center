@@ -1,4 +1,4 @@
-/* B&A · Configuración del negocio (apariencia · identidad · datos) → window.Configuracion (override) */
+/* Pasaporte Negro · Configuración del negocio (apariencia · identidad · datos) → window.Configuracion (override) */
 (function () {
   const { Icon, Avatar, CardHead } = window;
   const BA = window.BA;
