@@ -14,7 +14,8 @@ NEGRO="#0B0B0B"; CARBON="#1A1A1A"; GRAFITO="#2E2E2E"; NIEBLA="#8A8783"
 PIEDRA="#E6E2DB"; MARFIL="#F5F2ED"; ACCESO="#5E2129"; LINEA="#DBD5C9"
 MRZCOL="#B5AFA3"; CAMPO="#EAE5DA"
 
-F="/home/claude/pn-kit/fonts"
+# Ruta de fuentes portable: usa PN_FONTS si está, si no la carpeta hermana "fuentes"
+F=os.environ.get("PN_FONTS") or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),"fuentes")
 pdfmetrics.registerFont(RLTTFont("JostR", os.path.join(F,"Jost-Regular.ttf")))
 for w,nm in [(500,"JostM"),(600,"JostS")]:
     p=f"/tmp/Jost-{w}.ttf"
