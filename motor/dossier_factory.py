@@ -141,10 +141,9 @@ def build(data, out_path):
     base=(meta.get("basecamp") or {}).get("shortName") or ""
     ficha=[("FECHAS",f"Del {int(ini[8:10])} al {int(fin[8:10])} de {MESES[fin[5:7]]} de {fin[:4]}"),
            ("NOCHES",NUM.get(noches,str(noches)) if noches else str(meta.get("nights","—"))),
-           ("GRUPO",f"{NUM.get(pax,str(pax))} viajeros")]
+           ("GRUPO",f"Hasta {NUM.get(pax,str(pax)).lower()} viajeros")]
     if base: ficha.append(("BASE",base))
     if precio: ficha.append(("PRECIO",f"USD {int(precio):,}".replace(",",".")+" por persona"))
-    ficha.append(("SALIDA","Con los dos accesos confirmados por escrito"))
     for lab,val in ficha:
         caps(pg,lab,M,cur,7.5,"etiqueta",GRAFITO,2.2,max_w=140,name=f"f:{lab}")
         txt(pg,val,M+140,cur,11.5,"fuerte",NEGRO,"JostM",max_w=CW-140,name=f"fv:{lab}")
@@ -158,17 +157,15 @@ def build(data, out_path):
     encabezado(pg,"PÁGINA DE SELLOS")
     cur=PH-TOP_TITULO
     caps(pg,"LOS ACCESOS",M,cur,22,"display",NEGRO,4.6); cur-=34
-    cur=para(pg,"Ninguna expedición de la casa sale a la venta sin dos accesos confirmados por escrito: "
-             "puertas que no se compran con una entrada.",M,cur,11,"fuerte",CARBON,CW,leading=17.5,name="doctrina")
+    cur=para(pg,"Cada expedición de la casa incluye dos accesos: puertas que no se compran con una entrada. "
+             "El detalle es de los que viajan.",M,cur,11,"fuerte",CARBON,CW,leading=17.5,name="doctrina")
     cur-=14
     ROM=["ACCESO I","ACCESO II","ACCESO III"]
     for i,a in enumerate(accesos):
         rule(pg,cur+8); cur-=22
         caps(pg,ROM[i],M,cur,8,"etiqueta",ACCESO,3.0,name=f"a{i}:n")
-        conf = a.get("estado")=="confirmado"
-        sello_estado(pg,PW-M,cur-6,"CONFIRMADO" if conf else "EN CONFIRMACIÓN",confirmado=conf,name=f"a{i}:s")
         cur-=26
-        txt(pg,a["titulo"],M,cur,15.5,"fuerte",NEGRO,"JostM",max_w=CW-170,name=f"a{i}:t")
+        txt(pg,a["titulo"],M,cur,15.5,"fuerte",NEGRO,"JostM",max_w=CW,name=f"a{i}:t")
         cur-=23
         cur=para(pg,a["descripcion"],M,cur,11,"fuerte",CARBON,CW-46,leading=17,name=f"a{i}:d")
         cur-=20
